@@ -3,7 +3,7 @@ import unittest
 
 from sexp import *
 
-class sexptests(unittest.TestCase):
+class sexp_tests(unittest.TestCase):
          
     def test_null_list(self):
         self.isomorphism(l=[], c=[])

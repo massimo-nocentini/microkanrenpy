@@ -1,8 +1,9 @@
 
 from collections import namedtuple
 from itertools import chain
+from contextlib import contextmanager
 
-from sexp import *
+from sexp import cons, cons_to_list, list_to_cons 
 
 # STATES {{{
 
@@ -10,6 +11,10 @@ state = namedtuple('state', ['sub', 'next_index'])
 
 def emptystate():
     return state(sub={}, next_index=0)
+
+@contextmanager
+def states_stream(g, initial_state=emptystate()):
+    yield g(initial_state)
 
 # }}}
 
@@ -207,7 +212,10 @@ def run(goal, n=False, v=var(0), post=lambda arg: arg):
         subs.append(a.sub)
         if n and i == n-1: break
 
-    λ = lambda sub: post(walk_star(v, sub))
+    def λ(sub): 
+        r = walk_star(v, sub)
+        return cons_to_list(r) if isinstance(r, cons) else post(r)
+
     return list(map(λ, subs))
 
 # }}}
