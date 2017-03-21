@@ -27,7 +27,7 @@ class microkanren_tests(unittest.TestCase):
     def test_infinte_recursion_guarded_ηinverse(self):
 
         def fives(x):
-            return disj(unify(x, 5), fresh(lambda: fives(x), arity=0))
+            return disj(unify(x, 5), fresh(lambda: fives(x)))
 
         with states_stream(fresh(fives)) as α:
             self.assertEqual(   [state(sub={var(0): 5}, next_index=1)]*10, 
@@ -36,7 +36,7 @@ class microkanren_tests(unittest.TestCase):
     def test_ηinverse_and_snooze(self):
 
         def sixes_η(x):
-            return disj(unify(x, 6), fresh(lambda: sixes_η(x), arity=0))
+            return disj(unify(x, 6), fresh(lambda: sixes_η(x)))
 
         def sixes_snooze(x):
             return disj(unify(x, 6), snooze(sixes_snooze, [x]))
@@ -94,7 +94,7 @@ class microkanren_tests(unittest.TestCase):
     def test_simple_list_unification(self):
 
         def gbody(r):
-            return fresh(lambda x, y: unify([y, 4, x], r), arity=2)
+            return fresh(lambda x, y: unify([y, 4, x], r))
 
         results = run(fresh(gbody))
         self.assertEqual(results, [[var(2), 4, var(1)]])
@@ -106,5 +106,5 @@ class microkanren_tests(unittest.TestCase):
             run(fresh(lambda w, x, y, z: 
                 conj(unify(list_to_cons(l=[3,[4,5],6]), 
                            list_to_cons(l=(3, [x, y], z))),
-                     unify(list_to_cons(l=[x, y, z]), w)), arity=4)), [[4,5,[6]]])
+                     unify(list_to_cons(l=[x, y, z]), w)))), [[4,5,[6]]])
 

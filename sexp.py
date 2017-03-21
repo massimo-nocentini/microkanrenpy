@@ -1,5 +1,6 @@
 
 from collections import namedtuple
+from contextlib import contextmanager
 
 cons = namedtuple('cons', ['car', 'cdr'])
 
@@ -46,5 +47,10 @@ def cons_to_list(c, for_cdr=False):
     d, λ = cons_to_list(cdr, for_cdr=True)
     r = λ([cons_to_list(car, for_cdr=False)]) + d
     return (r, λ) if for_cdr else r
+
+    
+
+
+
 
 

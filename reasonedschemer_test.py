@@ -18,7 +18,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(g_body), n=2), ['extra', 'olive'])
 
     def test_nullo(self):
-        self.assertEqual(run(nullo([])), [var(0)]) 
+        self.assertEqual(run(nullo([])), [True]) 
         self.assertEqual(run(nullo([1, 2])), []) 
         self.assertEqual(run(fresh(lambda x: nullo([]))), [var(0)]) 
         self.assertEqual(run(fresh(lambda x: nullo(x))), [[]]) 
@@ -39,9 +39,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(listo(list_to_cons(l=(1,2,3,4)))), []) # because the list isn't proper
         self.assertEqual(
             run(fresh(lambda w, x: conj(listo(list_to_cons(l=(1,2,3,4,x))),
-                                        unify(list_to_cons(l=(1,2,3,4,x)), w)), 
-                      arity=2), 
-                n=3), 
+                                        unify(list_to_cons(l=(1,2,3,4,x)), w))), n=3), 
             [[1,2,3,4], [1,2,3,4,var(18)], [1,2,3,4, var(18), var(22)]])
 
 

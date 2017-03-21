@@ -2,6 +2,7 @@
 from collections import namedtuple
 from itertools import chain
 from contextlib import contextmanager
+from inspect import signature
 
 from sexp import cons, cons_to_list, list_to_cons 
 
@@ -86,7 +87,7 @@ def unify(u, v):
 
     return U
 
-def fresh(f, arity=1):
+def fresh(f):
     '''
     def η_inverse(t):
 
@@ -97,13 +98,17 @@ def fresh(f, arity=1):
         return I
     '''
     def F(s : state):
-        g = f(*[var(s.next_index + i) for i in range(arity)])
+        f_sig = signature(f)
+        arity = len(f_sig.parameters)
+        logic_vars = [var(s.next_index + i) for i in range(arity)] 
+        F.logic_vars = logic_vars
+        g = f(*logic_vars)
         yield from g(state(s.sub, s.next_index + arity))
 
     return F
 
 def snooze(f, formal_vars):
-    return fresh(lambda: f(*formal_vars), arity=0)
+    return fresh(lambda: f(*formal_vars))
 
 def conde(*clauses, else_clause=[fail]):
     conjuctions = [conj(*clause) for clause in clauses]
@@ -155,16 +160,9 @@ def mplus(α, β, interleaving=True):
         yield from chain(α, β)
 
 def bind(α, g):
-    '''
-    try:
-        car = next(α)
-    except StopIteration:
-        yield from mzero()
-    else: 
-        yield from mplus(g(car), bind(α, g))
-    '''
-    a = next(α)
-    yield from mplus(g(a), bind(α, g))
+    try: a = next(α)
+    except StopIteration: yield from mzero()
+    else: yield from mplus(g(a), bind(α, g))
 
 # }}}
 
@@ -205,7 +203,8 @@ def unification(u, v, sub):
 
 # INTERFACE {{{
 
-def run(goal, n=False, v=var(0), post=lambda arg: arg):
+def run(goal, n=False, v=lambda *args: args[0] if args else None, post=lambda arg: arg):
+
     subs = []
     α = goal(emptystate())
     for i, a in enumerate(α):
@@ -213,7 +212,8 @@ def run(goal, n=False, v=var(0), post=lambda arg: arg):
         if n and i == n-1: break
 
     def λ(sub): 
-        r = walk_star(v, sub)
+        main_var = v(*goal.logic_vars) if hasattr(goal, 'logic_vars') else True
+        r = walk_star(main_var, sub)
         return cons_to_list(r) if isinstance(r, cons) else post(r)
 
     return list(map(λ, subs))

@@ -9,7 +9,7 @@ def conso(a, d, p):
     return unify(cons(a, d), p) 
 
 def pairo(p):
-    return fresh(lambda a, d: conso(a, d, p), arity=2)
+    return fresh(lambda a, d: conso(a, d, p))
 
 def caro(p, a):
     return fresh(lambda d: conso(a, d, p))
