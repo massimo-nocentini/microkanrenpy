@@ -2,52 +2,18 @@
 from collections import namedtuple
 from itertools import chain
 
+from sexp import *
+
+# STATES {{{
+
 state = namedtuple('state', ['sub', 'next_index'])
-cons = namedtuple('cons', ['car', 'cdr'])
-
-class ImproperListError(ValueError):
-    pass
-
-def list_to_cons(l):
-
-    λ = type(l) 
-
-    try:
-        car, cadr, *cddr = l
-
-        cddr = λ(cddr) # restore correct type of tail collecting obj
-        if cddr == (): return cons(list_to_cons(car), list_to_cons(cadr))
-         
-        cdr = λ([cadr]) + cddr # reconstruct `cdr` by adapt `[cadr]` to safely apply +
-        return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
-    except:
-
-        try:
-            car, *cdr = l
-
-            cdr = λ(cdr) # again, restore correct type of the tail
-            if cdr == (): raise ImproperListError # otherwise outer try couldn't fail
-
-            return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
-
-        except ImproperListError:
-            raise
-        except: 
-            return l
-
-def cons_to_list(c, for_cdr=False):
-
-    try:
-        car, cdr = c
-    except:
-        return (([], list) if c == [] else ((c,), tuple)) if for_cdr else c
-
-    d, λ = cons_to_list(cdr, for_cdr=True)
-    r = λ([cons_to_list(car, for_cdr=False)]) + d
-    return (r, λ) if for_cdr else r
 
 def emptystate():
     return state(sub={}, next_index=0)
+
+# }}}
+
+# VARS {{{
 
 class var:
 
@@ -71,6 +37,10 @@ class var:
 def is_var(obj):
     return getattr(obj, 'is_var', False)
     
+# }}}
+
+# SUBSTITUTION {{{
+
 def walk(u, sub):
     return walk(sub[u], sub) if is_var(u) and u in sub else u
 
@@ -90,7 +60,9 @@ def ext_s(u, v, sub):
     e[u] = v
     return e
 
-# Goal ctor {{{
+# }}}
+
+# GOAL CTORS {{{
 
 def succeed(s : state):
     yield from unit(s)
@@ -139,10 +111,6 @@ def _disj(g1, g2):
         
     return D
 
-def disj(*goals):
-    g, *gs = goals
-    return _disj(g, disj(*gs)) if gs else _disj(g, fail)
-
 def _conj(g1, g2):
 
     def C(s : state):
@@ -150,13 +118,17 @@ def _conj(g1, g2):
 
     return C
 
+def disj(*goals):
+    g, *gs = goals
+    return _disj(g, disj(*gs)) if gs else _disj(g, fail)
+
 def conj(*goals):
     g, *gs = goals
     return _conj(g, conj(*gs)) if gs else _conj(g, succeed)
 
 # }}}
 
-# state-streams ctor {{{
+# STATE STREAMS {{{
 
 def unit(s : state):
     yield from iter([s])
@@ -191,6 +163,8 @@ def bind(α, g):
 
 # }}}
 
+# UNIFICATION {{{
+
 class UnificationError(ValueError):
     pass
 
@@ -213,7 +187,6 @@ def unification(u, v, sub):
             return unification(u.cdr, v.cdr, cars_sub)
     else:
         try:
-            print(u, v)
             caru, *cdru = u
             carv, *cdrv = v
             car_sub = unification(caru, carv, sub)
@@ -222,6 +195,10 @@ def unification(u, v, sub):
             if u == v: return sub
 
     raise UnificationError()
+
+# }}}
+
+# INTERFACE {{{
 
 def run(goal, n=False, v=var(0), post=lambda arg: arg):
     subs = []
@@ -233,23 +210,5 @@ def run(goal, n=False, v=var(0), post=lambda arg: arg):
     λ = lambda sub: post(walk_star(v, sub))
     return list(map(λ, subs))
 
-def nullo(l):
-    return unify([], l)
-
-def conso(a, d, p):
-    return unify(cons(a, d), p) 
-
-def pairo(p):
-    return fresh(lambda a, d: conso(a, d, p), arity=2)
-
-def caro(p, a):
-    return fresh(lambda d: conso(a, d, p))
-
-def cdro(p, d):
-    return fresh(lambda a: conso(a, d, p))
-
-def listo(l):
-    return conde(   [nullo(l), succeed],
-                    #[pairo(l), fresh(lambda d: conj(cdro(l, d), snooze(listo, [d])))]
-                    [pairo(l), fresh(lambda d: conj(cdro(l, d), listo(d)))])
+# }}}
 

@@ -1,6 +1,9 @@
 
-from microkanren import *
 from sympy import Add, S, symbols
+
+from microkanren import *
+from reasonedschemer import *
+from sexp import *
 
 def fives(x):
     return disj(unify(x, 5), fresh(fives))
@@ -48,7 +51,7 @@ print(run(nullo([2,3])))
 
 print('list_to_cons')
 c = list_to_cons([1,2,3]) 
-print(c)
+print(c, type(c))
 print(cons_to_list(c))
 
 c = list_to_cons((1,[2,3], 4))
