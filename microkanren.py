@@ -3,8 +3,10 @@ from collections import namedtuple
 from itertools import chain
 from contextlib import contextmanager
 from inspect import signature
+from functools import wraps
 
 from sexp import cons, cons_to_list, list_to_cons 
+
 
 # STATES {{{
 
@@ -45,6 +47,53 @@ def is_var(obj):
     
 # }}}
 
+# UNIFICATION {{{
+
+class UnificationError(ValueError):
+    pass
+
+def adapt_iterables_to_conses(selector=True):
+    def decorator(f):
+        @wraps(f)
+        def D(*args):
+            selection = selector(*args) if callable(selector) else args if selector else []
+            new_args = [list_to_cons(a) 
+                        if a in selection and isinstance(a, (list, tuple, )) else a # should be interesting to handle `str` objects natively
+                        for a in args]
+            return f(*new_args)
+        return D
+    return decorator
+
+def unification(u, v, sub):
+    u, v = walk(u, sub), walk(v, sub)
+    if is_var(u) and is_var(v) and u == v: return sub
+    elif is_var(u): return ext_s(u, v, sub)
+    elif is_var(v): return ext_s(v, u, sub)
+    elif (hasattr(u, 'func') and hasattr(u, 'args') 
+             and hasattr(v, 'func') and hasattr(v, 'args')):
+        func_sub = unification(u.func, v.func, sub)
+        return unification(u.args, v.args, func_sub)
+    elif isinstance(u, cons) and isinstance(v, cons):
+        if u.cdr == tuple():
+            return unification(u.car, v, sub)
+        if v.cdr == tuple():
+            return unification(v.car, u, sub)
+        else:
+            cars_sub = unification(u.car, v.car, sub)
+            return unification(u.cdr, v.cdr, cars_sub)
+    else:
+        try:
+            caru, *cdru = u
+            carv, *cdrv = v
+            car_sub = unification(caru, carv, sub)
+            return unification(cdru, cdrv, car_sub)
+        except:
+            if u == v: return sub
+
+    raise UnificationError()
+
+# }}}
+
 # SUBSTITUTION {{{
 
 def walk(u, sub):
@@ -76,6 +125,7 @@ def succeed(s : state):
 def fail(s : state):
     yield from mzero()
 
+@adapt_iterables_to_conses()
 def unify(u, v):
 
     def U(s : state):
@@ -166,41 +216,6 @@ def bind(α, g):
 
 # }}}
 
-# UNIFICATION {{{
-
-class UnificationError(ValueError):
-    pass
-
-def unification(u, v, sub):
-    u, v = walk(u, sub), walk(v, sub)
-    if is_var(u) and is_var(v) and u == v: return sub
-    elif is_var(u): return ext_s(u, v, sub)
-    elif is_var(v): return ext_s(v, u, sub)
-    elif (hasattr(u, 'func') and hasattr(u, 'args') 
-             and hasattr(v, 'func') and hasattr(v, 'args')):
-        func_sub = unification(u.func, v.func, sub)
-        return unification(u.args, v.args, func_sub)
-    elif isinstance(u, cons) and isinstance(v, cons):
-        if u.cdr == tuple():
-            return unification(u.car, v, sub)
-        if v.cdr == tuple():
-            return unification(v.car, u, sub)
-        else:
-            cars_sub = unification(u.car, v.car, sub)
-            return unification(u.cdr, v.cdr, cars_sub)
-    else:
-        try:
-            caru, *cdru = u
-            carv, *cdrv = v
-            car_sub = unification(caru, carv, sub)
-            return unification(cdru, cdrv, car_sub)
-        except:
-            if u == v: return sub
-
-    raise UnificationError()
-
-# }}}
-
 # INTERFACE {{{
 
 def run(goal, n=False, v=lambda *args: args[0] if args else None, post=lambda arg: arg):
@@ -219,4 +234,5 @@ def run(goal, n=False, v=lambda *args: args[0] if args else None, post=lambda ar
     return list(map(λ, subs))
 
 # }}}
+
 
