@@ -5,23 +5,43 @@ from itertools import chain
 state = namedtuple('state', ['sub', 'next_index'])
 cons = namedtuple('cons', ['car', 'cdr'])
 
+class ImproperListError(ValueError):
+    pass
 
 def list_to_cons(l):
+
+    λ = type(l) 
+
     try:
-        λ = type(l) 
-        car, *cdr = l
-        cdr = λ(cdr)
+        car, cadr, *cddr = l
+
+        cddr = λ(cddr) # restore correct type of tail collecting obj
+        if cddr == (): return cons(list_to_cons(car), list_to_cons(cadr))
+         
+        cdr = λ([cadr]) + cddr # reconstruct `cdr` by adapt `[cadr]` to safely apply +
         return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
     except:
-        return l
+
+        try:
+            car, *cdr = l
+
+            cdr = λ(cdr) # again, restore correct type of the tail
+            if cdr == (): raise ImproperListError # otherwise outer try couldn't fail
+
+            return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
+
+        except ImproperListError:
+            raise
+        except: 
+            return l
 
 def cons_to_list(c, for_cdr=False):
 
     try:
         car, cdr = c
     except:
-        return ((c, type(c)) if c == [] or c == () else ((c,), tuple)) if for_cdr else c
-    
+        return (([], list) if c == [] else ((c,), tuple)) if for_cdr else c
+
     d, λ = cons_to_list(cdr, for_cdr=True)
     r = λ([cons_to_list(car, for_cdr=False)]) + d
     return (r, λ) if for_cdr else r
@@ -62,6 +82,10 @@ def walk_star(v, sub):
     else: return v
 
 def ext_s(u, v, sub):
+
+    if u in sub and sub[u] != v: 
+        raise UnificationError
+
     e = sub.copy()
     e[u] = v
     return e
@@ -104,8 +128,9 @@ def fresh(f, arity=1):
 def snooze(f, formal_vars):
     return fresh(lambda: f(*formal_vars), arity=0)
 
-def conde(clauses, else_clause=[fail]):
-    return disj(*[conj(*clause) for clause in clauses], conj(*else_clause))
+def conde(*clauses, else_clause=[fail]):
+    conjuctions = [conj(*clause) for clause in clauses]
+    return disj(*conjuctions, conj(*else_clause))
 
 def _disj(g1, g2):
     
@@ -178,8 +203,17 @@ def unification(u, v, sub):
              and hasattr(v, 'func') and hasattr(v, 'args')):
         func_sub = unification(u.func, v.func, sub)
         return unification(u.args, v.args, func_sub)
+    elif isinstance(u, cons) and isinstance(v, cons):
+        if u.cdr == tuple():
+            return unification(u.car, v, sub)
+        if v.cdr == tuple():
+            return unification(v.car, u, sub)
+        else:
+            cars_sub = unification(u.car, v.car, sub)
+            return unification(u.cdr, v.cdr, cars_sub)
     else:
         try:
+            print(u, v)
             caru, *cdru = u
             carv, *cdrv = v
             car_sub = unification(caru, carv, sub)
@@ -215,23 +249,7 @@ def cdro(p, d):
     return fresh(lambda a: conso(a, d, p))
 
 def listo(l):
-    return conde([  [nullo(l), succeed],
+    return conde(   [nullo(l), succeed],
                     #[pairo(l), fresh(lambda d: conj(cdro(l, d), snooze(listo, [d])))]
-                    [pairo(l), fresh(lambda d: conj(cdro(l, d), listo(d)))]
-                    ])
-
-'''
-def caro(p, a):
-
-    #fresh(lambda d: conj(listo(d), conso(a, d, p)))
-
-    def A(d):
-        car, *rest = p
-        return conj(unify(car, a), unify(rest, d))
-
-    return fresh(A)
-
-    #return fresh(lambda d: unify([a] + d, p))
-'''
-
+                    [pairo(l), fresh(lambda d: conj(cdro(l, d), listo(d)))])
 
