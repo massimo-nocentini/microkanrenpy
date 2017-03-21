@@ -49,16 +49,8 @@ print(run(fresh(gbody)))
 
 print(run(nullo([2,3])))
 
-print('list_to_cons')
-c = list_to_cons([1,2,3]) 
-print(c, type(c))
-print(cons_to_list(c))
 
-c = list_to_cons((1,[2,3], 4))
-print(c)
-print(cons_to_list(c))
-print('hello')
-print(cons_to_list(cons(cons(3, []), cons(cons(4, 5), 6))))
+print(cons_to_list)
 print('hello')
 print(run(fresh(lambda w, x, y, z: conj(unify(  list_to_cons([3,[4,5],6]), 
                                                 #list_to_cons((3, [x, y], [z]),)),

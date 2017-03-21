@@ -38,6 +38,7 @@ def cons_to_list(c, for_cdr=False):
     try:
         car, cdr = c
     except:
+        if c == (): raise ImproperListError
         return (([], list) if c == [] else ((c,), tuple)) if for_cdr else c
 
     d, λ = cons_to_list(cdr, for_cdr=True)
