@@ -27,8 +27,9 @@ class var:
 
     subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
 
-    def __init__(self, index):
+    def __init__(self, index, name='v'):
         self.index = index
+        self.name = name
         self.is_var = True
 
     def __eq__(self, other):
@@ -39,12 +40,40 @@ class var:
     def __hash__(self):
         return hash(self.index)
 
-    def __repr__(self, varname='v'):
-        return '{}{}'.format(varname, ''.join(self.subscripts[c] for c in str(self.index)))
+    def __repr__(self):
+        return '{}{}'.format(self.name, ''.join(self.subscripts[c] for c in str(self.index)))
+
+    def __radd__(self, other):
+        
+        if isinstance(other, list): 
+            # according to *chicken scheme*, function `append` is defined only
+            # on proper lists, unless the very last one which is allowed to be
+            # an improper list. Therefore, we discard the case of `other` to be
+            # a `tuple`, which means `other` is an improper list, so we append
+            # `self` to the end and, finally, make the entire obj a `tuple`
+            # because `self` is a logic variable that can be unified with *any*
+            # value, not just [] to be proper lists.
+            return tuple(other + [self])
+
+        raise NotImplemented
+
+    def __add__(self, other):
+        
+        raise NotImplemented
+
+        # although the following implementation seems reasonable, it permits
+        # `unify([3,[4,5],6], x + ([4, y], z))` to bind `x` to `3` whereas the
+        # correct deduction should be `x==[3]`.  In other words, it does the
+        # work of `appendo`.
+        if isinstance(other, (list, tuple)):
+            λ = type(other) 
+            return λ([self]) + other
+
+
 
 def is_var(obj):
     return getattr(obj, 'is_var', False)
-    
+
 # }}}
 
 # UNIFICATION {{{

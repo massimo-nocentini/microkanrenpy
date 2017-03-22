@@ -23,6 +23,16 @@ class sexp_tests(unittest.TestCase):
     def test_more_nested_improper_list_to_cons(self):
         self.isomorphism(l=([3],(4,5), 6), c=cons(cons(3, []), cons(cons(4, 5), 6)))
 
+    def test_shadow_proper_list_using_improper_list_notation(self):
+        # pay attention, this is not an isomorphism, the next test shows the
+        # natural way of writing, without shadowing. The broken direction is
+        # represented by function `cons_to_list` which doesn't shadow objs it
+        # produces.
+        self.assertEqual(list_to_cons(([3],(4,5), [6])), cons(cons(3, []), cons(cons(4, 5), cons(6, []))))
+
+    def test_more_nested_improper_lists_into_proper_list_to_cons(self):
+        self.isomorphism(l=[[3],(4,5), 6], c=cons(cons(3, []), cons(cons(4, 5), cons(6, []))))
+
     @unittest.expectedFailure
     def test_invalid_improper_list(self):
         list_to_cons(l=(3,))

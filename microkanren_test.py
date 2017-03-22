@@ -102,9 +102,34 @@ class microkanren_tests(unittest.TestCase):
 
 
     def test_unify(self):
+
         self.assertEqual(
             run(fresh(lambda w, x, y, z: 
-                conj(unify(list_to_cons(l=[3,[4,5],6]), 
-                           list_to_cons(l=(3, [x, y], z))),
-                     unify(list_to_cons(l=[x, y, z]), w)))), [[4,5,[6]]])
+                conj(unify([3,[4,5],6], [3, [x, y], z]),
+                     unify([x, y, z], w)))), [[4,5,6]])
+
+        self.assertEqual(
+            run(fresh(lambda w, x, y, z: 
+                conj(unify([3,[4,5],6], (3, [x, y], z)),
+                     unify([x, y, z], w)))), [[4,5,[6]]])
+
+        self.assertEqual(
+            run(fresh(lambda w, x, y, z: 
+                conj(unify([3,[4,5],6], [3, [x, y]] + z),
+                     unify([x, y, z], w)))), [[4,5,[6]]])
+
+        self.assertEqual(
+            run(fresh(lambda w, x, y, z: 
+                conj(unify((3,[4,5],6), [3, [x, y]] + z),
+                     unify([x, y, z], w)))), [[4,5,6]])
+
+        with self.assertRaises(TypeError):
+            self.assertEqual(
+                run(fresh(lambda w, x, y, z: 
+                    conj(unify([3,[4,5],6], x + ([4, y], z)),
+                         unify([x, y, z], w)))), [[3,5,[6]]])
+
+
+
+
 
