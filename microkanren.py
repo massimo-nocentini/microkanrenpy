@@ -13,6 +13,7 @@ from sexp import cons, cons_to_list, list_to_cons
 state = namedtuple('state', ['sub', 'next_index'])
 
 def emptystate():
+    
     return state(sub={}, next_index=0)
 
 @contextmanager
@@ -35,6 +36,7 @@ class var:
     def __eq__(self, other):
         # a more performant, yet not functional, should be 
         #return self is other
+        #return self.index == other.index and self.name == other.name if is_var(other) else False
         return self.index == other.index if is_var(other) else False
 
     def __hash__(self):
@@ -166,6 +168,7 @@ def unify(u, v):
 
     return U
 
+
 def fresh(f):
     '''
     def η_inverse(t):
@@ -179,7 +182,8 @@ def fresh(f):
     def F(s : state):
         f_sig = signature(f)
         arity = len(f_sig.parameters)
-        logic_vars = [var(s.next_index + i) for i in range(arity)] 
+        logic_vars = [var(s.next_index+i, v.name)
+                      for i, (k, v) in enumerate(f_sig.parameters.items())] 
         F.logic_vars = logic_vars
         g = f(*logic_vars)
         yield from g(state(s.sub, s.next_index + arity))

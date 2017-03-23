@@ -12,7 +12,7 @@ class microkanren_tests(unittest.TestCase):
             return disj(unify(x, 5), fives(x))
         
         with self.assertRaises(RecursionError), states_stream(fresh(fives)) as α:
-            s = next(α)
+            next(α)
 
     def test_infinte_recursion_guarded_refreshing(self):
 
@@ -20,9 +20,9 @@ class microkanren_tests(unittest.TestCase):
             return disj(unify(x, 5), fresh(fives))
 
         with states_stream(fresh(fives)) as α:
-            self.assertEqual(
-                [state(sub={var(i): 5}, next_index=i+1) for i in range(10)], 
-                [next(α) for _ in range(10)])
+            self.assertEqual([state(sub={var(i, name='x'): 5}, next_index=i+1) for i in range(10)], 
+                             [next(α) for _ in range(10)])
+
 
     def test_infinte_recursion_guarded_ηinverse(self):
 
@@ -47,14 +47,14 @@ class microkanren_tests(unittest.TestCase):
                                 [next(β) for _ in range(10)])
 
 
-    def test_interleav_5s_and_6s(self):
+    def test_interleaving_of_5s_and_6s(self):
 
         def ns(x, n):
             return disj(unify(x, n), snooze(ns, [x, n]))
 
         with states_stream(fresh(lambda x: disj(ns(x, 5), ns(x, 6)))) as α:
             numbers = [state(sub={var(0): 5}, next_index=1), 
-                         state(sub={var(0): 6}, next_index=1)]
+                       state(sub={var(0): 6}, next_index=1)]
             self.assertEqual(numbers * 5, [next(α) for _ in range(10)])
 
 
@@ -97,8 +97,8 @@ class microkanren_tests(unittest.TestCase):
             return fresh(lambda x, y: unify([y, 4, x], r))
 
         results = run(fresh(gbody))
-        self.assertEqual(results, [[var(2), 4, var(1)]])
-        self.assertEqual(str(results[0]), '[v₂, 4, v₁]')
+        self.assertEqual(results, [[var(2, name='y'), 4, var(1, name='x')]])
+        self.assertEqual(str(results[0]), '[y₂, 4, x₁]')
 
 
     def test_unify(self):
