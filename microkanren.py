@@ -28,7 +28,7 @@ class var:
 
     subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
 
-    def __init__(self, index, name='v'):
+    def __init__(self, index, name):
         self.index = index
         self.name = name
         self.is_var = True
@@ -36,8 +36,8 @@ class var:
     def __eq__(self, other):
         # a more performant, yet not functional, should be 
         #return self is other
-        #return self.index == other.index and self.name == other.name if is_var(other) else False
-        return self.index == other.index if is_var(other) else False
+        return self.index == other.index and self.name == other.name if is_var(other) else False
+        #return self.index == other.index if is_var(other) else False
 
     def __hash__(self):
         return hash(self.index)

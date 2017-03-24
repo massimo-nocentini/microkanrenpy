@@ -20,7 +20,7 @@ class microkanren_tests(unittest.TestCase):
             return disj(unify(x, 5), fresh(fives))
 
         with states_stream(fresh(fives)) as α:
-            self.assertEqual([state(sub={var(i, name='x'): 5}, next_index=i+1) for i in range(10)], 
+            self.assertEqual([state(sub={var(i, 'x'): 5}, next_index=i+1) for i in range(10)], 
                              [next(α) for _ in range(10)])
 
 
@@ -30,7 +30,7 @@ class microkanren_tests(unittest.TestCase):
             return disj(unify(x, 5), fresh(lambda: fives(x)))
 
         with states_stream(fresh(fives)) as α:
-            self.assertEqual(   [state(sub={var(0): 5}, next_index=1)]*10, 
+            self.assertEqual(   [state(sub={var(0, 'x'): 5}, next_index=1)]*10, 
                                 [next(α) for _ in range(10)])
 
     def test_ηinverse_and_snooze(self):
@@ -53,8 +53,8 @@ class microkanren_tests(unittest.TestCase):
             return disj(unify(x, n), snooze(ns, [x, n]))
 
         with states_stream(fresh(lambda x: disj(ns(x, 5), ns(x, 6)))) as α:
-            numbers = [state(sub={var(0): 5}, next_index=1), 
-                       state(sub={var(0): 6}, next_index=1)]
+            numbers = [state(sub={var(0, 'x'): 5}, next_index=1), 
+                       state(sub={var(0, 'x'): 6}, next_index=1)]
             self.assertEqual(numbers * 5, [next(α) for _ in range(10)])
 
 
@@ -64,7 +64,7 @@ class microkanren_tests(unittest.TestCase):
             return disj(unify(x, n), snooze(ns, [x, n+1]))
 
         with states_stream(fresh(lambda x: ns(x, 0))) as α:
-            nats = [state(sub={var(0): i}, next_index=1) for i in range(10)]
+            nats = [state(sub={var(0, 'x'): i}, next_index=1) for i in range(10)]
             self.assertEqual(nats, [next(α) for _ in range(10)])
 
     def test_nats_by_evens_and_odds(self):
@@ -73,7 +73,7 @@ class microkanren_tests(unittest.TestCase):
             return disj(unify(x, n), snooze(ns, [x, n+2]))
 
         with states_stream(fresh(lambda x: disj(ns(x, 0), ns(x, 1)))) as α:
-            nats = [state(sub={var(0): i}, next_index=1) for i in range(10)]
+            nats = [state(sub={var(0, 'x'): i}, next_index=1) for i in range(10)]
             self.assertEqual(nats, [next(α) for _ in range(10)])
 
     def test_fail_goal(self):
@@ -97,7 +97,7 @@ class microkanren_tests(unittest.TestCase):
             return fresh(lambda x, y: unify([y, 4, x], r))
 
         results = run(fresh(gbody))
-        self.assertEqual(results, [[var(2, name='y'), 4, var(1, name='x')]])
+        self.assertEqual(results, [[var(2, 'y'), 4, var(1, 'x')]])
         self.assertEqual(str(results[0]), '[y₂, 4, x₁]')
 
 
