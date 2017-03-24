@@ -111,6 +111,27 @@ class reasonedschemer_test(unittest.TestCase):
                                                               [unify(False, x), unify('y', y)]),
                                                         unify([x, y], r)))), 
                          [['tea', True], [False, 'y'], ['cup', True] ]) # 1.57
+        self.assertEqual(run(fresh(lambda r, x, y, z: 
+            conj(conde([unify(y, x), fresh(lambda x: unify(z, x))],
+                       [fresh(lambda x: unify(y, x)), unify(z, x)]),
+                 unify([y, z], r)))), [[var(0), var(1)], [var(0), var(1)]]) # 1.58
+        self.assertEqual(run(fresh(lambda r, x, y, z: 
+            conj(conde([unify(y, x), fresh(lambda x: unify(z, x))],
+                       [fresh(lambda x: unify(y, x)), unify(z, x)]),
+                 unify(False, x),
+                 unify([y, z], r)))), [[False, var(0)], [var(0), False]]) # 1.59
+
+        def goal(q):
+            select = lambda a, b: b
+            return select(unify(True, q), unify(False, q))
+        self.assertEqual(run(fresh(goal)), [False]) # 1.60
+
+        def goal(q):
+            select = lambda a, b, c: b
+            return select(unify(True, q), 
+                          fresh(lambda x: conj(unify(x, q), unify(False, x))),
+                          conde([unify(True, q), succeed], else_clause=[unify(False, q)]))
+        self.assertEqual(run(fresh(goal)), [False]) # 1.61
 
 
     def test_nullo(self):
