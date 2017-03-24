@@ -207,27 +207,33 @@ def fresh(f):
 def snooze(f, formal_vars):
     return fresh(lambda: f(*formal_vars))
 
-def conde(*clauses, else_clause=[fail]):
-    conjuctions = [conj(*clause) for clause in clauses]
-    return disj(*conjuctions, conj(*else_clause))
+def cond(*clauses, else_clause=[fail], interleaving):
+    conjuctions = [conj(*clause) for clause in clauses] + [conj(*else_clause)]
+    return disj(*conjuctions, interleaving=interleaving)
 
-def _disj(g1, g2):
+def conde(*clauses, else_clause=[fail]):
+    return cond(*clauses, else_clause, interleaving=False)
+
+def condi(*clauses, else_clause=[fail]):
+    return cond(*clauses, else_clause, interleaving=True)
+
+def _disj(g1, g2, interleaving):
     
     def D(s : state):
-        yield from mplus(g1(s), g2(s))
+        yield from mplus(g1(s), g2(s), interleaving)
         
     return D
 
 def _conj(g1, g2):
 
     def C(s : state):
-        yield from bind(g1(s), g2)
+        yield from bind(g1(s), g2, interleaving=False)
 
     return C
 
-def disj(*goals):
+def disj(*goals, interleaving=True):
     g, *gs = goals
-    return _disj(g, disj(*gs)) if gs else _disj(g, fail)
+    return _disj(g, disj(*gs, interleaving=interleaving), interleaving) if gs else _disj(g, fail, interleaving)
 
 def conj(*goals):
     g, *gs = goals
@@ -243,7 +249,7 @@ def unit(s : state):
 def mzero(s : state = None):
     yield from iter([])
 
-def mplus(α, β, interleaving=True):
+def mplus(α, β, interleaving):
 
     if interleaving:
         try:
@@ -256,7 +262,7 @@ def mplus(α, β, interleaving=True):
     else:
         yield from chain(α, β)
 
-def bind(α, g, interleaving=True):
+def bind(α, g, interleaving):
     try: a = next(α)
     except StopIteration: yield from mzero()
     else: yield from mplus(g(a), bind(α, g, interleaving), interleaving)

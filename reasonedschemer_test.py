@@ -106,7 +106,11 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda r, x, y: conj(conde([tea_cupo(x), unify(True, y)],
                                                               [unify(False, x), unify('y', y)]),
                                                         unify([x, y], r)))), 
-                         [['tea', True], [False, 'y'], ['cup', True], ]) # 1.57
+                         [['tea', True], ['cup', True], [False, 'y']]) # 1.57
+        self.assertEqual(run(fresh(lambda r, x, y: conj(condi([tea_cupo(x), unify(True, y)],
+                                                              [unify(False, x), unify('y', y)]),
+                                                        unify([x, y], r)))), 
+                         [['tea', True], [False, 'y'], ['cup', True] ]) # 1.57
 
 
     def test_nullo(self):
