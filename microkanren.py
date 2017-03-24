@@ -1,4 +1,18 @@
 
+'''
+    __Laws__
+
+    ● law of fresh
+        if x is fresh, then unify(v, x) succeeds and associates x with v    
+    ● law of unify
+        unify(v, w) is the same as unify(w, v)
+    ● law of conde
+        to get more values from conde, pretend that the successful conde line
+        has failed, refreshing all variables that got an association from that
+        line
+
+'''
+
 from collections import namedtuple
 from itertools import chain
 from contextlib import contextmanager
@@ -102,10 +116,6 @@ def unification(u, v, sub):
     if is_var(u) and is_var(v) and u == v: return sub
     elif is_var(u): return ext_s(u, v, sub)
     elif is_var(v): return ext_s(v, u, sub)
-    elif (hasattr(u, 'func') and hasattr(u, 'args') 
-             and hasattr(v, 'func') and hasattr(v, 'args')):
-        func_sub = unification(u.func, v.func, sub)
-        return unification(u.args, v.args, func_sub)
     elif isinstance(u, cons) and isinstance(v, cons):
         if u.cdr == tuple():
             return unification(u.car, v, sub)
@@ -246,17 +256,17 @@ def mplus(α, β, interleaving=True):
     else:
         yield from chain(α, β)
 
-def bind(α, g):
+def bind(α, g, interleaving=True):
     try: a = next(α)
     except StopIteration: yield from mzero()
-    else: yield from mplus(g(a), bind(α, g))
+    else: yield from mplus(g(a), bind(α, g, interleaving), interleaving)
 
 # }}}
 
 # INTERFACE {{{
 
 def run(goal, n=False, 
-        var_selector=lambda *args: (args[0], 'v') if args else (None, None), 
+        var_selector=lambda *args: (args[0], default_var_name) if args else (None, None), 
         post=lambda arg: arg):
 
     subs = []

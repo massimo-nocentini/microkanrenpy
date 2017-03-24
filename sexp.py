@@ -11,7 +11,7 @@ def list_to_cons(l):
 
     λ = type(l) 
     if λ == str:
-        λ = lambda arg: ''.join(arg[0])  
+        return l # we consider a `str` obj not an iterable obj but as an atom
 
     try:
         car, cadr, *cddr = l
