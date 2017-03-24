@@ -23,7 +23,6 @@ class microkanren_tests(unittest.TestCase):
             self.assertEqual([state(sub={var(i, 'x'): 5}, next_index=i+1) for i in range(10)], 
                              [next(α) for _ in range(10)])
 
-
     def test_infinte_recursion_guarded_ηinverse(self):
 
         def fives(x):
@@ -97,8 +96,8 @@ class microkanren_tests(unittest.TestCase):
             return fresh(lambda x, y: unify([y, 4, x], r))
 
         results = run(fresh(gbody))
-        self.assertEqual(results, [[var(2, 'y'), 4, var(1, 'x')]])
-        self.assertEqual(str(results[0]), '[y₂, 4, x₁]')
+        self.assertEqual(results, [[var(0), 4, var(1)]])
+        self.assertEqual(str(results[0]), '[v₀, 4, v₁]')
 
 
     def test_unify(self):

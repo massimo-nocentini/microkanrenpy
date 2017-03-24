@@ -12,6 +12,8 @@ from sexp import cons, cons_to_list, list_to_cons
 
 state = namedtuple('state', ['sub', 'next_index'])
 
+default_var_name = 'v'
+
 def emptystate():
     
     return state(sub={}, next_index=0)
@@ -28,7 +30,7 @@ class var:
 
     subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
 
-    def __init__(self, index, name):
+    def __init__(self, index, name=default_var_name):
         self.index = index
         self.name = name
         self.is_var = True
@@ -179,12 +181,14 @@ def fresh(f):
 
         return I
     '''
+
+    f_sig = signature(f)
+    arity = len(f_sig.parameters)
+
     def F(s : state):
-        f_sig = signature(f)
-        arity = len(f_sig.parameters)
-        logic_vars = [var(s.next_index+i, v.name)
-                      for i, (k, v) in enumerate(f_sig.parameters.items())] 
-        F.logic_vars = logic_vars
+        logic_vars = [var(s.next_index+i, v.name) for i, (k, v) in enumerate(f_sig.parameters.items())] 
+        if logic_vars:
+            setattr(F, 'logic_vars', logic_vars)
         g = f(*logic_vars)
         yield from g(state(s.sub, s.next_index + arity))
 
@@ -251,7 +255,9 @@ def bind(α, g):
 
 # INTERFACE {{{
 
-def run(goal, n=False, v=lambda *args: args[0] if args else None, post=lambda arg: arg):
+def run(goal, n=False, 
+        var_selector=lambda *args: (args[0], 'v') if args else (None, None), 
+        post=lambda arg: arg):
 
     subs = []
     α = goal(emptystate())
@@ -260,11 +266,19 @@ def run(goal, n=False, v=lambda *args: args[0] if args else None, post=lambda ar
         if n and i == n-1: break
 
     def λ(sub): 
-        main_var = v(*goal.logic_vars) if hasattr(goal, 'logic_vars') else True
+        main_var, var_name = var_selector(*getattr(goal, 'logic_vars', (True, None)))
         r = walk_star(main_var, sub)
+        reified = reify(r, {}, var_name)
+        r = walk_star(r, reified)
         return cons_to_list(r) if isinstance(r, cons) else post(r)
 
     return list(map(λ, subs))
+
+def reify(v, sub, var_name):
+    v = walk(v, sub)
+    if is_var(v): return ext_s(v, var(len(sub), var_name), sub)
+    elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub, var_name), var_name)
+    else: return sub
 
 # }}}
 
