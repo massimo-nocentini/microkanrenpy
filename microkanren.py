@@ -17,19 +17,17 @@ from collections import namedtuple
 from itertools import chain
 from contextlib import contextmanager
 from inspect import signature
-from functools import wraps
+from functools import partial, reduce
+from itertools import count
 
-from sexp import cons, cons_to_list, list_to_cons 
+from sexp import *
 
 
 # STATES {{{
 
 state = namedtuple('state', ['sub', 'next_index'])
 
-default_var_name = 'v'
-
 def emptystate():
-    
     return state(sub={}, next_index=0)
 
 @contextmanager
@@ -39,6 +37,8 @@ def states_stream(g, initial_state=emptystate()):
 # }}}
 
 # VARS {{{
+
+default_var_name = 'v'
 
 class var:
 
@@ -88,7 +88,6 @@ class var:
             return λ([self]) + other
 
 
-
 def is_var(obj):
     return getattr(obj, 'is_var', False)
 
@@ -98,18 +97,6 @@ def is_var(obj):
 
 class UnificationError(ValueError):
     pass
-
-def adapt_iterables_to_conses(selector=True):
-    def decorator(f):
-        @wraps(f)
-        def D(*args):
-            selection = selector(*args) if callable(selector) else args if selector else []
-            new_args = [list_to_cons(a) 
-                        if a in selection and isinstance(a, (list, tuple, )) else a # should be interesting to handle `str` objects natively
-                        for a in args]
-            return f(*new_args)
-        return D
-    return decorator
 
 def unification(u, v, sub):
     u, v = walk(u, sub), walk(v, sub)
@@ -151,12 +138,20 @@ def walk_star(v, sub):
 
 def ext_s(u, v, sub):
 
-    if u in sub and sub[u] != v: 
-        raise UnificationError
+    if u in sub: # check to ensure consistency of previously unified values
+        if sub[u] != v: raise UnificationError
+        else: return sub
 
     e = sub.copy()
     e[u] = v
     return e
+
+def reify(v, sub, var_name):
+    v = walk(v, sub)
+    if is_var(v): return ext_s(v, var(len(sub), var_name), sub)
+    elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub, var_name), var_name)
+    elif isinstance(v, list): return reduce(lambda sub, u: reify(u, sub, var_name), v, sub)
+    else: return sub
 
 # }}}
 
@@ -211,11 +206,9 @@ def cond(*clauses, else_clause=[fail], interleaving):
     conjuctions = [conj(*clause) for clause in clauses] + [conj(*else_clause)]
     return disj(*conjuctions, interleaving=interleaving)
 
-def conde(*clauses, else_clause=[fail]):
-    return cond(*clauses, else_clause, interleaving=False)
+conde = partial(cond, interleaving=False)
+condi = partial(cond, interleaving=True)
 
-def condi(*clauses, else_clause=[fail]):
-    return cond(*clauses, else_clause, interleaving=True)
 
 def _disj(g1, g2, interleaving):
     
@@ -275,11 +268,8 @@ def run(goal, n=False,
         var_selector=lambda *args: (args[0], default_var_name) if args else (None, None), 
         post=lambda arg: arg):
 
-    subs = []
-    α = goal(emptystate())
-    for i, a in enumerate(α):
-        subs.append(a.sub)
-        if n and i == n-1: break
+    with states_stream(goal) as α:
+        subs = [a.sub for i, a in zip(range(n) if n else count(), α)]
 
     def λ(sub): 
         main_var, var_name = var_selector(*getattr(goal, 'logic_vars', (True, None)))
@@ -290,11 +280,6 @@ def run(goal, n=False,
 
     return list(map(λ, subs))
 
-def reify(v, sub, var_name):
-    v = walk(v, sub)
-    if is_var(v): return ext_s(v, var(len(sub), var_name), sub)
-    elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub, var_name), var_name)
-    else: return sub
 
 # }}}
 
