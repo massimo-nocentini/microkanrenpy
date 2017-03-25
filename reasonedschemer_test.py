@@ -16,7 +16,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda q: conj(succeed, unify('corn', q)))), ['corn']) # 1.15
         self.assertEqual(run(fresh(lambda q: conj(fail, unify('corn', q)))), []) # 1.17
         self.assertEqual(run(fresh(lambda q: conj(succeed, unify(False, q)))), [False]) # 1.18
-        self.assertEqual(run(unify(False, False)), [True])
+        self.assertEqual(run(unify(False, False)), [Tautology()])
         self.assertEqual(run(fresh(lambda q: unify(True, False))), [])
         self.assertEqual(run(unify(True, False)), [])
         self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(True, q))),
@@ -64,11 +64,18 @@ class reasonedschemer_test(unittest.TestCase):
             return let(q)
         self.assertEqual(run(fresh(goal)), [False]) # 1.40.2
 
+        self.assertEqual(run(fresh(lambda r, y, x: unify([x, y], r))), [[var(0), var(1)]]) # 2.2
+
+        def let(x, y):
+            return [x, y]
+        self.assertEqual(run(fresh(lambda r, v, w: unify(let(v, w), r))), [[var(0), var(1)]]) # 2.3
+
 
     def test_conde(self):
         self.assertEqual(run(conde([fail, succeed])), []) # 1.44
-        self.assertEqual(run(conde([fail, fail], else_clause=[succeed])), [True]) # 1.45
-        self.assertEqual(run(conde([succeed, succeed])), [True]) # 1.46
+        self.assertEqual(run(conde([fail, fail], else_clause=[succeed])), [Tautology()]) # 1.45
+        self.assertEqual(run(conde([fail], [succeed], else_clause=[succeed])), [Tautology(), Tautology()]) # 1.45
+        self.assertEqual(run(conde([succeed, succeed])), [Tautology()]) # 1.46
         self.assertEqual(run(fresh(lambda x: conde([unify('olive', x), succeed], 
                                                    [unify('oil', x), succeed]))), 
                          ['olive', 'oil']) # 1.47
@@ -135,16 +142,86 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(goal)), [False]) # 1.61
 
 
-    def test_nullo(self):
-        self.assertEqual(run(nullo([])), [True]) 
-        self.assertEqual(run(nullo([1, 2])), []) 
-        self.assertEqual(run(fresh(lambda x: nullo([]))), [var(0)]) 
-        self.assertEqual(run(fresh(lambda x: nullo(x))), [[]]) 
-
     def test_caro(self):
-        self.assertEqual(run(fresh(lambda a: caro(list('acorn'), a))), ['a'])
+        self.assertEqual(run(fresh(lambda a: caro(list('acorn'), a))), ['a']) # 2.6
         self.assertEqual(run(fresh(lambda a: caro(cons(a, list('corn')), 'a'))), ['a'])
         self.assertEqual(run(fresh(lambda p: caro(p, 'a'))), [('a', var(0))])
+        self.assertEqual(run(fresh(lambda q: conj(caro(list('acorn'), 'a'), unify('q', q)))), ['q']) # 2.7
+        self.assertEqual(run(fresh(lambda r, x, y: conj(caro([r, y], x), unify('pear', x)))), ['pear']) # 2.8
+        self.assertEqual(run(fresh(lambda r, x, y: conj(caro(['grape', 'raisin', 'pear'], x), 
+                                                        caro([['a'], ['b'], ['b']], y),
+                                                        unify(cons(x, y), r)))), [['grape', 'a']]) # 2.11
+        self.assertEqual(run(fresh(lambda r, x, y: conj(caro(['grape', 'raisin', 'pear'], x), 
+                                                        caro([['a'], ['b'], ['b']], y),
+                                                        unify((x, y), r)))), [['grape', 'a']]) # 2.11.1, remember: (x, y) means cons(x, y)
+        self.assertEqual(run(fresh(lambda r, x, y: conj(caro(['grape', 'raisin', 'pear'], x), 
+                                                        caro([['a'], ['b'], ['b']], y),
+                                                        unify([x] + y, r)))), [['grape', 'a']]) # 2.11.2, remember: [x ...] + y means cons(x, cons(...cons(x, y)...))
+
+
+    def test_cdro(self):
+        self.assertEqual(run(fresh(lambda r, v: conj(cdro(list('acorn'), v), caro(v, r)))), ['c']) # 2.15
+        self.assertEqual(run(fresh(lambda r, x, y: conj(cdro(['grape', 'raisin', 'pear'], x), 
+                                                        caro([['a'], ['b'], ['b']], y),
+                                                        unify([x] + y, r)))), [[['raisin', 'pear'], 'a']]) # 2.18
+        self.assertEqual(run(fresh(lambda q: conj(cdro(list('acorn'), list('corn')), unify('q', q)))), ['q']) # 2.19
+        self.assertEqual(run(fresh(lambda x: cdro(list('corn'), [x] + list('rn')))), ['o']) # 2.20
+        self.assertEqual(run(fresh(lambda l, x: conj(cdro(l, list('corn')), 
+                                                     caro(l, x), 
+                                                     unify('a', x))), 
+                             post=lambda l: ''.join(l)), ['acorn']) # 2.21
+        self.assertEqual(run(fresh(lambda l, x: conj(cdro(l, list('corn')), 
+                                                     caro(l, x), 
+                                                     unify('a', x)))), [list('acorn')]) # 2.21.1
+
+    def test_conso(self):
+        self.assertEqual(run(fresh(lambda p: conso(3, p, cons(3, cons(2, []))))), [[2]])
+        self.assertEqual(run(fresh(lambda p: conso(3, p, [3,2,1]))), [[2, 1]])
+
+        self.assertEqual(run(fresh(lambda l: conso(list('abc'), list('de'), l))), [[list('abc')]+list('de')]) # 2.22
+        self.assertEqual(run(fresh(lambda l: unify([list('abc')] + list('de'), l))), [[list('abc')]+list('de')]) # 2.22.1
+
+        self.assertEqual(run(fresh(lambda x: conso(x, list('abc'), list('dabc')))), ['d']) # 2.23
+        self.assertEqual(run(fresh(lambda x: unify([x] + list('abc'), list('dabc')))), ['d']) # 2.23.1
+
+        self.assertEqual(run(fresh(lambda r, x, y, z: conj(unify(list('ead') + [x], r), 
+                                                           unify([y, 'a', z, 'c'], r)))), [list('eadc')]) # 2.24
+
+        self.assertEqual(run(fresh(lambda x: conso(x, ['a', x, 'c'], ['d', 'a', x, 'c']))), ['d']) # 2.25
+        self.assertEqual(run(fresh(lambda x: unify([x, 'a', x, 'c'], ['d', 'a', x, 'c']))), ['d']) # 2.25.1
+
+        self.assertEqual(run(fresh(lambda l, x: conj(unify(['d', 'a', x, 'c'], l), 
+                                                     unify([x, 'a', x, 'c'], l)))), [list('dadc')]) # 2.26
+        self.assertEqual(run(fresh(lambda l, x: conj(unify([x, 'a', x, 'c'], l), 
+                                                     unify(['d', 'a', x, 'c'], l)))), [list('dadc')]) # 2.27
+        self.assertEqual(run(fresh(lambda l, d, x, y, w, s:
+            conj(conso(w, list('ans'), s),
+                 conso(x, s, l),
+                 unify('b', x),
+                 cdro(l, d),
+                 caro(d, y),
+                 unify('e', y)))), [list('beans')]) # 2.29
+        self.assertEqual(run(fresh(lambda l, d, x, y, w, s, r:
+            conj(unify([w] + list('ans'), s),
+                 unify([x] + s, l),
+                 unify('b', x),
+                 # conj(cdro(l, d), caro(d, y)) → fresh(lambda t, r: conj(unify([t] + d, l), unify([y] + r, d)))
+                 # so, the goal `unify([t] + d, l)` is already present before, therefore use `s` for `d`
+                 unify([y] + r, s), 
+                 unify('e', y)))), [list('beans')]) # 2.29.1
+
+    def test_nullo(self):
+        self.assertEqual(run(nullo([])), [Tautology()]) 
+        self.assertEqual(run(nullo([1, 2])), []) 
+        self.assertEqual(run(fresh(lambda x: nullo([]))), [var(0)]) 
+        self.assertEqual(run(fresh(lambda q: conj(nullo(['grape', 'raisin', 'pear']), unify(True, q)))), []) # 2.32
+        self.assertEqual(run(fresh(lambda q: conj(nullo([]), unify('q', q)))), ['q']) # 2.33
+        self.assertEqual(run(fresh(lambda x: nullo(x))), [[]]) # 2.34
+
+    def test_equalo(self):
+        self.assertEqual(run(fresh(lambda q: conj(equalo('pear', 'plum'), unify(True, q)))), []) # 3.38
+        self.assertEqual(run(fresh(lambda q: conj(equalo('plum', 'plum'), unify('q', q)))), ['q']) # 3.39
+        self.assertEqual(run(equalo('plum', 'plum')), [Tautology()]) # 3.39.1
 
     def test_listo(self):
         self.assertEqual(run(fresh(lambda l: listo(l)), n=5), 
@@ -161,11 +238,15 @@ class reasonedschemer_test(unittest.TestCase):
             [[1,2,3,4], [1,2,3,4,var(0)], [1,2,3,4, var(0), var(1)]])
 
     def test_pairo(self):
-        self.assertEqual(run(fresh(lambda p: pairo(p))), [(var(0), var(1))])
-
-    def test_conso(self):
-        self.assertEqual(run(fresh(lambda p: conso(3, p, cons(3, cons(2, []))))), [[2]])
-        self.assertEqual(run(fresh(lambda p: conso(3, p, [3,2,1]))), [[2, 1]])
+        self.assertEqual(run(fresh(lambda r, x, y: unify([x, y, 'salad'], r))), [[var(0), var(1), 'salad']]) # 2.53
+        self.assertEqual(run(fresh(lambda q: conj(pairo(cons(q, q)), unify('q', q)))), ['q']) # 2.54 
+        self.assertEqual(run(fresh(lambda q: conj(pairo((q, q)), unify('q', q)))), ['q']) # 2.54.1
+        self.assertEqual(run(fresh(lambda q: conj(pairo([q, q]), unify('q', q)))), ['q']) # 2.54.2 
+        self.assertEqual(run(fresh(lambda q: conj(pairo([]), unify('q', q)))), []) # 2.55
+        self.assertEqual(run(fresh(lambda q: conj(pairo('pair'), unify('q', q)))), []) # 2.56
+        self.assertEqual(run(fresh(lambda x: pairo(x))), [(var(0), var(1))]) # 2.57
+        self.assertEqual(run(fresh(lambda r: pairo(cons(r, 'pear')))), [var(0)]) # 2.58
+        self.assertEqual(run(fresh(lambda r: pairo((r, 'pear')))), [var(0)]) # 2.58.1
 
 
 

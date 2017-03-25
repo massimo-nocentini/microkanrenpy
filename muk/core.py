@@ -38,7 +38,7 @@ def states_stream(g, initial_state=emptystate()):
 
 # VARS {{{
 
-default_var_name = 'v'
+default_var_name = '▢'
 
 class var:
 
@@ -46,7 +46,7 @@ class var:
 
     def __init__(self, index, name=default_var_name):
         self.index = index
-        self.name = name
+        self.name = name if name is default_var_name else '{}_{}'.format(default_var_name, name)
         self.is_var = True
 
     def __eq__(self, other):
@@ -94,6 +94,14 @@ def is_var(obj):
 # }}}
 
 # UNIFICATION {{{
+
+class Tautology:
+
+    def __eq__(self, other):
+        return isinstance(other, Tautology)
+
+    def __repr__(self):
+        return type(self).__name__
 
 class UnificationError(ValueError):
     pass
@@ -150,7 +158,7 @@ def reify(v, sub, var_name):
     v = walk(v, sub)
     if is_var(v): return ext_s(v, var(len(sub), var_name), sub)
     elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub, var_name), var_name)
-    elif isinstance(v, list): return reduce(lambda sub, u: reify(u, sub, var_name), v, sub)
+    elif isinstance(v, list) and v: return reduce(lambda sub, u: reify(u, sub, var_name), v, sub)
     else: return sub
 
 # }}}
@@ -246,6 +254,12 @@ def bind(α, g, interleaving):
 
 # INTERFACE {{{
 
+'''
+it should be interesting to add a `str` selector for `run` instead of a
+callable selector (which is more general, however), in order to specify the
+name of the variable we want to project in the result.
+'''
+
 def run(goal, n=False, 
         var_selector=lambda *args: (args[0], default_var_name) if args else (None, None), 
         post=lambda arg: arg):
@@ -254,11 +268,11 @@ def run(goal, n=False,
         subs = [a.sub for i, a in zip(range(n) if n else count(), α)]
 
     def λ(sub): 
-        main_var, var_name = var_selector(*getattr(goal, 'logic_vars', (True, None)))
+        main_var, var_name = var_selector(*getattr(goal, 'logic_vars', (Tautology(), None)))
         r = walk_star(main_var, sub)
         reified = reify(r, {}, var_name)
         r = walk_star(r, reified)
-        return cons_to_list(r) if isinstance(r, cons) else post(r)
+        return post(cons_to_list(r) if isinstance(r, cons) else r)
 
     return list(map(λ, subs))
 
