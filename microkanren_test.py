@@ -1,8 +1,9 @@
 
 import unittest
 
-from microkanren import *
-from sexp import *
+from muk.core import *
+from muk.ext import *
+from muk.sexp import *
 
 class microkanren_tests(unittest.TestCase):
 

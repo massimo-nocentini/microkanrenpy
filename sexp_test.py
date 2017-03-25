@@ -1,7 +1,7 @@
 
 import unittest
 
-from sexp import *
+from muk.sexp import *
 
 class sexp_tests(unittest.TestCase):
          

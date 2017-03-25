@@ -1,9 +1,10 @@
 
 import unittest
 
-from microkanren import *
+from muk.core import *
+from muk.ext import *
+from muk.sexp import *
 from reasonedschemer import *
-from sexp import *
 
 class reasonedschemer_test(unittest.TestCase):
 

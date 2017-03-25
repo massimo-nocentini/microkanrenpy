@@ -1,6 +1,7 @@
 
-from sexp import *
-from microkanren import *
+from muk.sexp import *
+from muk.core import *
+from muk.ext import *
 
 @adapt_iterables_to_conses()
 def nullo(l):

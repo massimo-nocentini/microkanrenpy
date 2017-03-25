@@ -20,7 +20,7 @@ from inspect import signature
 from functools import partial, reduce
 from itertools import count
 
-from sexp import *
+from muk.sexp import *
 
 
 # STATES {{{
@@ -191,24 +191,14 @@ def fresh(f):
     arity = len(f_sig.parameters)
 
     def F(s : state):
-        logic_vars = [var(s.next_index+i, v.name) for i, (k, v) in enumerate(f_sig.parameters.items())] 
+        logic_vars = [var(s.next_index+i, v.name) 
+                      for i, (k, v) in enumerate(f_sig.parameters.items())] 
         if logic_vars:
             setattr(F, 'logic_vars', logic_vars)
         g = f(*logic_vars)
         yield from g(state(s.sub, s.next_index + arity))
 
     return F
-
-def snooze(f, formal_vars):
-    return fresh(lambda: f(*formal_vars))
-
-def cond(*clauses, else_clause=[fail], interleaving):
-    conjuctions = [conj(*clause) for clause in clauses] + [conj(*else_clause)]
-    return disj(*conjuctions, interleaving=interleaving)
-
-conde = partial(cond, interleaving=False)
-condi = partial(cond, interleaving=True)
-
 
 def _disj(g1, g2, interleaving):
     
@@ -223,14 +213,6 @@ def _conj(g1, g2):
         yield from bind(g1(s), g2, interleaving=False)
 
     return C
-
-def disj(*goals, interleaving=True):
-    g, *gs = goals
-    return _disj(g, disj(*gs, interleaving=interleaving), interleaving) if gs else _disj(g, fail, interleaving)
-
-def conj(*goals):
-    g, *gs = goals
-    return _conj(g, conj(*gs)) if gs else _conj(g, succeed)
 
 # }}}
 
