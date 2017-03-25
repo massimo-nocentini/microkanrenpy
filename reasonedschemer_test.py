@@ -9,24 +9,24 @@ from reasonedschemer import *
 class reasonedschemer_test(unittest.TestCase):
 
     def test_succeed_fail(self):
-        self.assertEqual(run(fail), [])
-        self.assertEqual(run(fresh(lambda q: unify(True, q))), [True])
-        self.assertEqual(run(fresh(lambda q: conj(fail, unify(True, q)))), [])
-        self.assertEqual(run(fresh(lambda q: conj(succeed, unify(True, q)))), [True])
-        self.assertEqual(run(fresh(lambda q: conj(succeed, unify('corn', q)))), ['corn'])
-        self.assertEqual(run(fresh(lambda q: conj(fail, unify('corn', q)))), [])
-        self.assertEqual(run(fresh(lambda q: conj(succeed, unify(False, q)))), [False])
+        self.assertEqual(run(fail), []) # 1.10
+        self.assertEqual(run(fresh(lambda q: unify(True, q))), [True]) # 1.11
+        self.assertEqual(run(fresh(lambda q: conj(fail, unify(True, q)))), []) # 1.12
+        self.assertEqual(run(fresh(lambda q: conj(succeed, unify(True, q)))), [True]) # 1.13
+        self.assertEqual(run(fresh(lambda q: conj(succeed, unify('corn', q)))), ['corn']) # 1.15
+        self.assertEqual(run(fresh(lambda q: conj(fail, unify('corn', q)))), []) # 1.17
+        self.assertEqual(run(fresh(lambda q: conj(succeed, unify(False, q)))), [False]) # 1.18
         self.assertEqual(run(unify(False, False)), [True])
         self.assertEqual(run(fresh(lambda q: unify(True, False))), [])
         self.assertEqual(run(unify(True, False)), [])
         self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(True, q))),
-                             var_selector=lambda q, x: (q, 'q')), [True])
+                             var_selector=lambda q, x: (q, 'q')), [True]) # 1.23
         self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(True, q))),
-                             var_selector=lambda q, x: (x, 'x')), [False])
-        self.assertEqual(run(fresh(lambda x, q: conj(unify(False, x), unify(True, q)))), [False])
-        self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(q, True)))), [True])
-        self.assertEqual(run(fresh(lambda q: succeed)), [var(0)])
-        self.assertEqual(run(fresh(lambda q: unify(False, False))), [var(0)])
+                             var_selector=lambda q, x: (x, 'x')), [False]) # 1.23.1
+        self.assertEqual(run(fresh(lambda x, q: conj(unify(False, x), unify(True, q)))), [False]) # 1.23.2
+        self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(q, True)))), [True]) # 1.26
+        self.assertEqual(run(fresh(lambda q: succeed)), [var(0)]) # 1.28
+        self.assertEqual(run(fresh(lambda q: unify(False, False))), [var(0)]) # 1.28.1
 
         def goal(x): 
             let = lambda x: fresh(lambda x: unify(True, x))
