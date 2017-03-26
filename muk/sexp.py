@@ -2,6 +2,7 @@
 from collections import namedtuple
 from contextlib import contextmanager
 from functools import wraps
+from inspect import signature
 
 cons = namedtuple('cons', ['car', 'cdr'])
 
@@ -50,22 +51,21 @@ def cons_to_list(c, for_cdr=False):
     return (r, λ) if for_cdr else r
 
     
-def adapt_iterables_to_conses(selector=True):
+def adapt_iterables_to_conses(selector):
     def decorator(f):
+        f_sig = signature(f)
+        formal_args = [v.name for k, v in f_sig.parameters.items()]
+        selection = selector(*formal_args)
+
         @wraps(f)
         def D(*args, bypass_cons_adapter=False):
-            if bypass_cons_adapter:
-                new_args = args
-            else:
-                selection = selector(*args) if callable(selector) else args if selector else []
-                supported_iterables = (list, tuple,)
-                adapter = lambda a: list_to_cons(a) if a in selection and isinstance(a, supported_iterables) else a
-                new_args = map(adapter, args)
+            new_args = args if bypass_cons_adapter else [list_to_cons(a) if f in selection else a 
+                                                         for f, a in zip(formal_args, args)]
             return f(*new_args)
         return D
     return decorator
 
 
-
+all_arguments = lambda *args: set(args)
 
 

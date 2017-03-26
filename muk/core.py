@@ -171,7 +171,7 @@ def succeed(s : state):
 def fail(s : state):
     yield from mzero()
 
-@adapt_iterables_to_conses()
+@adapt_iterables_to_conses(all_arguments)
 def unify(u, v):
 
     def U(s : state):
