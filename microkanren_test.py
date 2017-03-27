@@ -12,8 +12,9 @@ class microkanren_tests(unittest.TestCase):
         def fives(x):
             return disj(unify(x, 5), fives(x))
         
-        with self.assertRaises(RecursionError), states_stream(fresh(fives)) as α:
-            next(α)
+        with self.assertRaises(RecursionError):
+            with states_stream(fresh(fives)) as α:
+                next(α)
 
     def test_infinte_recursion_guarded_refreshing(self):
 

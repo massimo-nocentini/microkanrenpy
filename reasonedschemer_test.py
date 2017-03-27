@@ -223,6 +223,17 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda q: conj(equalo('plum', 'plum'), unify('q', q)))), ['q']) # 2.39
         self.assertEqual(run(equalo('plum', 'plum')), [Tautology()]) # 2.39.1
 
+    def test_pairo(self):
+        self.assertEqual(run(fresh(lambda r, x, y: unify([x, y, 'salad'], r))), [[var(0), var(1), 'salad']]) # 2.53
+        self.assertEqual(run(fresh(lambda q: conj(pairo(cons(q, q)), unify('q', q)))), ['q']) # 2.54 
+        self.assertEqual(run(fresh(lambda q: conj(pairo((q, q)), unify('q', q)))), ['q']) # 2.54.1
+        self.assertEqual(run(fresh(lambda q: conj(pairo([q, q]), unify('q', q)))), ['q']) # 2.54.2 
+        self.assertEqual(run(fresh(lambda q: conj(pairo([]), unify('q', q)))), []) # 2.55
+        self.assertEqual(run(fresh(lambda q: conj(pairo('pair'), unify('q', q)))), []) # 2.56
+        self.assertEqual(run(fresh(lambda x: pairo(x))), [(var(0), var(1))]) # 2.57
+        self.assertEqual(run(fresh(lambda r: pairo(cons(r, 'pear')))), [var(0)]) # 2.58
+        self.assertEqual(run(fresh(lambda r: pairo((r, 'pear')))), [var(0)]) # 2.58.1
+
     def test_listo(self):
         self.assertEqual(run(fresh(lambda x: listo(['a', 'b', x, 'd']))), [var(0)]) # 3.7
         self.assertEqual(run(fresh(lambda x: listo(list('abc') + x)), n=1), [[]]) # 3.10
@@ -249,16 +260,110 @@ class reasonedschemer_test(unittest.TestCase):
             run(fresh(lambda w, x: conj(unify([1,2,3,4] + x, w), listo(w))), n=3), 
             [[1,2,3,4], [1,2,3,4,var(0)], [1,2,3,4, var(0), var(1)]])
 
-    def test_pairo(self):
-        self.assertEqual(run(fresh(lambda r, x, y: unify([x, y, 'salad'], r))), [[var(0), var(1), 'salad']]) # 2.53
-        self.assertEqual(run(fresh(lambda q: conj(pairo(cons(q, q)), unify('q', q)))), ['q']) # 2.54 
-        self.assertEqual(run(fresh(lambda q: conj(pairo((q, q)), unify('q', q)))), ['q']) # 2.54.1
-        self.assertEqual(run(fresh(lambda q: conj(pairo([q, q]), unify('q', q)))), ['q']) # 2.54.2 
-        self.assertEqual(run(fresh(lambda q: conj(pairo([]), unify('q', q)))), []) # 2.55
-        self.assertEqual(run(fresh(lambda q: conj(pairo('pair'), unify('q', q)))), []) # 2.56
-        self.assertEqual(run(fresh(lambda x: pairo(x))), [(var(0), var(1))]) # 2.57
-        self.assertEqual(run(fresh(lambda r: pairo(cons(r, 'pear')))), [var(0)]) # 2.58
-        self.assertEqual(run(fresh(lambda r: pairo((r, 'pear')))), [var(0)]) # 2.58.1
+    def test_lolo(self):
+        self.assertEqual(run(fresh(lambda l: lolo(l)), n=1), [[]]) # 3.20
+        self.assertEqual(run(fresh(lambda q, x, y: 
+            conj(lolo([['a', 'b'], [x, 'c'], ['d', y]]), unify(True, q)))), [True]) # 3.21
+        self.assertEqual(run(fresh(lambda q, x: conj(lolo([['a', 'b']] + x), unify(True, q))), n=1), [True]) # 3.22
+        self.assertEqual(run(fresh(lambda x: lolo([list('ab'), list('cd')] + x)), n=1), [[]]) # 3.23
+        self.assertEqual(run(fresh(lambda x: lolo([list('ab'), list('cd')] + x)), n=5), 
+                         [[], [[]], [[], []], [[], [], []], [[], [], [], []]]) # 3.24
 
+    def test_twinso(self):
+        self.assertEqual(run(fresh(lambda q: conj(twinso(['tofu', 'tofu']), unify(True, q)))), [True]) # 3.32
+        self.assertEqual(run(fresh(lambda z: twinso([z, 'tofu']))), ['tofu']) # 3.33
+
+    def test_loto(self):
+        self.assertEqual(run(fresh(lambda z: loto([['g', 'g']] + z)), n=1), [[]]) # 3.38
+        self.assertEqual(run(fresh(loto), n=5), 
+                         [[], 
+                          [[var(1), var(1)]], 
+                          [[var(1), var(1)], [var(3), var(3)]], 
+                          [[var(1), var(1)], [var(3), var(3)], [var(5), var(5)]], 
+                          [[var(1), var(1)], [var(3), var(3)], [var(5), var(5)], [var(7), var(7)]]]) # 3.42
+        self.assertEqual(run(fresh(lambda r, g, e, w, x, y, z:
+            conj(loto([[g, g], [e, w], [x, y]] + z), 
+                 unify([w, [x, y], z], r), 
+                 unify(e, 'e'), 
+                 unify(g, 'g'))), n=5),
+            [['e', [var(1), var(1)], []],
+             ['e', [var(1), var(1)], [[var(3), var(3)]]],
+             ['e', [var(1), var(1)], [[var(3), var(3)], [var(5), var(5)]]],
+             ['e', [var(1), var(1)], [[var(3), var(3)], [var(5), var(5)], [var(7), var(7)]]],
+             ['e', [var(1), var(1)], [[var(3), var(3)], [var(5), var(5)], [var(7), var(7)], [var(9), var(9)]]]]) # 3.45
+        self.assertEqual(run(fresh(lambda r, g, e, w, x, y, z:
+            conj(unify([[g, g], [e, w], [x, y]] + z, r), 
+                 loto(r), 
+                 unify(e, 'e'), 
+                 unify(g, 'g'))), n=3),
+            [[['g', 'g'], ['e', 'e'], [var(1), var(1)]],
+             [['g', 'g'], ['e', 'e'], [var(1), var(1)], [var(3), var(3)]],
+             [['g', 'g'], ['e', 'e'], [var(1), var(1)], [var(3), var(3)], [var(5), var(5)]]]) # 3.47
+        self.assertEqual(run(fresh(lambda r, g, e, w, x, y, z:
+            conj(unify([[g, g], [e, w], [x, y]] + z, r), 
+                 listofo(twinso, r),
+                 unify(e, 'e'), 
+                 unify(g, 'g'))), n=3),
+            [[['g', 'g'], ['e', 'e'], [var(1), var(1)]],
+             [['g', 'g'], ['e', 'e'], [var(1), var(1)], [var(3), var(3)]],
+             [['g', 'g'], ['e', 'e'], [var(1), var(1)], [var(3), var(3)], [var(5), var(5)]]]) # 3.48
+
+    def test_membero(self):
+        self.assertEqual(run(fresh(lambda q: conj(membero('olive', ['virgin', 'olive', 'oil']), unify(True, q)))), [True]) # 3.57
+        self.assertEqual(run(fresh(lambda y: membero(y, ['hummus', 'with', 'pita'])), n=1), ['hummus']) # 3.58
+        self.assertEqual(run(fresh(lambda y: membero(y, ['hummus', 'with', 'pita'])), n=2), ['hummus', 'with']) # 3.59
+        self.assertEqual(run(fresh(lambda y: membero(y, ['hummus', 'with', 'pita'])), n=3), ['hummus', 'with', 'pita']) # 3.60
+        self.assertEqual(run(fresh(lambda y: membero(y, []))), []) # 3.61
+        self.assertEqual(run(fresh(lambda y: membero(y, ['hummus', 'with', 'pita']))), ['hummus', 'with', 'pita']) # 3.62
+        self.assertEqual(run(fresh(lambda x: membero('e', ['pasta', x, 'fagioli']))), ['e']) # 3.66 
+        self.assertEqual(run(fresh(lambda x: membero('e', ['pasta', 'e', x, 'fagioli'])), n=1), [var(0)]) # 3.69
+        self.assertEqual(run(fresh(lambda x: membero('e', ['pasta', x, 'e', 'fagioli'])), n=1), ['e']) # 3.70
+        self.assertEqual(run(fresh(lambda r, x, y: conj(membero('e', ['pasta', x, 'fagioli', y]), unify([x, y], r)))), 
+                         [['e', var(0)], [var(0), 'e']]) # 3.71
+        self.assertEqual(run(fresh(lambda l: membero('tofu', l)), n=1), [('tofu', var(0))]) # 3.73
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda l: membero('tofu', l))) # 3.75
+        self.assertEqual(run(fresh(lambda l: membero('tofu', l)), n=5), 
+                         [('tofu', var(0)),
+                          (var(0), 'tofu', var(1)),
+                          (var(0), var(1), 'tofu', var(2)),
+                          (var(0), var(1), var(2), 'tofu', var(3)),
+                          (var(0), var(1), var(2), var(3), 'tofu', var(4))]) # 3.76
+        self.assertEqual(run(fresh(lambda q: conj(pmembero('tofu', ['a', 'b', 'tofu', 'd', 'tofu']), unify(True, q)))), 
+                         [True, True]) # 3.81
+        self.assertEqual(run(fresh(lambda l: pmembero('tofu', l)), n=12), 
+                         [['tofu'],
+                          ('tofu', var(0), var(1)),
+                          [var(0), 'tofu'],
+                          (var(0), 'tofu', var(1), var(2)),
+                          [var(0), var(1), 'tofu'],
+                          (var(0), var(1), 'tofu', var(2), var(3)),
+                          [var(0), var(1), var(2), 'tofu'],
+                          (var(0), var(1), var(2), 'tofu', var(3), var(4)),
+                          [var(0), var(1), var(2), var(3), 'tofu'],
+                          (var(0), var(1), var(2), var(3), 'tofu', var(4), var(5)),
+                          [var(0), var(1), var(2), var(3), var(4), 'tofu'],
+                          (var(0), var(1), var(2), var(3), var(4), 'tofu', var(5), var(6))]) # formely 3.80, actually 3.89
+        self.assertEqual(run(fresh(lambda l: pmemberso('tofu', l)), n=12), 
+                         [('tofu', var(0), var(1)),
+                          ['tofu'],
+                          (var(0), 'tofu', var(1), var(2)),
+                          [var(0), 'tofu'],
+                          (var(0), var(1), 'tofu', var(2), var(3)),
+                          [var(0), var(1), 'tofu'],
+                          (var(0), var(1), var(2), 'tofu', var(3), var(4)),
+                          [var(0), var(1), var(2), 'tofu'],
+                          (var(0), var(1), var(2), var(3), 'tofu', var(4), var(5)),
+                          [var(0), var(1), var(2), var(3), 'tofu'],
+                          (var(0), var(1), var(2), var(3), var(4), 'tofu', var(5), var(6)),
+                          [var(0), var(1), var(2), var(3), var(4), 'tofu']]) # 3.94
+
+        self.assertEqual(first_value('hello'), []) # 3.95.1
+        self.assertEqual(first_value([]), []) # 3.95.2
+        self.assertEqual(first_value(['pasta', 'e', 'fagioli']), ['pasta']) # 3.95.2
+
+    def test_memberrevo(self):
+        self.assertEqual(run(fresh(lambda x: memberrevo(x, ['pasta', 'e', 'fagioli']))), ['fagioli', 'e', 'pasta']) # 3.100
+        self.assertEqual(list(reversed(['pasta', 'e', 'fagioli'])), reverse_list(['pasta', 'e', 'fagioli'])) # 3.101
 
 

@@ -58,10 +58,10 @@ def adapt_iterables_to_conses(selector):
         selection = selector(*formal_args)
 
         @wraps(f)
-        def D(*args, bypass_cons_adapter=False):
+        def D(*args, bypass_cons_adapter=False, **kwds):
             new_args = args if bypass_cons_adapter else [list_to_cons(a) if f in selection else a 
                                                          for f, a in zip(formal_args, args)]
-            return f(*new_args)
+            return f(*new_args, **kwds)
         return D
     return decorator
 
