@@ -26,5 +26,6 @@ def cdro(p, d):
 @adapt_iterables_to_conses(all_arguments)
 def listo(l):
     return conde([nullo(l), succeed], 
-                 [pairo(l), fresh(lambda d: conj(cdro(l, d), listo(d)))])
+                 #[pairo(l), fresh(lambda d: conj(cdro(l, d), listo(d)))])
+                 [pairo(l), fresh(lambda a, d: conj(unify([a] + d, l), listo(d)))])
 

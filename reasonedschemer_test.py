@@ -219,22 +219,34 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda x: nullo(x))), [[]]) # 2.34
 
     def test_equalo(self):
-        self.assertEqual(run(fresh(lambda q: conj(equalo('pear', 'plum'), unify(True, q)))), []) # 3.38
-        self.assertEqual(run(fresh(lambda q: conj(equalo('plum', 'plum'), unify('q', q)))), ['q']) # 3.39
-        self.assertEqual(run(equalo('plum', 'plum')), [Tautology()]) # 3.39.1
+        self.assertEqual(run(fresh(lambda q: conj(equalo('pear', 'plum'), unify(True, q)))), []) # 2.38
+        self.assertEqual(run(fresh(lambda q: conj(equalo('plum', 'plum'), unify('q', q)))), ['q']) # 2.39
+        self.assertEqual(run(equalo('plum', 'plum')), [Tautology()]) # 2.39.1
 
     def test_listo(self):
+        self.assertEqual(run(fresh(lambda x: listo(['a', 'b', x, 'd']))), [var(0)]) # 3.7
+        self.assertEqual(run(fresh(lambda x: listo(list('abc') + x)), n=1), [[]]) # 3.10
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda x: listo(list('abc') + x))) # 3.13
+        self.assertEqual(run(fresh(lambda l: listo(list('abc') + l)), n=5), 
+            [[], 
+             [var(0)], 
+             [var(0), var(1)],
+             [var(0), var(1), var(2)],
+             [var(0), var(1), var(2), var(3)]]) # 3.14
         self.assertEqual(run(fresh(lambda l: listo(l)), n=5), 
             [[], 
              [var(0)], 
              [var(0), var(1)],
              [var(0), var(1), var(2)],
-             [var(0), var(1), var(2), var(3)]])
+             [var(0), var(1), var(2), var(3)]]) # 3.14.1
 
         self.assertEqual(run(listo((1,2,3,4))), []) # because the list isn't proper
         self.assertEqual(
-            run(fresh(lambda w, x: conj(listo((1,2,3,4,x)),
-                                        unify((1,2,3,4,x), w))), n=3), 
+            run(fresh(lambda w, x: conj(unify((1,2,3,4,x), w), listo(x))), n=3), 
+            [[1,2,3,4], [1,2,3,4,var(0)], [1,2,3,4, var(0), var(1)]])
+        self.assertEqual(
+            run(fresh(lambda w, x: conj(unify([1,2,3,4] + x, w), listo(w))), n=3), 
             [[1,2,3,4], [1,2,3,4,var(0)], [1,2,3,4, var(0), var(1)]])
 
     def test_pairo(self):

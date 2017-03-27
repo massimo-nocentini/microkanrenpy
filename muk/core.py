@@ -72,6 +72,8 @@ class var:
             # because `self` is a logic variable that can be unified with *any*
             # value, not just [] to be proper lists.
             return tuple(other + [self])
+        #if isinstance(other, str): 
+            #return tuple(list(other) + [self])
 
         raise NotImplemented
 
