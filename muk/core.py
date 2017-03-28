@@ -60,7 +60,7 @@ class var:
     def __hash__(self):
         return hash(self.index)
 
-    def __repr__(self, reify=False):
+    def __repr__(self):
         return '{}{}'.format(self.name, ''.join(self._subscripts[c] for c in str(self.index)))
 
     def __radd__(self, other):
@@ -123,6 +123,8 @@ def unification(u, v, sub):
             cars_sub = unification(u.car, v.car, sub)
             return unification(u.cdr, v.cdr, cars_sub)
     elif isinstance(u, (tuple, list)) and isinstance(v, (tuple, list)):
+        # this branch permits either `u` or `v` to be `cons` cells too:
+        # can be source of trouble or should be a kind of generalization
         u, v = iter(u), iter(v)
         subr = reduce(lambda subr, pair: unification(*pair, subr), zip(u, v), sub)
         try:
@@ -208,8 +210,7 @@ def _fresh(f, assembler):
     def F(s : state):
         logic_vars = [var(s.next_index+i, v.name) 
                       for i, (k, v) in enumerate(f_sig.parameters.items())] 
-        if logic_vars:
-            setattr(F, 'logic_vars', logic_vars)
+        setattr(F, 'logic_vars', logic_vars) # set the attribute in any case, even if `logic_vars == []` for η-inversion  
         subgoals = f(*logic_vars) # syntactic sugar: it allows `f` to return a tuple of goals
         g = assembler(subgoals) # assemble goal(s) according to the plugged-in strategy (`conj` and `disj` usually)
         yield from g(state(s.sub, s.next_index + arity))
@@ -262,25 +263,33 @@ def bind(α, g, interleaving):
 
 # INTERFACE {{{
 
-'''
-it should be interesting to add a `str` selector for `run` instead of a
-callable selector (which is more general, however), in order to specify the
-name of the variable we want to project in the result.
-'''
-
 def run(goal, n=False, 
         var_selector=lambda *args: args[0],
         post=lambda arg: arg):
+    '''
+    Returns a list [v ...] of associations (u, v) ... for the var `u` subject of the `run`
+
+    __Args__
+    goal:
+        a goal obj to be satisfied
+    var_selector:
+        a callable that consumes a list of formal vars used in the goal, usually built by `fresh`.
+        It is mandatory to return exactly one var, which becomes the subject of this run.
+    post:
+        a callable to be applied to each satisfying value `v` for the subject var, before returning.
+    '''
 
     with states_stream(goal) as α:
         subs = [a.sub for i, a in zip(range(n) if n else count(), α)]
 
+    logic_vars = getattr(goal, 'logic_vars', None) # defaults to `None` instead of `[]` to distinguish attr set by `_fresh` 
+    main_var = var_selector(*logic_vars) if logic_vars else Tautology() # any satisfying sub is a Tautology if there are no logic vars
+
     def λ(sub): 
-        main_var = var_selector(*getattr(goal, 'logic_vars', [Tautology()]))
-        r = walk_star(main_var, sub)
-        reified = reify(r, {})
-        r = walk_star(r, reified)
-        return post(cons_to_list(r) if isinstance(r, cons) else r)
+        r = walk_star(main_var, sub) # instantiate every content in the expr associated to `main_var` in `sub` to the most specific value
+        reified_sub = reify(r, sub={}) # reify the most specific instantiation in order to hide impl details from vars names
+        r = walk_star(r, reified_sub) # finally, reduce the most specific instantiation to use vars hiding
+        return post(cons_to_list(r) if isinstance(r, cons) else r) # apply `post` processing for pretty printing
 
     return list(map(λ, subs))
 
