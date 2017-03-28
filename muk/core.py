@@ -38,15 +38,18 @@ def states_stream(g, initial_state=emptystate()):
 
 # VARS {{{
 
-default_var_name = '▢'
 
 class var:
 
-    subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
+    _subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
+    _default_var_name = '▢'
 
-    def __init__(self, index, name=default_var_name):
+    def __init__(self, index, name=None):
+        if name == self._default_var_name: 
+            raise ValueError
+
         self.index = index
-        self.name = name if name is default_var_name else '{}_{}'.format(default_var_name, name)
+        self.name = name if name else self._default_var_name
         self.is_var = True
 
     def __eq__(self, other):
@@ -58,8 +61,8 @@ class var:
     def __hash__(self):
         return hash(self.index)
 
-    def __repr__(self):
-        return '{}{}'.format(self.name, ''.join(self.subscripts[c] for c in str(self.index)))
+    def __repr__(self, reify=False):
+        return '{}{}'.format(self.name, ''.join(self._subscripts[c] for c in str(self.index)))
 
     def __radd__(self, other):
         
@@ -88,7 +91,6 @@ class var:
         if isinstance(other, (list, tuple)):
             λ = type(other) 
             return λ([self]) + other
-
 
 def is_var(obj):
     return getattr(obj, 'is_var', False)
@@ -121,16 +123,22 @@ def unification(u, v, sub):
         else:
             cars_sub = unification(u.car, v.car, sub)
             return unification(u.cdr, v.cdr, cars_sub)
+    elif u == v:
+        return sub
+
+    raise UnificationError()
+    '''
     else:
         try:
             caru, *cdru = u
             carv, *cdrv = v
-            car_sub = unification(caru, carv, sub)
-            return unification(cdru, cdrv, car_sub)
         except:
             if u == v: return sub
-
-    raise UnificationError()
+            else: raise UnificationError()
+        else:
+            car_sub = unification(caru, carv, sub)
+            return unification(cdru, cdrv, car_sub)
+    '''
 
 # }}}
 
@@ -156,11 +164,11 @@ def ext_s(u, v, sub):
     e[u] = v
     return e
 
-def reify(v, sub, var_name):
+def reify(v, sub):
     v = walk(v, sub)
-    if is_var(v): return ext_s(v, var(len(sub), var_name), sub)
-    elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub, var_name), var_name)
-    elif isinstance(v, list) and v: return reduce(lambda sub, u: reify(u, sub, var_name), v, sub)
+    if is_var(v): return ext_s(v, var(len(sub)), sub)
+    elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub))
+    elif isinstance(v, list) and v: return reduce(lambda sub, u: reify(u, sub), v, sub)
     else: return sub
 
 # }}}
@@ -264,16 +272,16 @@ name of the variable we want to project in the result.
 '''
 
 def run(goal, n=False, 
-        var_selector=lambda *args: (args[0], default_var_name) if args else (None, None), 
+        var_selector=lambda *args: args[0],
         post=lambda arg: arg):
 
     with states_stream(goal) as α:
         subs = [a.sub for i, a in zip(range(n) if n else count(), α)]
 
     def λ(sub): 
-        main_var, var_name = var_selector(*getattr(goal, 'logic_vars', (Tautology(), None)))
+        main_var = var_selector(*getattr(goal, 'logic_vars', [Tautology()]))
         r = walk_star(main_var, sub)
-        reified = reify(r, {}, var_name)
+        reified = reify(r, {})
         r = walk_star(r, reified)
         return post(cons_to_list(r) if isinstance(r, cons) else r)
 

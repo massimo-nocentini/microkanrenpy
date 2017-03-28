@@ -26,9 +26,9 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda q: unify(True, False))), [])
         self.assertEqual(run(unify(True, False)), [])
         self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(True, q))),
-                             var_selector=lambda q, x: (q, 'q')), [True]) # 1.23
+                             var_selector=lambda q, x: q), [True]) # 1.23
         self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(True, q))),
-                             var_selector=lambda q, x: (x, 'x')), [False]) # 1.23.1
+                             var_selector=lambda q, x: x), [False]) # 1.23.1
         self.assertEqual(run(fresh(lambda x, q: conj(unify(False, x), unify(True, q)))), [False]) # 1.23.2
         self.assertEqual(run(fresh(lambda q, x: conj(unify(False, x), unify(q, True)))), [True]) # 1.26
         self.assertEqual(run(fresh(lambda q: succeed)), [var(0)]) # 1.28
