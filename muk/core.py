@@ -11,6 +11,12 @@
         has failed, refreshing all variables that got an association from that
         line
 
+    __Commandments__
+
+    ● second
+        to transform a function whose value is not a Boolean into a function
+        whose value is a goal, add an extra argument to hold its value, replace
+        `cond` with `conde`, and unnest each question and answer. 
 '''
 
 from collections import namedtuple, Iterable

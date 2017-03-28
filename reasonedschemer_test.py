@@ -372,4 +372,95 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda x: memberrevo(x, ['pasta', 'e', 'fagioli']))), ['fagioli', 'e', 'pasta']) # 3.100
         self.assertEqual(list(reversed(['pasta', 'e', 'fagioli'])), reverse_list(['pasta', 'e', 'fagioli'])) # 3.101
 
+    def test_memo(self):
+
+        def question_4_10(out): return fresh(lambda x: memo('tofu', ['a', 'b', 'tofu', 'd', 'tofu', 'e'], out))
+        self.assertEqual(run(fresh(question_4_10), n=1), [['tofu', 'd', 'tofu', 'e']])
+        
+        def question_4_11(out): return fresh(lambda x: memo('tofu', ['a', 'b', x, 'd', 'tofu', 'e'], out))
+        self.assertEqual(run(fresh(question_4_11), n=1), [['tofu', 'd', 'tofu', 'e']])
+
+        def question_4_12(r): return memo(r, ['a', 'b', 'tofu', 'd', 'tofu', 'e'], ['tofu', 'd', 'tofu', 'e'])
+        self.assertEqual(run(fresh(question_4_12)), ['tofu'])
+
+        def question_4_13(q): return memo('tofu', ['tofu', 'e'], ['tofu', 'e']), unify(True, q)
+        self.assertEqual(run(fresh(question_4_13)), [True])
+
+        def question_4_14(q): return memo('tofu', ['tofu', 'e'], ['tofu']), unify(True, q)
+        self.assertEqual(run(fresh(question_4_14)), [])
+
+        def question_4_15(x): return memo('tofu', ['tofu', 'e'], [x, 'e'])
+        self.assertEqual(run(fresh(question_4_15)), ['tofu'])
+
+        def question_4_16(x): return memo('tofu', ['tofu', 'e'], ['peas', x])
+        self.assertEqual(run(fresh(question_4_16)), [])
+
+        def question_4_17(out): return fresh(lambda x: memo('tofu', ['a', 'b', x, 'd', 'tofu', 'e'], out))
+        self.assertEqual(run(fresh(question_4_17)), [['tofu', 'd', 'tofu', 'e'], ['tofu', 'e']])
+
+        def question_4_18(z): return fresh(lambda u: memo('tofu', ['a', 'b', 'tofu', 'd', 'tofu', 'e'] + z, u))
+        self.assertEqual(run(fresh(question_4_18), n=12), 
+                         [var(0), 
+                          var(0),
+                          ('tofu', var(0)),
+                          (var(0), 'tofu', var(1)),
+                          (var(0), var(1), 'tofu', var(2)),
+                          (var(0), var(1), var(2), 'tofu', var(3)),
+                          (var(0), var(1), var(2), var(3), 'tofu', var(4)),
+                          (var(0), var(1), var(2), var(3), var(4), 'tofu', var(5)),
+                          (var(0), var(1), var(2), var(3), var(4), var(5), 'tofu', var(6)),
+                          (var(0), var(1), var(2), var(3), var(4), var(5), var(6), 'tofu', var(7)),
+                          (var(0), var(1), var(2), var(3), var(4), var(5), var(6), var(7), 'tofu', var(8)),
+                          (var(0), var(1), var(2), var(3), var(4), var(5), var(6), var(7), var(8), 'tofu', var(9)),])
+
+    def test_rembero(self):
+
+        def question_4_30(out): return fresh(lambda y: rembero('peas', ['a', 'b', y, 'd', 'peas', 'e'], out))
+        self.assertEqual(run(fresh(question_4_30), n=1), [['a', 'b', 'd', 'peas', 'e']])
+
+        def question_4_31(out): return fresh(lambda y, z: rembero(y, ['a', 'b', y, 'd', z, 'e'], out))
+        self.assertEqual(run(fresh(question_4_31)), 
+                         [['b', 'a', 'd', var(0), 'e'],
+                          ['a', 'b', 'd', var(0), 'e'],
+                          ['a', 'b', 'd', var(0), 'e'],
+                          ['a', 'b', 'd', var(0), 'e'],
+                          ['a', 'b', var(0), 'd', 'e'],
+                          ['a', 'b', 'e', 'd', var(0)],
+                          ['a', 'b', var(0), 'd', var(1), 'e'],])
+
+        def question_4_49(r, y, z): return rembero(y, [y, 'd', z, 'e'], [y, 'd', 'e']), unify([y, z], r)
+        self.assertEqual(run(fresh(question_4_49)), 
+                         [['d', 'd'], ['d', 'd'], [var(1), var(1)], ['e', 'e']])
+
+        def question_4_57(w, y, z, out): return rembero(y, ['a', 'b', y, 'd', z] + w, out)
+        self.assertEqual(run(fresh(question_4_57), n=14), 
+                         [var(0),
+                          var(0),
+                          var(0),
+                          var(0),
+                          var(0),
+                          [],
+                          (var(0), var(1)),
+                          [var(0)],
+                          (var(0), var(1), var(2)),
+                          [var(0), var(1)],
+                          (var(0), var(1), var(2), var(3)),
+                          [var(0), var(1), var(2)],
+                          (var(0), var(1), var(2), var(3), var(4)),
+                          [var(0), var(1), var(2), var(3)]])
+
+    def test_surprise(self):
+
+        def question_4_69(r): return unify('d', r), surpriseo(r, list('abc'))
+        self.assertEqual(run(fresh(question_4_69)), ['d'])
+
+        def question_4_70(r): return surpriseo(r, list('abc'))
+        self.assertEqual(run(fresh(question_4_70)), [var(0)])
+
+        def question_4_71(r): return surpriseo(r, list('abc')), unify('b', r)
+        self.assertEqual(run(fresh(question_4_71)), ['b'])
+
+        def question_4_72(r): return unify('b', r), surpriseo(r, list('abc'))
+        self.assertEqual(run(fresh(question_4_72)), ['b'])
+
 

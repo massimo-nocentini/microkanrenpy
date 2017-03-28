@@ -82,3 +82,33 @@ def memberrevo(x, l):
 
 def reverse_list(l):
     return run(fresh(lambda y: memberrevo(y, l)))
+
+@adapt_iterables_to_conses(lambda x, l, out: {l, out})
+def memo(x, l, out):
+
+    def M(a, d):
+        return unify([a] + d, l), conde([unify(a, x), unify(l, out)], 
+                                         else_clause=[memo(x, d, out)])
+
+    return fresh(M)
+
+@adapt_iterables_to_conses(lambda x, l, out: {l, out})
+def rembero(x, l, out):
+
+    def E(a, d, res): return unify([a] + d, l), rembero(x, d, res), unify([a] + res, out)
+    return conde([nullo(l), nullo(out)],
+                 #[unify([x] + out, l), succeed], # in order to write this one we should promote `cons` to a class and implement __add__ and __radd__
+                 [caro(l, x), cdro(l, out)],
+                 else_clause=[fresh(E)])
+
+@adapt_iterables_to_conses(lambda s, l: {l})
+def surpriseo(s, l):
+    return rembero(s, l, l) 
+
+
+
+
+
+
+
+
