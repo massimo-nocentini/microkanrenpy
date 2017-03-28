@@ -9,9 +9,15 @@ from reasonedschemer import *
 class reasonedschemer_test(unittest.TestCase):
 
     def test_succeed_fail(self):
+        self.assertEqual(run(succeed), [Tautology()]) # 1.6
         self.assertEqual(run(fail), []) # 1.10
         self.assertEqual(run(fresh(lambda q: unify(True, q))), [True]) # 1.11
+        
+        def question_1_12(q): return fail, unify(True, q)
+        self.assertEqual(run(fresh(question_1_12)), [])
+        self.assertEqual(run(fresh(lambda q: (fail, unify(True, q)))), []) # 1.12
         self.assertEqual(run(fresh(lambda q: conj(fail, unify(True, q)))), []) # 1.12
+
         self.assertEqual(run(fresh(lambda q: conj(succeed, unify(True, q)))), [True]) # 1.13
         self.assertEqual(run(fresh(lambda q: conj(succeed, unify('corn', q)))), ['corn']) # 1.15
         self.assertEqual(run(fresh(lambda q: conj(fail, unify('corn', q)))), []) # 1.17

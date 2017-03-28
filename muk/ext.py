@@ -1,7 +1,8 @@
 
+import collections
 
 from muk.core import *
-from muk.core import _conj, _disj
+from muk.core import _conj, _disj, _fresh
 
 
 def snooze(f, formal_vars):
@@ -24,3 +25,13 @@ conde = partial(cond, interleaving=False)
 condi = partial(cond, interleaving=True)
 
 equalo = unify
+
+def fresh(f, assembler=conj):
+
+    def A(subgoals):
+        try:
+            return assembler(*subgoals) # destructure `subgoals` to expand if given as iterable
+        except TypeError:
+            return assembler(subgoals) # otherwise process them as a single goal
+
+    return _fresh(f, assembler=A)
