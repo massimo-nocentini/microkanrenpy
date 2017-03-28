@@ -13,12 +13,11 @@
 
 '''
 
-from collections import namedtuple
-from itertools import chain
+from collections import namedtuple, Iterable
+from itertools import chain, count
 from contextlib import contextmanager
 from inspect import signature
 from functools import partial, reduce
-from itertools import count
 
 from muk.sexp import *
 
@@ -123,22 +122,20 @@ def unification(u, v, sub):
         else:
             cars_sub = unification(u.car, v.car, sub)
             return unification(u.cdr, v.cdr, cars_sub)
+    elif isinstance(u, (tuple, list)) and isinstance(v, (tuple, list)):
+        u, v = iter(u), iter(v)
+        subr = reduce(lambda subr, pair: unification(*pair, subr), zip(u, v), sub)
+        try:
+            u0 = next(u)
+        except StopIteration:
+            try:
+                v0 = next(v)
+            except StopIteration:
+                return subr # because both iterables are empty, so there's no counterexample against their unification
     elif u == v:
         return sub
 
     raise UnificationError()
-    '''
-    else:
-        try:
-            caru, *cdru = u
-            carv, *cdrv = v
-        except:
-            if u == v: return sub
-            else: raise UnificationError()
-        else:
-            car_sub = unification(caru, carv, sub)
-            return unification(cdru, cdrv, car_sub)
-    '''
 
 # }}}
 
