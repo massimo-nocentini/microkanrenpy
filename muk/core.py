@@ -173,7 +173,7 @@ def reify(v, sub):
     v = walk(v, sub)
     if is_var(v): return ext_s(v, var(len(sub)), sub)
     elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub))
-    elif isinstance(v, list) and v: return reduce(lambda sub, u: reify(u, sub), v, sub)
+    elif isinstance(v, list): return reduce(lambda sub, u: reify(u, sub), v, sub)
     else: return sub
 
 # }}}

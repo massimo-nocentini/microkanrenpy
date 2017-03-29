@@ -105,7 +105,17 @@ def rembero(x, l, out):
 def surpriseo(s, l):
     return rembero(s, l, l) 
 
+@adapt_iterables_to_conses(all_arguments)
+def appendo(l, s, out):
+    def E(a, d, res): return unify([a] + d, l), appendo(d, s, res), unify([a] + res, out)
+    return conde([nullo(l), unify(s, out)],
+                 else_clause=[fresh(E)])
 
+@adapt_iterables_to_conses(all_arguments)
+def appendso(l, s, out):
+    def E(a, d, res): return unify([a] + d, l), unify([a] + res, out), appendso(d, s, res)
+    return conde([nullo(l), unify(s, out)],
+                 else_clause=[fresh(E)])
 
 
 

@@ -463,4 +463,115 @@ class reasonedschemer_test(unittest.TestCase):
         def question_4_72(r): return unify('b', r), surpriseo(r, list('abc'))
         self.assertEqual(run(fresh(question_4_72)), ['b'])
 
+    def test_appendo(self):
+
+        def question_5_10(x): return appendo(['cake'], ['tastes', 'yummy'], x)
+        self.assertEqual(run(fresh(question_5_10)), [['cake', 'tastes', 'yummy']])
+
+        def question_5_11(x, y): return appendo(['cake', 'with', 'ice', y], ['tastes', 'yummy'], x)
+        self.assertEqual(run(fresh(question_5_11)), [['cake', 'with', 'ice', var(0), 'tastes', 'yummy']])
+
+        def question_5_12(x, y): return appendo(['cake', 'with', 'ice', 'cream'], y, x)
+        self.assertEqual(run(fresh(question_5_12)), [('cake', 'with', 'ice', 'cream', var(0))])
+
+        def question_5_13(x, y): return appendo(['cake', 'with', 'ice'] + y, ['d', 't'], x)
+        self.assertEqual(run(fresh(question_5_13), n=1), [['cake', 'with', 'ice', 'd', 't']])
+        self.assertEqual(run(fresh(lambda y, x: question_5_13(x, y)), n=1), [[]]) # 5.14.1
+        self.assertEqual(run(fresh(question_5_13), n=1, var_selector=lambda x, y: y), [[]]) # 5.14.2
+
+        def question_5_16(x, y): return appendo(['cake', 'with', 'ice'] + y, ['d', 't'], x)
+        self.assertEqual(run(fresh(question_5_16), n=5), 
+                         [['cake', 'with', 'ice', 'd', 't'],
+                          ['cake', 'with', 'ice', var(0), 'd', 't'],
+                          ['cake', 'with', 'ice', var(0), var(1), 'd', 't'],
+                          ['cake', 'with', 'ice', var(0), var(1), var(2), 'd', 't'],
+                          ['cake', 'with', 'ice', var(0), var(1), var(2), var(3), 'd', 't']])
+        self.assertEqual(run(fresh(question_5_16), n=5, var_selector=lambda x, y: y), 
+                         [[],
+                          [var(0)],
+                          [var(0), var(1)],
+                          [var(0), var(1), var(2)],
+                          [var(0), var(1), var(2), var(3)]]) # 5.17
+
+        def question_5_20(x, y): return appendo(['cake', 'with', 'ice'] + y, ['d', 't'] + y, x)
+        self.assertEqual(run(fresh(question_5_20), n=5), 
+                         [['cake', 'with', 'ice', 'd', 't'],
+                          ['cake', 'with', 'ice', var(1), 'd', 't', var(1)],
+                          ['cake', 'with', 'ice', var(2), var(3), 'd', 't', var(2), var(3)],
+                          ['cake', 'with', 'ice', var(3), var(4), var(5), 'd', 't', var(3), var(4), var(5)],
+                          ['cake', 'with', 'ice', var(4), var(5), var(6), var(7), 'd', 't', var(4), var(5), var(6), var(7)]])
+
+        def question_5_21(x, y): return appendo(['cake', 'with', 'ice', 'cream'], ['d', 't'] + y, x)
+        self.assertEqual(run(fresh(question_5_21)), [('cake', 'with', 'ice', 'cream', 'd', 't', var(0))])
+
+        def question_5_23(x, y): return appendo(x, y, ['cake', 'with', 'ice', 'd', 't'])
+        self.assertEqual(run(fresh(question_5_23), n=6), 
+                         [[],
+                          ['cake'],
+                          ['cake', 'with'],
+                          ['cake', 'with', 'ice'],
+                          ['cake', 'with', 'ice', 'd'],
+                          ['cake', 'with', 'ice', 'd', 't']])
+
+        self.assertEqual(run(fresh(question_5_23), n=6, var_selector=lambda x, y: y), 
+                         [['cake', 'with', 'ice', 'd', 't'],
+                          ['with', 'ice', 'd', 't'],
+                          ['ice', 'd', 't'],
+                          ['d', 't'],
+                          ['t'],
+                          []]) # 5.25
+
+        def question_5_27(r, x, y): return appendo(x, y, ['cake', 'with', 'ice', 'd', 't']), unify([x, y], r)
+        self.assertEqual(run(fresh(question_5_27), n=6),
+                         [[[], ['cake', 'with', 'ice', 'd', 't']],
+                          [['cake'], ['with', 'ice', 'd', 't']],
+                          [['cake', 'with'], ['ice', 'd', 't']],
+                          [['cake', 'with', 'ice'], ['d', 't']],
+                          [['cake', 'with', 'ice', 'd'], ['t']],
+                          [['cake', 'with', 'ice', 'd', 't'], []]])
+
+        with self.assertRaises(RecursionError):
+            run(fresh(question_5_27), n=7) # 5.29
+
+        def question_5_32(r, x, y): return appendso(x, y, ['cake', 'with', 'ice', 'd', 't']), unify([x, y], r)
+        self.assertEqual(run(fresh(question_5_32), n=7),
+                         [[[], ['cake', 'with', 'ice', 'd', 't']],
+                          [['cake'], ['with', 'ice', 'd', 't']],
+                          [['cake', 'with'], ['ice', 'd', 't']],
+                          [['cake', 'with', 'ice'], ['d', 't']],
+                          [['cake', 'with', 'ice', 'd'], ['t']],
+                          [['cake', 'with', 'ice', 'd', 't'], []]])
+
+        self.assertEqual(run(fresh(lambda x, y, z: appendso(x, y, z)), n=7), 
+                         [[],
+                          [var(0)],
+                          [var(0), var(1)],
+                          [var(0), var(1), var(2)],
+                          [var(0), var(1), var(2), var(3)],
+                          [var(0), var(1), var(2), var(3), var(4)],
+                          [var(0), var(1), var(2), var(3), var(4), var(5)]]) # 5.33.
+
+        self.assertEqual(run(fresh(lambda y, x, z: appendso(x, y, z)), n=7), 
+                         [var(0), var(0), var(0), var(0), var(0), var(0), var(0)]) # 5.34
+
+        self.assertEqual(run(fresh(lambda z, x, y: appendso(x, y, z)), n=7), 
+                         [var(0),
+                          (var(0), var(1)),
+                          (var(0), var(1), var(2)),
+                          (var(0), var(1), var(2), var(3)),
+                          (var(0), var(1), var(2), var(3), var(4)),
+                          (var(0), var(1), var(2), var(3), var(4), var(5)),
+                          (var(0), var(1), var(2), var(3), var(4), var(5), var(6))]) # 5.36.
+
+        def question_5_37(r, x, y, z): return appendso(x, y, z), unify([x, y, z], r)
+        self.assertEqual(run(fresh(question_5_37), n=7), 
+                         [[[], var(1), var(1)], # in other words: unify([] + var(1), var(1))
+                          [[var(2)], var(3), (var(2), var(3))],
+                          [[var(3), var(4)], var(5), (var(3), var(4), var(5))],
+                          [[var(4), var(5), var(6)], var(7), (var(4), var(5), var(6), var(7))],
+                          [[var(5), var(6), var(7), var(8)], var(9), (var(5), var(6), var(7), var(8), var(9))],
+                          [[var(6), var(7), var(8), var(9), var(10)], var(11), (var(6), var(7), var(8), var(9), var(10), var(11))],
+                          [[var(7), var(8), var(9), var(10), var(11), var(12)], var(13), (var(7), var(8), var(9), var(10), var(11), var(12), var(13))]])
+
+
 
