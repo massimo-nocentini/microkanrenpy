@@ -58,13 +58,11 @@ class var:
         self.is_var = True
 
     def __eq__(self, other):
-        # a more performant, yet not functional, should be 
-        #return self is other
         return self.index == other.index and self.name == other.name if is_var(other) else False
-        #return self.index == other.index if is_var(other) else False
 
     def __hash__(self):
-        return hash(self.index)
+        t = self.index, self.name
+        return hash(t)
 
     def __repr__(self):
         return '{}{}'.format(self.name, ''.join(self._subscripts[c] for c in str(self.index)))
@@ -99,6 +97,20 @@ class var:
 
 def is_var(obj):
     return getattr(obj, 'is_var', False)
+
+class pvar:
+
+    _unique_id = count()
+
+    def __init__(self):
+        self.index = next(self._unique_id)
+
+    def __hash__(self):
+        t = (self.index, self.__class__.__name__)
+        return hash(t)
+
+    def __eq__(self, other):
+        return other is self   
 
 # }}}
 
@@ -237,6 +249,15 @@ def _conj(g1, g2):
 
     return C
 
+def _delimited(d, pv, g):
+
+    def B(s : state):
+        sub = s.sub.copy()
+        sub[pv] = sub.get(pv, 0) + 1
+        yield from g(state(sub, s.next_index)) if sub[pv] <= d else mzero()
+
+    return B
+
 # }}}
 
 # STATE STREAMS {{{
@@ -264,6 +285,7 @@ def bind(α, g, interleaving):
     try: a = next(α)
     except StopIteration: yield from mzero()
     else: yield from mplus(g(a), bind(α, g, interleaving), interleaving)
+
 
 # }}}
 

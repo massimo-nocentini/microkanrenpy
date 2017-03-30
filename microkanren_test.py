@@ -129,7 +129,21 @@ class microkanren_tests(unittest.TestCase):
                     conj(unify([3,[4,5],6], x + ([4, y], z)),
                          unify([x, y, z], w)))), [[3,5,[6]]])
 
+    def test_bounded(self):
 
+        def questiono(d):
+            with delimited(d) as D: 
+                def Q(q):
+                    return D(conde([unify('a', q), succeed],
+                                   [unify('b', q), succeed],
+                                   [unify('c', q), succeed],
+                                   else_clause=[fresh(lambda: Q(q))]))
+                return Q
+
+        self.assertEqual(run(fresh(questiono(d=1))), ['a', 'b', 'c'])
+        self.assertEqual(run(fresh(questiono(d=2))), ['a', 'b', 'c', 'a', 'b', 'c'])
+        self.assertEqual(run(fresh(questiono(d=3))), ['a', 'b', 'c', 'a', 'b', 'c', 'a', 'b', 'c'])
+        self.assertEqual(run(fresh(questiono(d=10)), n=4), ['a', 'b', 'c', 'a'])
 
 
 

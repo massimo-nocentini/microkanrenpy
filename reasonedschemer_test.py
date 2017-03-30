@@ -573,5 +573,11 @@ class reasonedschemer_test(unittest.TestCase):
                           [[var(6), var(7), var(8), var(9), var(10)], var(11), (var(6), var(7), var(8), var(9), var(10), var(11))],
                           [[var(7), var(8), var(9), var(10), var(11), var(12)], var(13), (var(7), var(8), var(9), var(10), var(11), var(12), var(13))]])
 
+        with self.assertRaises(RecursionError):
+            run(fresh(swappendso), n=1) # 5.40
+
+        self.assertEqual(run(fresh(bswappendso(bound=5)), n=1), [[var(0), var(1), var(2), var(3)]]) # 5.40.1
+        self.assertEqual(run(fresh(bswappendso(bound=5)), n=5), [[var(0), var(1), var(2), var(3)], [var(0), var(1), var(2)], [var(0), var(1)], [var(0)], []]) # 5.40.2
+
 
 

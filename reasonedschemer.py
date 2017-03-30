@@ -117,6 +117,19 @@ def appendso(l, s, out):
     return conde([nullo(l), unify(s, out)],
                  else_clause=[fresh(E)])
 
+@adapt_iterables_to_conses(all_arguments)
+def swappendso(l, s, out):
+    def E(a, d, res): return unify([a] + d, l), unify([a] + res, out), swappendso(d, s, res)
+    return conde([succeed, fresh(E)],
+                 else_clause=[nullo(l), unify(s, out)])
+
+def bswappendso(bound):
+    with delimited(bound) as D:
+        @adapt_iterables_to_conses(all_arguments)
+        def R(l, s, out):
+            def E(a, d, res): return unify([a] + d, l), unify([a] + res, out), R(d, s, res)
+            return D(conde([succeed, fresh(E)], else_clause=[nullo(l), unify(s, out)]))
+        return R
 
 
 

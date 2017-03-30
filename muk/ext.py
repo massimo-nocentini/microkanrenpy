@@ -1,8 +1,10 @@
 
 import collections
+from functools import wraps
+from contextlib import contextmanager
 
 from muk.core import *
-from muk.core import _conj, _disj, _fresh
+from muk.core import _conj, _disj, _fresh, _delimited
 
 
 def snooze(f, formal_vars):
@@ -29,9 +31,17 @@ equalo = unify
 def fresh(f, assembler=conj):
 
     def A(subgoals):
-        try:
-            return assembler(*subgoals) # destructure `subgoals` to expand if given as iterable
-        except TypeError:
-            return assembler(subgoals) # otherwise process them as a single goal
-
+        args = subgoals if isinstance(subgoals, tuple) else [subgoals]
+        return assembler(*args)
+        
     return _fresh(f, assembler=A)
+
+@contextmanager
+def delimited(d):
+    pv = pvar()
+    def D(g): 
+        return _delimited(d, pv, g)
+    yield D
+
+
+
