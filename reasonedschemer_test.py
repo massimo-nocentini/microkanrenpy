@@ -1,10 +1,13 @@
 
-import unittest
+import unittest, sys
 
 from muk.core import *
 from muk.ext import *
 from muk.sexp import *
 from reasonedschemer import *
+
+#sys.setrecursionlimit(100000)
+
 
 class reasonedschemer_test(unittest.TestCase):
 
@@ -578,6 +581,108 @@ class reasonedschemer_test(unittest.TestCase):
 
         self.assertEqual(run(fresh(bswappendso(bound=5)), n=1), [[var(0), var(1), var(2), var(3)]]) # 5.40.1
         self.assertEqual(run(fresh(bswappendso(bound=5)), n=5), [[var(0), var(1), var(2), var(3)], [var(0), var(1), var(2)], [var(0), var(1)], [var(0)], []]) # 5.40.2
+
+    def test_unwrapo(self):
+
+        self.assertEqual(run(fresh(lambda x: unwrapo([[['pizza']]], x))), 
+                         ['pizza',
+                          ['pizza'],
+                          [['pizza']],
+                          [[['pizza']]]]) # 5.46
+
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda x: unwrapo(x, 'pizza')), n=1) # 5.48
+
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda x: unwrapo([[x]], 'pizza')), n=1) # 5.49
+
+        self.assertEqual(run(fresh(lambda x: unwrapso(x, 'pizza')), n=5), 
+                         ['pizza',
+                          ('pizza', var(0)),
+                          (('pizza', var(0)), var(1)),
+                          ((('pizza', var(0)), var(1)), var(2)),
+                          (((('pizza', var(0)), var(1)), var(2)), var(3)),]) # 5.53
+
+        self.assertEqual(run(fresh(lambda x: unwrapso(x, [['pizza']])), n=5), 
+                         [[['pizza']],
+                          ([['pizza']], var(0)),
+                          (([['pizza']], var(0)), var(1)),
+                          ((([['pizza']], var(0)), var(1)), var(2)),
+                          (((([['pizza']], var(0)), var(1)), var(2)), var(3)),]) # 5.54
+
+        self.assertEqual(run(fresh(lambda x: unwrapso([[x]], 'pizza')), n=5), 
+                         ['pizza',
+                          ('pizza', var(0)),
+                          (('pizza', var(0)), var(1)),
+                          ((('pizza', var(0)), var(1)), var(2)),
+                          (((('pizza', var(0)), var(1)), var(2)), var(3)),]) # 5.55
+
+    def test_flatteno(self):
+
+        self.assertEqual(run(fresh(lambda x: flatteno([['a', 'b'], 'c'], x)), n=1), [['a', 'b', 'c']]) # 5.60
+        self.assertEqual(run(fresh(lambda x: flatteno(['a', ['b', 'c']], x)), n=1), [['a', 'b', 'c']]) # 5.61
+        self.assertEqual(run(fresh(lambda x: flatteno(['a'], x))), [['a'], ['a', []], [['a']]]) # 5.62
+        self.assertEqual(run(fresh(lambda x: flatteno([['a']], x))), 
+                         [['a'], 
+                          ['a', []], 
+                          ['a', []], 
+                          ['a', [], []], 
+                          [['a']],
+                          [['a'], []],
+                          [[['a']]]]) # 5.64
+        self.assertEqual(run(fresh(lambda x: flatteno([[['a']]], x))), 
+                         [['a'], 
+                          ['a', []], 
+                          ['a', []], 
+                          ['a', [], []], 
+                          ['a', []],
+                          ['a', [], []],
+                          ['a', [], []],
+                          ['a', [], [], []],
+                          [['a']],
+                          [['a'], []],
+                          [['a'], []],
+                          [['a'], [], []],
+                          [[['a']]],
+                          [[['a']], []],
+                          [[[['a']]]],
+                          ]) # 5.66
+        self.assertEqual(run(fresh(lambda x: flatteno([['a', 'b'], 'c'], x))), 
+                         [['a', 'b', 'c'],
+                          ['a', 'b', 'c', []],
+                          ['a', 'b', ['c']],
+                          ['a', 'b', [], 'c'],
+                          ['a', 'b', [], 'c', []],
+                          ['a', 'b', [], ['c']],
+                          ['a', ['b'], 'c'],
+                          ['a', ['b'], 'c', []],
+                          ['a', ['b'], ['c']],
+                          [['a', 'b'], 'c'],
+                          [['a', 'b'], 'c', []],
+                          [['a', 'b'], ['c']],
+                          [[['a', 'b'], 'c']]]) # 5.68
+
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda x: flatteno(x, ['a', 'b', 'c'])))
+
+
+        self.assertEqual(run(fresh(lambda x: flatteno([['a', 'b'], 'c'], x))), 
+                         list(reversed(run(fresh(lambda x: flattenrevo([['a', 'b'], 'c'], x)))))) # 5.75
+
+        self.assertEqual(run(fresh(lambda x: flattenrevo(x, ['a', 'b', 'c'])), n=2), 
+                         [('a', 'b', 'c'), ['a', 'b', 'c']]) # 5.77
+
+        self.assertEqual(run(conj(flattenrevo(('a', 'b', 'c'), ['a', 'b', 'c']), 
+                                  flattenrevo(['a', 'b', 'c'], ['a', 'b', 'c']))), [Tautology()]) # 5.78
+
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda x: flattenrevo(x, ['a', 'b', 'c'])), n=3) # 5.79
+
+        with self.assertRaises(RecursionError):
+            self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80
+
+
+
 
 
 

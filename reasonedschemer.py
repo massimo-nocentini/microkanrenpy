@@ -131,7 +131,38 @@ def bswappendso(bound):
             return D(conde([succeed, fresh(E)], else_clause=[nullo(l), unify(s, out)]))
         return R
 
+@adapt_iterables_to_conses(lambda x, out: x)
+def unwrapo(x, out):
+    return conde([fresh(lambda a, d: conj(unify([a] + d, x), unwrapo(a, out))), succeed],
+                  else_clause=[unify(x, out)])
 
+@adapt_iterables_to_conses(all_arguments)
+def unwrapso(x, out):
+    return conde([succeed, unify(x, out)],
+                  else_clause=[fresh(lambda a, d: conj(unify([a] + d, x), unwrapso(a, out)))])
+
+@adapt_iterables_to_conses(all_arguments)
+def flatteno(s, out):
+    def F(a, d, out_a, out_d):
+        return (unify([a] + d, s), 
+                flatteno(a, out_a), 
+                flatteno(d, out_d), 
+                appendo(out_a, out_d, out))
+    return conde([nullo(s), nullo(out)],
+                 [fresh(F), succeed],
+                 else_clause=[unify([s], out)])
+
+
+@adapt_iterables_to_conses(all_arguments)
+def flattenrevo(s, out):
+    def F(a, d, out_a, out_d):
+        return (unify([a] + d, s), 
+                flattenrevo(a, out_a), 
+                flattenrevo(d, out_d), 
+                appendo(out_a, out_d, out))
+    return conde([succeed, unify([s], out)],
+                 [nullo(s), nullo(out)],
+                 else_clause=[fresh(F)])
 
 
 
