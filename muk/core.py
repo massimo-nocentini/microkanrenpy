@@ -224,10 +224,10 @@ def _fresh(f, assembler):
 
     f_sig = signature(f)
     arity = len(f_sig.parameters)
+    params = [(i, v.name) for i, (k, v) in enumerate(f_sig.parameters.items())] 
 
     def F(s : state):
-        logic_vars = [var(s.next_index+i, v.name) 
-                      for i, (k, v) in enumerate(f_sig.parameters.items())] 
+        logic_vars = [var(s.next_index+i, n) for (i, n) in params]
         setattr(F, 'logic_vars', logic_vars) # set the attribute in any case, even if `logic_vars == []` for η-inversion  
         subgoals = f(*logic_vars) # syntactic sugar: it allows `f` to return a tuple of goals
         g = assembler(subgoals) # assemble goal(s) according to the plugged-in strategy (`conj` and `disj` usually)
@@ -271,13 +271,15 @@ def mzero(s : state = None):
 def mplus(α, β, interleaving):
 
     if interleaving:
-        try:
-            a = next(α)
-        except StopIteration:
-            yield from β
-        else:
-            yield a
-            yield from mplus(β, α, interleaving)
+        while True:
+            try:
+                a = next(α)
+            except StopIteration:
+                yield from β
+                break
+            else:
+                yield a
+                α, β = β, α
     else:
         yield from chain(α, β)
 

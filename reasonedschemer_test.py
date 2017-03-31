@@ -6,9 +6,6 @@ from muk.ext import *
 from muk.sexp import *
 from reasonedschemer import *
 
-#sys.setrecursionlimit(100000)
-
-
 class reasonedschemer_test(unittest.TestCase):
 
     def test_succeed_fail(self):
@@ -678,8 +675,9 @@ class reasonedschemer_test(unittest.TestCase):
         with self.assertRaises(RecursionError):
             run(fresh(lambda x: flattenrevo(x, ['a', 'b', 'c'])), n=3) # 5.79
 
+        self.assertEqual(run(fresh(lambda x: flatteno([[[['a', [[['b']]], 'c']]], 'd'], x)), n=1), [['a', 'b', 'c', 'd']]) # 5.80.1
         with self.assertRaises(RecursionError):
-            self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80
+            self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80.2
 
 
 
