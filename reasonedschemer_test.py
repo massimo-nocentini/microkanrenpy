@@ -680,6 +680,31 @@ class reasonedschemer_test(unittest.TestCase):
             self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80.2
 
 
+    def test_anyo(self):
+        with self.assertRaises(RecursionError):
+            def question_6_5(q): return nevero, fail
+            run(fresh(question_6_5), n=1)
+
+        def question_6_6(q): return fail, nevero
+        self.assertEqual(run(fresh(question_6_6), n=1), [])
+
+        def question_6_7(q): return alwayso, unify(True, q)
+        self.assertEqual(run(fresh(question_6_7), n=1), [True])
+
+        with self.assertRaises(RecursionError):
+            def question_6_9(q): return alwayso, unify(True, q)
+            run(fresh(question_6_9))
+
+        def question_6_10(q): return alwayso, unify(True, q)
+        self.assertEqual(run(fresh(question_6_10), n=5), [True, True, True, True, True])
+
+        def question_6_11(q): return unify(True, q), alwayso
+        self.assertEqual(run(fresh(question_6_11), n=5), [True, True, True, True, True])
+
+
+
+
+
 
 
 
