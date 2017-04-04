@@ -6,6 +6,10 @@ from muk.ext import *
 from muk.sexp import *
 from reasonedschemer import *
 
+def tea_cupo(x):
+    return conde([unify('tea', x), succeed],
+                 [unify('cup', x), succeed])
+
 class reasonedschemer_test(unittest.TestCase):
 
     def test_succeed_fail(self):
@@ -113,9 +117,6 @@ class reasonedschemer_test(unittest.TestCase):
                                  unify([x, y, 'soup'], r)))),
             [['split', 'pea', 'soup'], ['navy', 'bean', 'soup']]) # 1.55
 
-        def tea_cupo(x):
-            return conde([unify('tea', x), succeed],
-                         [unify('cup', x), succeed])
         self.assertEqual(run(fresh(tea_cupo)), ['tea', 'cup']) # 1.56
         self.assertEqual(run(fresh(lambda r, x, y: conj(conde([tea_cupo(x), unify(True, y)],
                                                               [unify(False, x), unify('y', y)]),
@@ -681,9 +682,9 @@ class reasonedschemer_test(unittest.TestCase):
 
 
     def test_anyo(self):
-        with self.assertRaises(RecursionError):
-            def question_6_5(q): return nevero, fail
-            run(fresh(question_6_5), n=1)
+
+        def question_6_5(q): return nevero, fail
+        with self.assertRaises(RecursionError): run(fresh(question_6_5), n=1)
 
         def question_6_6(q): return fail, nevero
         self.assertEqual(run(fresh(question_6_6), n=1), [])
@@ -691,9 +692,8 @@ class reasonedschemer_test(unittest.TestCase):
         def question_6_7(q): return alwayso, unify(True, q)
         self.assertEqual(run(fresh(question_6_7), n=1), [True])
 
-        with self.assertRaises(RecursionError):
-            def question_6_9(q): return alwayso, unify(True, q)
-            run(fresh(question_6_9))
+        def question_6_9(q): return alwayso, unify(True, q)
+        with self.assertRaises(RecursionError): run(fresh(question_6_9))
 
         def question_6_10(q): return alwayso, unify(True, q)
         self.assertEqual(run(fresh(question_6_10), n=5), [True, True, True, True, True])
@@ -701,11 +701,123 @@ class reasonedschemer_test(unittest.TestCase):
         def question_6_11(q): return unify(True, q), alwayso
         self.assertEqual(run(fresh(question_6_11), n=5), [True, True, True, True, True])
 
+        def question_6_13(q): return succeed_at_least(alwayso), unify(True, q)
+        self.assertEqual(run(fresh(question_6_13), n=1), [True])
 
+        def question_6_14(q): return succeed_at_least(nevero), unify(True, q)
+        self.assertEqual(run(fresh(question_6_14), n=1), [True])
 
+        def question_6_14_1(q): return succeed_at_least(nevero, times=2), unify(True, q)
+        self.assertEqual(run(fresh(question_6_14_1), n=2), [True, True])
+        with self.assertRaises(RecursionError): run(fresh(question_6_14_1), n=3)
 
+        with self.assertRaises(RecursionError): run(fresh(question_6_14_1)) # 6.15
 
+        def question_6_16(q): return succeed_at_least(nevero), fail, unify(True, q)
+        with self.assertRaises(RecursionError): run(fresh(question_6_16), n=1)
+        
+        def question_6_17(q): return alwayso, fail, unify(True, q)
+        with self.assertRaises(RecursionError): run(fresh(question_6_17), n=1)
 
+        def question_6_18(q): return conj(conde([unify(False, q), alwayso],
+                                                else_clause=[anyo(unify(True, q))]),
+                                          unify(True, q))
+        with self.assertRaises(RecursionError): run(fresh(question_6_18), n=1)
 
+        def question_6_19(q): return conj(condi([unify(False, q), alwayso],
+                                                else_clause=[unify(True, q)]),
+                                          unify(True, q))
+        self.assertEqual(run(fresh(question_6_19), n=1), [True])
 
+        with self.assertRaises(RecursionError): run(fresh(question_6_19), n=2) # 6.20
+
+        def question_6_21(q): return conj(condi([unify(False, q), alwayso],
+                                                else_clause=[anyo(unify(True, q))]),
+                                          unify(True, q))
+        self.assertEqual(run(fresh(question_6_21), n=5), [True,True,True,True,True,])
+
+        def question_6_24(r): return condi([tea_cupo(r), succeed],
+                                           [unify(False, r), succeed])
+        self.assertEqual(run(fresh(question_6_24), n=5), ['tea', False, 'cup'])
+
+        def question_6_25(q): return (condi([unify(False, q), alwayso],
+                                           [unify(True, q), alwayso]),
+                                      unify(True, q))
+        self.assertEqual(run(fresh(question_6_25), n=5), [True, True, True, True, True,])
+
+        def question_6_27(q): return (conde([unify(False, q), alwayso],
+                                           [unify(True, q), alwayso]),
+                                      unify(True, q))
+        with self.assertRaises(RecursionError): run(fresh(question_6_27), n=5)
+
+        def question_6_28(q): return conj(conde([alwayso, succeed],
+                                                else_clause=[nevero]),
+                                          unify(True, q))
+        self.assertEqual(run(fresh(question_6_28), n=5), [True,True,True,True,True,])
+
+        def question_6_30(q): return conj(condi([alwayso, succeed],
+                                                else_clause=[nevero]),
+                                          unify(True, q))
+        with self.assertRaises(RecursionError): run(fresh(question_6_30), n=5)
+
+        def question_6_31(q):
+            return conj(conde([unify(False, q), succeed],
+                              else_clause=[unify(True, q)]),
+                        alwayso,
+                        unify(True, q))
+        with self.assertRaises(RecursionError): run(fresh(question_6_31), n=1)
+
+        def question_6_32(q):
+            return conj(
+                    conj(conde([unify(False, q), succeed],
+                               else_clause=[unify(True, q)]),
+                         alwayso,
+                         interleaving=True),
+                    unify(True, q))
+        self.assertEqual(run(fresh(question_6_32), n=1), [True])
+        self.assertEqual(run(fresh(question_6_32), n=5), [True, True, True, True, True]) # 6.33
+        
+        def question_6_33_1(q, interleaving): 
+            return conj(conde([unify(False, q), succeed], 
+                              else_clause=[unify(True, q)]), 
+                        alwayso, 
+                        interleaving=interleaving)
+        self.assertEqual(run(fresh(lambda q: question_6_33_1(q, False)), n=6), [False, False, False, False, False, False])
+        self.assertEqual(run(fresh(lambda q: question_6_33_1(q, True)), n=6), [False, True, False, True, False, True])
+
+        def question_6_34(q):
+            return conj(
+                    conj(conde([unify(True, q), succeed],
+                               else_clause=[unify(False, q)]),
+                         alwayso,
+                         interleaving=True),
+                    unify(True, q))
+        self.assertEqual(run(fresh(question_6_34), n=5), [True, True, True, True, True])
+
+        def question_6_34_1(q, interleaving): 
+            return conj(conde([unify(True, q), succeed], 
+                              else_clause=[unify(False, q)]), 
+                        alwayso, 
+                        interleaving=interleaving)
+        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, False)), n=6), [True,True,True,True,True,True,])
+        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, True)), n=6), [True, False, True, False, True, False])
+
+        def question_6_35(q):
+            return conj(
+                    conj(conde([succeed, succeed],
+                               else_clause=[nevero]),
+                         alwayso),
+                    unify(True, q))
+        self.assertEqual(run(fresh(question_6_35), n=5), [True, True, True, True, True]) 
+
+        def question_6_36(q):
+            return conj(
+                    conj(conde([succeed, succeed],
+                               else_clause=[nevero]),
+                         alwayso,
+                         interleaving=True),
+                    unify(True, q))
+        self.assertEqual(run(fresh(question_6_36), n=1), [True]) 
+        with self.assertRaises(RecursionError): run(fresh(question_6_36), n=2)
+        with self.assertRaises(RecursionError): run(fresh(question_6_36), n=5)
 

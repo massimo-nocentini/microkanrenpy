@@ -172,3 +172,10 @@ nevero = anyo(fail) # `nevero` ever succeeds because although the question of th
                     # the answer of the second `conde` line, namely `anyo(fail)` is where we started.
 alwayso = anyo(succeed) # `alwayso` always succeeds any number of times, whereas `succeed` can succeed only once
 
+def succeed_at_least(g, times=1):
+    return conde(*[[succeed, succeed] for _ in range(times)],
+                 else_clause=[g])
+
+
+
+

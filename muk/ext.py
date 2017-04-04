@@ -1,6 +1,6 @@
 
 import collections
-from functools import wraps
+from functools import wraps, partial
 from contextlib import contextmanager
 
 from muk.core import *
@@ -15,12 +15,14 @@ def disj(*goals, interleaving=True):
     if gs: return _disj(g, disj(*gs, interleaving=interleaving), interleaving)  
     else: return _disj(g, fail, interleaving)
 
-def conj(*goals):
+def conj(*goals, interleaving=False):
     g, *gs = goals
-    return _conj(g, conj(*gs)) if gs else _conj(g, succeed)
+    C = partial(_conj, interleaving=interleaving)
+    return C(g, conj(*gs, interleaving=interleaving)) if gs else C(g, succeed)
 
 def cond(*clauses, else_clause=[fail], interleaving):
-    conjuctions = [conj(*clause) for clause in clauses] + [conj(*else_clause)]
+    C = partial(conj, interleaving=interleaving)
+    conjuctions = [C(*clause) for clause in clauses] + [C(*else_clause)]
     return disj(*conjuctions, interleaving=interleaving)
 
 conde = partial(cond, interleaving=False)

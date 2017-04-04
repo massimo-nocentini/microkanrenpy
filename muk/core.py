@@ -242,10 +242,10 @@ def _disj(g1, g2, interleaving):
         
     return D
 
-def _conj(g1, g2):
+def _conj(g1, g2, interleaving):
 
     def C(s : state):
-        yield from bind(g1(s), g2, interleaving=False)
+        yield from bind(g1(s), g2, interleaving)
 
     return C
 
