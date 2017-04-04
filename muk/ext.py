@@ -46,4 +46,18 @@ def delimited(d):
     yield D
 
 
+def rel(r):
+    r_sig = signature(r)
+    def recv(res, *args): return r(*args), unify(list(args), res) 
+    λ = make_callable(arity=len(r_sig.parameters)) 
+    λo = λ(recv)
+    return fresh(λo)
+
+def make_callable(arity):
+    a_ord = ord('a')
+    params = [chr(a_ord + i) for i in range(arity)]
+    λ_code = 'lambda recv: lambda res, {args}: recv(res, {args})'.format(args=', '.join(params))  
+    λ = eval(λ_code)
+    return λ
+    
 

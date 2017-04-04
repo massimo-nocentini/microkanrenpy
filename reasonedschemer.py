@@ -176,6 +176,18 @@ def succeed_at_least(g, times=1):
     return conde(*[[succeed, succeed] for _ in range(times)],
                  else_clause=[g])
 
+def bit_xoro(x, y, r):
+    return conde([unify(0, x), unify(0, y), unify(0, r)],
+                 [unify(1, x), unify(0, y), unify(1, r)],
+                 [unify(0, x), unify(1, y), unify(1, r)],
+                 [unify(1, x), unify(1, y), unify(0, r)],)
 
+def bit_ando(x, y, r):
+    return conde([unify(0, x), unify(0, y), unify(0, r)],
+                 [unify(1, x), unify(0, y), unify(0, r)],
+                 [unify(0, x), unify(1, y), unify(0, r)],
+                 [unify(1, x), unify(1, y), unify(1, r)],)
 
+def half_addero(x, y, r, c):
+    return bit_xoro(x, y, r), bit_ando(x, y, c)
 

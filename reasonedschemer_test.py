@@ -681,7 +681,7 @@ class reasonedschemer_test(unittest.TestCase):
             self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80.2
 
 
-    def test_anyo(self):
+    def test_second_order_predicates(self):
 
         def question_6_5(q): return nevero, fail
         with self.assertRaises(RecursionError): run(fresh(question_6_5), n=1)
@@ -799,8 +799,10 @@ class reasonedschemer_test(unittest.TestCase):
                               else_clause=[unify(False, q)]), 
                         alwayso, 
                         interleaving=interleaving)
-        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, False)), n=6), [True,True,True,True,True,True,])
-        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, True)), n=6), [True, False, True, False, True, False])
+        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, False)), n=6), 
+                         [True,True,True,True,True,True,])
+        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, True)), n=6), 
+                         [True, False, True, False, True, False])
 
         def question_6_35(q):
             return conj(
@@ -820,4 +822,35 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(question_6_36), n=1), [True]) 
         with self.assertRaises(RecursionError): run(fresh(question_6_36), n=2)
         with self.assertRaises(RecursionError): run(fresh(question_6_36), n=5)
+
+
+    def test_a_bit_too_much(self):
+
+        def question_7_6(s, x, y): return bit_xoro(x, y, 0), unify([x, y], s)
+        self.assertEqual(run(fresh(question_7_6)), [[0,0], [1,1]])
+
+        def question_7_7(s, x, y): return bit_xoro(x, y, 1), unify([x, y], s)
+        self.assertEqual(run(fresh(question_7_7)), [[1,0], [0,1]])
+
+        def question_7_8(r, s, x, y): return bit_xoro(x, y, s), unify([x, y, s], r)
+        self.assertEqual(run(fresh(question_7_8)), 
+                         [[0,0,0], 
+                          [1,0,1], 
+                          [0,1,1], 
+                          [1,1,0]])
+        self.assertEqual(run(rel(bit_xoro)),
+                         [[0,0,0], 
+                          [1,0,1], 
+                          [0,1,1], 
+                          [1,1,0]])
+
+        def question_7_11(s, x, y): return bit_ando(x, y, 1), unify([x, y], s)
+        self.assertEqual(run(fresh(question_7_11)), [[1,1]])
+
+        def question_7_12(r): return half_addero(1, 1, r, 1)
+        self.assertEqual(run(fresh(question_7_12)), [0])
+
+
+
+
 
