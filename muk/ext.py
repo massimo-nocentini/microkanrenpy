@@ -4,7 +4,7 @@ from functools import wraps, partial
 from contextlib import contextmanager
 
 from muk.core import *
-from muk.core import _conj, _disj, _fresh, _delimited
+from muk.core import _conj, _disj, _delimited
 
 
 def snooze(f, formal_vars):
@@ -33,12 +33,6 @@ equalo = unify
 def iterwrap(obj, classes=(tuple,)):
     return obj if isinstance(obj, classes) else [obj]
 
-def fresh(f, assembler=conj, **kwds):
-
-    def A(subgoals):
-        return assembler(*iterwrap(subgoals))
-        
-    return _fresh(f, assembler=A, **kwds)
 
 @contextmanager
 def delimited(d):
@@ -51,8 +45,7 @@ def delimited(d):
 def rel(r):
     def R(res):
         def recv(*args): 
-            gs = iterwrap(r(*args))
-            return conj(*gs, unify(list(args), res))
+            return conj(r(*args), unify(list(args), res))
         r_sig = signature(r)
         return fresh(recv, arity=len(r_sig.parameters))
     return R

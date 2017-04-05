@@ -12,30 +12,29 @@ class ImproperListError(ValueError):
 def list_to_cons(l):
 
     λ = type(l) 
-    if λ == str:
+    if λ == str or λ == cons:
         return l # we consider a `str` obj not an iterable obj but as an atom
 
     try:
         car, cadr, *cddr = l
-
-        cddr = λ(cddr) # restore correct type of tail collecting obj
-        if cddr == (): return cons(list_to_cons(car), list_to_cons(cadr))
-         
-        cdr = λ([cadr]) + cddr # reconstruct `cdr` by adapt `[cadr]` to safely apply +
-        return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
     except:
 
         try:
             car, *cdr = l
-
-            cdr = λ(cdr) # again, restore correct type of the tail
-            if cdr == (): raise ImproperListError # otherwise outer try couldn't fail
-
-            return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
-        except ImproperListError:
-            raise
         except: 
             return l
+        else:
+            cdr = λ(cdr) # again, restore correct type of the tail
+            if cdr == (): 
+                raise ImproperListError # otherwise outer try couldn't fail
+
+            return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
+    else:
+        cddr = λ(cddr) # restore correct type of tail collecting obj
+        if cddr == (): return cons(car=list_to_cons(car), cdr=list_to_cons(cadr))
+         
+        cdr = λ([cadr]) + cddr # reconstruct `cdr` by adapt `[cadr]` to safely apply +
+        return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
 
 
 def cons_to_list(c, for_cdr=False):

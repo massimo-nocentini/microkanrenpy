@@ -211,7 +211,7 @@ def unify(u, v):
     return U
 
 
-def _fresh(f, assembler, arity=None):
+def fresh(f, arity=None):
     '''
     def η_inverse(t):
 
@@ -232,8 +232,7 @@ def _fresh(f, assembler, arity=None):
     def F(s : state):
         logic_vars = [var(s.next_index+i, n) for (i, n) in params]
         setattr(F, 'logic_vars', logic_vars) # set the attribute in any case, even if `logic_vars == []` for η-inversion  
-        subgoals = f(*logic_vars) # syntactic sugar: it allows `f` to return a tuple of goals
-        g = assembler(subgoals) # assemble goal(s) according to the plugged-in strategy (`conj` and `disj` usually)
+        g = f(*logic_vars)
         yield from g(state(s.sub, s.next_index + arity))
 
     return F

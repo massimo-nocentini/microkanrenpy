@@ -16,12 +16,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(succeed), [Tautology()]) # 1.6
         self.assertEqual(run(fail), []) # 1.10
         self.assertEqual(run(fresh(lambda q: unify(True, q))), [True]) # 1.11
-        
-        def question_1_12(q): return fail, unify(True, q)
-        self.assertEqual(run(fresh(question_1_12)), [])
-        self.assertEqual(run(fresh(lambda q: (fail, unify(True, q)))), []) # 1.12
         self.assertEqual(run(fresh(lambda q: conj(fail, unify(True, q)))), []) # 1.12
-
         self.assertEqual(run(fresh(lambda q: conj(succeed, unify(True, q)))), [True]) # 1.13
         self.assertEqual(run(fresh(lambda q: conj(succeed, unify('corn', q)))), ['corn']) # 1.15
         self.assertEqual(run(fresh(lambda q: conj(fail, unify('corn', q)))), []) # 1.17
@@ -384,10 +379,10 @@ class reasonedschemer_test(unittest.TestCase):
         def question_4_12(r): return memo(r, ['a', 'b', 'tofu', 'd', 'tofu', 'e'], ['tofu', 'd', 'tofu', 'e'])
         self.assertEqual(run(fresh(question_4_12)), ['tofu'])
 
-        def question_4_13(q): return memo('tofu', ['tofu', 'e'], ['tofu', 'e']), unify(True, q)
+        def question_4_13(q): return conj(memo('tofu', ['tofu', 'e'], ['tofu', 'e']), unify(True, q))
         self.assertEqual(run(fresh(question_4_13)), [True])
 
-        def question_4_14(q): return memo('tofu', ['tofu', 'e'], ['tofu']), unify(True, q)
+        def question_4_14(q): return conj(memo('tofu', ['tofu', 'e'], ['tofu']), unify(True, q))
         self.assertEqual(run(fresh(question_4_14)), [])
 
         def question_4_15(x): return memo('tofu', ['tofu', 'e'], [x, 'e'])
@@ -429,7 +424,7 @@ class reasonedschemer_test(unittest.TestCase):
                           ['a', 'b', 'e', 'd', var(0)],
                           ['a', 'b', var(0), 'd', var(1), 'e'],])
 
-        def question_4_49(r, y, z): return rembero(y, [y, 'd', z, 'e'], [y, 'd', 'e']), unify([y, z], r)
+        def question_4_49(r, y, z): return conj(rembero(y, [y, 'd', z, 'e'], [y, 'd', 'e']), unify([y, z], r))
         self.assertEqual(run(fresh(question_4_49)), 
                          [['d', 'd'], ['d', 'd'], [var(1), var(1)], ['e', 'e']])
 
@@ -452,16 +447,16 @@ class reasonedschemer_test(unittest.TestCase):
 
     def test_surprise(self):
 
-        def question_4_69(r): return unify('d', r), surpriseo(r, list('abc'))
+        def question_4_69(r): return conj(unify('d', r), surpriseo(r, list('abc')))
         self.assertEqual(run(fresh(question_4_69)), ['d'])
 
         def question_4_70(r): return surpriseo(r, list('abc'))
         self.assertEqual(run(fresh(question_4_70)), [var(0)])
 
-        def question_4_71(r): return surpriseo(r, list('abc')), unify('b', r)
+        def question_4_71(r): return conj(surpriseo(r, list('abc')), unify('b', r))
         self.assertEqual(run(fresh(question_4_71)), ['b'])
 
-        def question_4_72(r): return unify('b', r), surpriseo(r, list('abc'))
+        def question_4_72(r): return conj(unify('b', r), surpriseo(r, list('abc')))
         self.assertEqual(run(fresh(question_4_72)), ['b'])
 
     def test_appendo(self):
@@ -522,7 +517,7 @@ class reasonedschemer_test(unittest.TestCase):
                           ['t'],
                           []]) # 5.25
 
-        def question_5_27(r, x, y): return appendo(x, y, ['cake', 'with', 'ice', 'd', 't']), unify([x, y], r)
+        def question_5_27(r, x, y): return conj(appendo(x, y, ['cake', 'with', 'ice', 'd', 't']), unify([x, y], r))
         self.assertEqual(run(fresh(question_5_27), n=6),
                          [[[], ['cake', 'with', 'ice', 'd', 't']],
                           [['cake'], ['with', 'ice', 'd', 't']],
@@ -534,7 +529,7 @@ class reasonedschemer_test(unittest.TestCase):
         with self.assertRaises(RecursionError):
             run(fresh(question_5_27), n=7) # 5.29
 
-        def question_5_32(r, x, y): return appendso(x, y, ['cake', 'with', 'ice', 'd', 't']), unify([x, y], r)
+        def question_5_32(r, x, y): return conj(appendso(x, y, ['cake', 'with', 'ice', 'd', 't']), unify([x, y], r))
         self.assertEqual(run(fresh(question_5_32), n=7),
                          [[[], ['cake', 'with', 'ice', 'd', 't']],
                           [['cake'], ['with', 'ice', 'd', 't']],
@@ -564,7 +559,7 @@ class reasonedschemer_test(unittest.TestCase):
                           (var(0), var(1), var(2), var(3), var(4), var(5)),
                           (var(0), var(1), var(2), var(3), var(4), var(5), var(6))]) # 5.36.
 
-        def question_5_37(r, x, y, z): return appendso(x, y, z), unify([x, y, z], r)
+        def question_5_37(r, x, y, z): return conj(appendso(x, y, z), unify([x, y, z], r))
         self.assertEqual(run(fresh(question_5_37), n=7), 
                          [[[], var(1), var(1)], # in other words: unify([] + var(1), var(1))
                           [[var(2)], var(3), (var(2), var(3))],
@@ -575,7 +570,7 @@ class reasonedschemer_test(unittest.TestCase):
                           [[var(7), var(8), var(9), var(10), var(11), var(12)], var(13), (var(7), var(8), var(9), var(10), var(11), var(12), var(13))]])
 
         with self.assertRaises(RecursionError):
-            run(fresh(swappendso), n=1) # 5.40
+            run(fresh(swappendso), n=1, var_selector=lambda l, s, out: out) # 5.40
 
         self.assertEqual(run(fresh(bswappendso(bound=5)), n=1), [[var(0), var(1), var(2), var(3)]]) # 5.40.1
         self.assertEqual(run(fresh(bswappendso(bound=5)), n=5), [[var(0), var(1), var(2), var(3)], [var(0), var(1), var(2)], [var(0), var(1)], [var(0)], []]) # 5.40.2
@@ -677,46 +672,46 @@ class reasonedschemer_test(unittest.TestCase):
             run(fresh(lambda x: flattenrevo(x, ['a', 'b', 'c'])), n=3) # 5.79
 
         self.assertEqual(run(fresh(lambda x: flatteno([[[['a', [[['b']]], 'c']]], 'd'], x)), n=1), [['a', 'b', 'c', 'd']]) # 5.80.1
-        with self.assertRaises(RecursionError):
-            self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80.2
+        #with self.assertRaises(RecursionError):
+            #len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))) # 5.80.2
 
 
     def test_second_order_predicates(self):
 
-        def question_6_5(q): return nevero, fail
+        def question_6_5(q): return conj(nevero, fail)
         with self.assertRaises(RecursionError): run(fresh(question_6_5), n=1)
 
-        def question_6_6(q): return fail, nevero
+        def question_6_6(q): return conj(fail, nevero)
         self.assertEqual(run(fresh(question_6_6), n=1), [])
 
-        def question_6_7(q): return alwayso, unify(True, q)
+        def question_6_7(q): return conj(alwayso, unify(True, q))
         self.assertEqual(run(fresh(question_6_7), n=1), [True])
 
-        def question_6_9(q): return alwayso, unify(True, q)
+        def question_6_9(q): return conj(alwayso, unify(True, q))
         with self.assertRaises(RecursionError): run(fresh(question_6_9))
 
-        def question_6_10(q): return alwayso, unify(True, q)
+        def question_6_10(q): return conj(alwayso, unify(True, q))
         self.assertEqual(run(fresh(question_6_10), n=5), [True, True, True, True, True])
 
-        def question_6_11(q): return unify(True, q), alwayso
+        def question_6_11(q): return conj(unify(True, q), alwayso)
         self.assertEqual(run(fresh(question_6_11), n=5), [True, True, True, True, True])
 
-        def question_6_13(q): return succeed_at_least(alwayso), unify(True, q)
+        def question_6_13(q): return conj(succeed_at_least(alwayso), unify(True, q))
         self.assertEqual(run(fresh(question_6_13), n=1), [True])
 
-        def question_6_14(q): return succeed_at_least(nevero), unify(True, q)
+        def question_6_14(q): return conj(succeed_at_least(nevero), unify(True, q))
         self.assertEqual(run(fresh(question_6_14), n=1), [True])
 
-        def question_6_14_1(q): return succeed_at_least(nevero, times=2), unify(True, q)
+        def question_6_14_1(q): return conj(succeed_at_least(nevero, times=2), unify(True, q))
         self.assertEqual(run(fresh(question_6_14_1), n=2), [True, True])
         with self.assertRaises(RecursionError): run(fresh(question_6_14_1), n=3)
 
         with self.assertRaises(RecursionError): run(fresh(question_6_14_1)) # 6.15
 
-        def question_6_16(q): return succeed_at_least(nevero), fail, unify(True, q)
+        def question_6_16(q): return conj(succeed_at_least(nevero), fail, unify(True, q))
         with self.assertRaises(RecursionError): run(fresh(question_6_16), n=1)
         
-        def question_6_17(q): return alwayso, fail, unify(True, q)
+        def question_6_17(q): return conj(alwayso, fail, unify(True, q))
         with self.assertRaises(RecursionError): run(fresh(question_6_17), n=1)
 
         def question_6_18(q): return conj(conde([unify(False, q), alwayso],
@@ -740,14 +735,14 @@ class reasonedschemer_test(unittest.TestCase):
                                            [unify(False, r), succeed])
         self.assertEqual(run(fresh(question_6_24), n=5), ['tea', False, 'cup'])
 
-        def question_6_25(q): return (condi([unify(False, q), alwayso],
-                                           [unify(True, q), alwayso]),
-                                      unify(True, q))
+        def question_6_25(q): return conj(condi([unify(False, q), alwayso],
+                                                [unify(True, q), alwayso]),
+                                          unify(True, q))
         self.assertEqual(run(fresh(question_6_25), n=5), [True, True, True, True, True,])
 
-        def question_6_27(q): return (conde([unify(False, q), alwayso],
-                                           [unify(True, q), alwayso]),
-                                      unify(True, q))
+        def question_6_27(q): return conj(conde([unify(False, q), alwayso],
+                                                [unify(True, q), alwayso]),
+                                          unify(True, q))
         with self.assertRaises(RecursionError): run(fresh(question_6_27), n=5)
 
         def question_6_28(q): return conj(conde([alwayso, succeed],
@@ -826,13 +821,13 @@ class reasonedschemer_test(unittest.TestCase):
 
     def test_a_bit_too_much(self):
 
-        def question_7_6(s, x, y): return bit_xoro(x, y, 0), unify([x, y], s)
+        def question_7_6(s, x, y): return conj(bit_xoro(x, y, 0), unify([x, y], s))
         self.assertEqual(run(fresh(question_7_6)), [[0,0], [1,1]])
 
-        def question_7_7(s, x, y): return bit_xoro(x, y, 1), unify([x, y], s)
+        def question_7_7(s, x, y): return conj(bit_xoro(x, y, 1), unify([x, y], s))
         self.assertEqual(run(fresh(question_7_7)), [[1,0], [0,1]])
 
-        def question_7_8(r, s, x, y): return bit_xoro(x, y, s), unify([x, y, s], r)
+        def question_7_8(r, s, x, y): return conj(bit_xoro(x, y, s), unify([x, y, s], r))
         self.assertEqual(run(fresh(question_7_8)), 
                          [[0,0,0], 
                           [1,0,1], 
@@ -844,7 +839,7 @@ class reasonedschemer_test(unittest.TestCase):
                           [0,1,1], 
                           [1,1,0]])
 
-        def question_7_11(s, x, y): return bit_ando(x, y, 1), unify([x, y], s)
+        def question_7_11(s, x, y): return conj(bit_ando(x, y, 1), unify([x, y], s))
         self.assertEqual(run(fresh(question_7_11)), [[1,1]])
 
         def question_7_12(r): return half_addero(1, 1, r, 1)
@@ -858,7 +853,17 @@ class reasonedschemer_test(unittest.TestCase):
         
         def question_7_15(s, r, c): return conj(full_addero(0, 1, 1, r, c), unify([r,c], s))
         self.assertEqual(run(fresh(question_7_15)), [[0,1]])
-        self.assertEqual(run(fresh(rel(full_addero))), None) # 7.15.1
+        self.assertEqual(run(fresh(rel(full_addero))), 
+                         [
+                         [0,0,0,0,0],
+                         [1,0,0,1,0],
+                         [0,1,0,1,0],
+                         [1,1,0,0,1],
+                         [0,0,1,1,0],
+                         [1,0,1,0,1],
+                         [0,1,1,0,1],
+                         [1,1,1,1,1],
+                         ]) # 7.15.1
 
 
 

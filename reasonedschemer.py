@@ -85,21 +85,19 @@ def reverse_list(l):
 
 @adapt_iterables_to_conses(lambda x, l, out: {l, out})
 def memo(x, l, out):
+    return fresh(lambda a, d: conj(unify([a] + d, l), 
+                                   conde([unify(a, x), unify(l, out)], 
+                                         else_clause=[memo(x, d, out)])))
 
-    def M(a, d):
-        return unify([a] + d, l), conde([unify(a, x), unify(l, out)], 
-                                         else_clause=[memo(x, d, out)])
-
-    return fresh(M)
 
 @adapt_iterables_to_conses(lambda x, l, out: {l, out})
 def rembero(x, l, out):
-
-    def E(a, d, res): return unify([a] + d, l), rembero(x, d, res), unify([a] + res, out)
     return conde([nullo(l), nullo(out)],
                  #[unify([x] + out, l), succeed], # in order to write this one we should promote `cons` to a class and implement __add__ and __radd__
                  [caro(l, x), cdro(l, out)],
-                 else_clause=[fresh(E)])
+                 else_clause=[fresh(lambda a, d, res: conj(unify([a] + d, l), 
+                                                           rembero(x, d, res), 
+                                                           unify([a] + res, out)))])
 
 @adapt_iterables_to_conses(lambda s, l: {l})
 def surpriseo(s, l):
@@ -107,27 +105,30 @@ def surpriseo(s, l):
 
 @adapt_iterables_to_conses(all_arguments)
 def appendo(l, s, out):
-    def E(a, d, res): return unify([a] + d, l), appendo(d, s, res), unify([a] + res, out)
     return conde([nullo(l), unify(s, out)],
-                 else_clause=[fresh(E)])
+                 else_clause=[fresh(lambda a, d, res: conj(unify([a] + d, l), 
+                                                           appendo(d, s, res), 
+                                                           unify([a] + res, out)))])
 
 @adapt_iterables_to_conses(all_arguments)
 def appendso(l, s, out):
-    def E(a, d, res): return unify([a] + d, l), unify([a] + res, out), appendso(d, s, res)
     return conde([nullo(l), unify(s, out)],
-                 else_clause=[fresh(E)])
+                 else_clause=[fresh(lambda a, d, res: conj(unify([a] + d, l), 
+                                                           unify([a] + res, out), 
+                                                           appendso(d, s, res)))])
 
 @adapt_iterables_to_conses(all_arguments)
 def swappendso(l, s, out):
-    def E(a, d, res): return unify([a] + d, l), unify([a] + res, out), swappendso(d, s, res)
-    return conde([succeed, fresh(E)],
+    return conde([succeed, fresh(lambda a, d, res: conj(unify([a] + d, l), 
+                                                        unify([a] + res, out), 
+                                                        swappendso(d, s, res)))],
                  else_clause=[nullo(l), unify(s, out)])
 
 def bswappendso(bound):
     with delimited(bound) as D:
         @adapt_iterables_to_conses(all_arguments)
         def R(l, s, out):
-            def E(a, d, res): return unify([a] + d, l), unify([a] + res, out), R(d, s, res)
+            def E(a, d, res): return conj(unify([a] + d, l), unify([a] + res, out), R(d, s, res))
             return D(conde([succeed, fresh(E)], else_clause=[nullo(l), unify(s, out)]))
         return R
 
@@ -144,10 +145,10 @@ def unwrapso(x, out):
 @adapt_iterables_to_conses(all_arguments)
 def flatteno(s, out):
     def F(a, d, out_a, out_d):
-        return (unify([a] + d, s), 
-                flatteno(a, out_a), 
-                flatteno(d, out_d), 
-                appendo(out_a, out_d, out))
+        return conj(unify([a] + d, s), 
+                    flatteno(a, out_a), 
+                    flatteno(d, out_d), 
+                    appendo(out_a, out_d, out))
     return conde([nullo(s), nullo(out)],
                  [fresh(F), succeed],
                  else_clause=[unify([s], out)])
@@ -156,10 +157,10 @@ def flatteno(s, out):
 @adapt_iterables_to_conses(all_arguments)
 def flattenrevo(s, out):
     def F(a, d, out_a, out_d):
-        return (unify([a] + d, s), 
-                flattenrevo(a, out_a), 
-                flattenrevo(d, out_d), 
-                appendo(out_a, out_d, out))
+        return conj(unify([a] + d, s), 
+                    flattenrevo(a, out_a), 
+                    flattenrevo(d, out_d), 
+                    appendo(out_a, out_d, out))
     return conde([succeed, unify([s], out)],
                  [nullo(s), nullo(out)],
                  else_clause=[fresh(F)])
