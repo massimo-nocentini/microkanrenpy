@@ -189,5 +189,10 @@ def bit_ando(x, y, r):
                  [unify(1, x), unify(1, y), unify(1, r)],)
 
 def half_addero(x, y, r, c):
-    return bit_xoro(x, y, r), bit_ando(x, y, c)
+    return conj(bit_xoro(x, y, r), bit_ando(x, y, c))
+
+def full_addero(b, x, y, r, c):
+    return fresh(lambda w, xy, wb: conj(half_addero(x, y, w, xy), 
+                                        half_addero(b, w, r, wb), 
+                                        bit_xoro(xy, wb, c)))
 

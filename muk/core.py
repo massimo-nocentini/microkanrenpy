@@ -211,7 +211,7 @@ def unify(u, v):
     return U
 
 
-def _fresh(f, assembler):
+def _fresh(f, assembler, arity=None):
     '''
     def η_inverse(t):
 
@@ -222,9 +222,12 @@ def _fresh(f, assembler):
         return I
     '''
 
-    f_sig = signature(f)
-    arity = len(f_sig.parameters)
-    params = [(i, v.name) for i, (k, v) in enumerate(f_sig.parameters.items())] 
+    if arity:
+        params = [(i, n) for i in range(arity) for n in [chr(ord('a') + i)]]
+    else:
+        f_sig = signature(f)
+        arity = len(f_sig.parameters)
+        params = [(i, v.name) for i, (k, v) in enumerate(f_sig.parameters.items())] 
 
     def F(s : state):
         logic_vars = [var(s.next_index+i, n) for (i, n) in params]

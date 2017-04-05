@@ -30,13 +30,15 @@ condi = partial(cond, interleaving=True)
 
 equalo = unify
 
-def fresh(f, assembler=conj):
+def iterwrap(obj, classes=(tuple,)):
+    return obj if isinstance(obj, classes) else [obj]
+
+def fresh(f, assembler=conj, **kwds):
 
     def A(subgoals):
-        args = subgoals if isinstance(subgoals, tuple) else [subgoals]
-        return assembler(*args)
+        return assembler(*iterwrap(subgoals))
         
-    return _fresh(f, assembler=A)
+    return _fresh(f, assembler=A, **kwds)
 
 @contextmanager
 def delimited(d):
@@ -47,17 +49,13 @@ def delimited(d):
 
 
 def rel(r):
-    r_sig = signature(r)
-    def recv(res, *args): return r(*args), unify(list(args), res) 
-    λ = make_callable(arity=len(r_sig.parameters)) 
-    λo = λ(recv)
-    return fresh(λo)
+    def R(res):
+        def recv(*args): 
+            gs = iterwrap(r(*args))
+            return conj(*gs, unify(list(args), res))
+        r_sig = signature(r)
+        return fresh(recv, arity=len(r_sig.parameters))
+    return R
 
-def make_callable(arity):
-    a_ord = ord('a')
-    params = [chr(a_ord + i) for i in range(arity)]
-    λ_code = 'lambda recv: lambda res, {args}: recv(res, {args})'.format(args=', '.join(params))  
-    λ = eval(λ_code)
-    return λ
-    
+
 

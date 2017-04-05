@@ -838,7 +838,7 @@ class reasonedschemer_test(unittest.TestCase):
                           [1,0,1], 
                           [0,1,1], 
                           [1,1,0]])
-        self.assertEqual(run(rel(bit_xoro)),
+        self.assertEqual(run(fresh(rel(bit_xoro))),
                          [[0,0,0], 
                           [1,0,1], 
                           [0,1,1], 
@@ -850,7 +850,15 @@ class reasonedschemer_test(unittest.TestCase):
         def question_7_12(r): return half_addero(1, 1, r, 1)
         self.assertEqual(run(fresh(question_7_12)), [0])
 
-
+        self.assertEqual(run(fresh(rel(half_addero))), 
+                         [[0,0,0,0],
+                          [1,0,1,0],
+                          [0,1,1,0],
+                          [1,1,0,1]]) # 7.13
+        
+        def question_7_15(s, r, c): return conj(full_addero(0, 1, 1, r, c), unify([r,c], s))
+        self.assertEqual(run(fresh(question_7_15)), [[0,1]])
+        self.assertEqual(run(fresh(rel(full_addero))), None) # 7.15.1
 
 
 
