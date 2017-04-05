@@ -132,7 +132,7 @@ def bswappendso(bound):
             return D(conde([succeed, fresh(E)], else_clause=[nullo(l), unify(s, out)]))
         return R
 
-@adapt_iterables_to_conses(lambda x, out: x)
+@adapt_iterables_to_conses(lambda x, out: {x})
 def unwrapo(x, out):
     return conde([fresh(lambda a, d: conj(unify([a] + d, x), unwrapo(a, out))), succeed],
                   else_clause=[unify(x, out)])

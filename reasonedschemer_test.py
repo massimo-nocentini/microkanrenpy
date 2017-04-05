@@ -1,5 +1,5 @@
 
-import unittest, sys
+import unittest
 
 from muk.core import *
 from muk.ext import *
@@ -672,8 +672,8 @@ class reasonedschemer_test(unittest.TestCase):
             run(fresh(lambda x: flattenrevo(x, ['a', 'b', 'c'])), n=3) # 5.79
 
         self.assertEqual(run(fresh(lambda x: flatteno([[[['a', [[['b']]], 'c']]], 'd'], x)), n=1), [['a', 'b', 'c', 'd']]) # 5.80.1
-        #with self.assertRaises(RecursionError):
-            #len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))) # 5.80.2
+        with self.assertRaises(RecursionError):
+            self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80.2
 
 
     def test_second_order_predicates(self):
@@ -851,8 +851,8 @@ class reasonedschemer_test(unittest.TestCase):
                           [0,1,1,0],
                           [1,1,0,1]]) # 7.13
         
-        def question_7_15(s, r, c): return conj(full_addero(0, 1, 1, r, c), unify([r,c], s))
-        self.assertEqual(run(fresh(question_7_15)), [[0,1]])
+        self.assertEqual(run(fresh(lambda s, r, c: conj(full_addero(0, 1, 1, r, c), unify([r,c], s)))), [[0,1]]) # 7.15
+        self.assertEqual(run(fresh(lambda s, r, c: conj(full_addero(1, 1, 1, r, c), unify([r,c], s)))), [[1,1]]) # 7.16
         self.assertEqual(run(fresh(rel(full_addero))), 
                          [
                          [0,0,0,0,0],
@@ -863,7 +863,11 @@ class reasonedschemer_test(unittest.TestCase):
                          [1,0,1,0,1],
                          [0,1,1,0,1],
                          [1,1,1,1,1],
-                         ]) # 7.15.1
+                         ]) # 7.17
 
+    def test_build_num(self):
+        self.assertEqual(num(0), [])
+        self.assertEqual(num(36), [0, 0, 1, 0, 0, 1])
+        self.assertEqual(num(19), [1, 1, 0, 0, 1])
 
 
