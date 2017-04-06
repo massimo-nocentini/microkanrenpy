@@ -950,6 +950,12 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(rightmost_representative(num.build(var(0))), [[], None, 0]) # 7.95
 
 
+    def test_under_the_hood(self):
+        self.assertEqual(run(fresh(lambda q: conj(unify(False, q), project(q, into=lambda q: unify(not(not q), q))))), [False]) # 9.47
+        self.assertEqual(run(fresh(lambda q: conj(unify(False, q), unify(not(not q), q)))), []) # 9.47
+        self.assertEqual(run(fresh(lambda q: conj(unify(3, q), project(q, into=lambda q: unify(q+1, 4))))), [3]) # 9.47.1
+        with self.assertRaises(Exception): run(fresh(lambda q: conj(unify(3, q), unify(q+1, 4)))) # 9.47.2
+
 
 
 

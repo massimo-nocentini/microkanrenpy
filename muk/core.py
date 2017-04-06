@@ -173,6 +173,8 @@ def walk_star(v, sub):
 
 def ext_s(u, v, sub):
 
+    if u == v: raise ValueError('According to 9.12 of The Reasoned Schemer')
+
     if u in sub: # check to ensure consistency of previously unified values
         if sub[u] != v: raise UnificationError
         else: return sub
@@ -204,9 +206,10 @@ def unify(u, v):
     def U(s : state):
         try:
             sub = unification(u, v, s.sub)
-            yield from unit(state(sub, s.next_index))
         except UnificationError:
             yield from mzero()
+        else:
+            yield from unit(state(sub, s.next_index))
 
     return U
 
@@ -259,6 +262,15 @@ def _delimited(d, pv, g):
         yield from g(state(sub, s.next_index)) if sub[pv] <= d else mzero()
 
     return B
+
+def project(*logic_vars, into):
+
+    def P(s : state):
+        walked_vars = [walk_star(v, s.sub) for v in logic_vars]
+        g = into(*walked_vars)
+        yield from g(s)
+
+    return P
 
 # }}}
 
