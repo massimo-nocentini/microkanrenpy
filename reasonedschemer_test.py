@@ -5,6 +5,7 @@ from muk.core import *
 from muk.ext import *
 from muk.sexp import *
 from reasonedschemer import *
+from reasonedschemer import _addero
 
 def tea_cupo(x):
     return conde([unify('tea', x), succeed],
@@ -171,7 +172,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda l, x: conj(cdro(l, list('corn')), 
                                                      caro(l, x), 
                                                      unify('a', x))), 
-                             post=lambda l: ''.join(l)), ['acorn']) # 2.21
+                             post=lambda l: ''.join(cons_to_list(l))), ['acorn']) # 2.21
         self.assertEqual(run(fresh(lambda l, x: conj(cdro(l, list('corn')), 
                                                      caro(l, x), 
                                                      unify('a', x)))), [list('acorn')]) # 2.21.1
@@ -819,7 +820,7 @@ class reasonedschemer_test(unittest.TestCase):
         with self.assertRaises(RecursionError): run(fresh(question_6_36), n=5)
 
 
-    def test_a_bit_too_much(self):
+    def test_bitwise_ops(self):
 
         def question_7_6(s, x, y): return conj(bit_xoro(x, y, 0), unify([x, y], s))
         self.assertEqual(run(fresh(question_7_6)), [[0,0], [1,1]])
@@ -866,8 +867,93 @@ class reasonedschemer_test(unittest.TestCase):
                          ]) # 7.17
 
     def test_build_num(self):
-        self.assertEqual(num(0), [])
-        self.assertEqual(num(36), [0, 0, 1, 0, 0, 1])
-        self.assertEqual(num(19), [1, 1, 0, 0, 1])
+        self.assertEqual(num.build(0), [])
+        with self.assertRaises(TypeError): self.assertEqual(int([]), 0) # 7.22
+        self.assertEqual(int(num(1, [])), 1) # 7.24
+        self.assertEqual(int(num(1, num(0, num(1, [])))), 5) # 7.25
+        self.assertEqual(int(num(1, cons(1, cons(1, [])))), 7) # 7.26
+        self.assertEqual(num.build(9), num(1, num(0, num(0, num(1, []))))) # 7.27
+        self.assertEqual(num.build(6), num(0, num(1, num(1, [])))) # 7.29
+        self.assertEqual(num.build(19), num(1, num(1, num(0, num(0, num(1, [])))))) # 7.42
+        self.assertEqual(num.build(36), num(0, num(0, num(1, num(0, num(0, num(1, []))))))) # 7.43
+
+    def test_a_bit_too_much(self):
+        self.assertEqual(run(fresh(lambda q: conj(poso([0, 1, 1]), unify(True, q)))), [True]) # 7.80
+        self.assertEqual(run(fresh(lambda q: conj(poso([1]), unify(True, q)))), [True]) # 7.81
+        self.assertEqual(run(fresh(lambda q: conj(poso([]), unify(True, q)))), []) # 7.82
+        self.assertEqual(run(fresh(poso)), [(var(0), var(1))]) # 7.83
+        self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([0, 1, 1]), unify(True, q)))), [True]) # 7.86
+        self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([0, 1]), unify(True, q)))), [True]) # 7.87
+        self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([1]), unify(True, q)))), []) # 7.88
+        self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([]), unify(True, q)))), []) # 7.89
+        self.assertEqual(run(fresh(greater_than_oneo)), [(var(0), var(1), var(2))]) # 7.90
+        
+        self.assertEqual(run(fresh(lambda s, x, y, r: conj(addero(0, x, y, r), unify([x, y, r], s))), n=3),
+                         [[var(1), [], var(1)],
+                          [[], (var(2), var(3)), (var(2), var(3))],
+                          [[1], [1], [0, 1]]]) # 7. 97
+
+        self.assertEqual(run(fresh(lambda s, x, y, r: conj(addero(0, x, y, r), unify([x, y, r], s))), n=22),
+                         [[var(1), [], var(1)],
+                          [[], (var(2), var(3)), (var(2), var(3))],
+                          [[1], [1], [0, 1]],
+                          [[1], (0, var(2), var(3)), (1, var(2), var(3))],
+                          [(0, var(2), var(3)), [1], (1, var(2), var(3))],
+                          [[1], [1, 1], [0, 0, 1]],
+                          [[0, 1], [0, 1], [0, 0, 1]],
+                          [[1], (1, 0, var(2), var(3)), (0, 1, var(2), var(3))],
+                          [[1, 1], [1], [0, 0, 1]],
+                          [[1], [1, 1, 1], [0, 0, 0, 1]],
+                          [[1, 1], [0, 1], [1, 0, 1]],
+                          [[1], (1, 1, 0, var(2), var(3)), (0, 0, 1, var(2), var(3))],
+                          [(1, 0, var(2), var(3)), [1], (0, 1, var(2), var(3))],
+                          [[1], [1, 1, 1, 1], [0, 0, 0, 0, 1]],
+                          [[0, 1], (0, 0, var(2), var(3)), (0, 1, var(2), var(3))],
+                          [[1], (1, 1, 1, 0, var(2), var(3)), (0, 0, 0, 1, var(2), var(3))],
+                          [[1, 1, 1], [1], [0, 0, 0, 1]],
+                          [[1], [1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 1]],
+                          [[0, 1], [1, 1], [1, 0, 1]],
+                          [[1], (1, 1, 1, 1, 0, var(2), var(3)), (0, 0, 0, 0, 1, var(2), var(3))],
+                          [(1, 1, 0, var(2), var(3)), [1], (0, 0, 1, var(2), var(3))],
+                          [[1], [1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1]],
+                          ]) # 7.101
+
+        self.assertEqual(run(fresh(lambda s: _addero(1, [0, 1, 1], [1, 1], s))), [[0, 1, 0, 1]]) # 7.120
+        self.assertEqual(run(fresh(lambda s, x, y: conj(addero(0, x, y, [1, 0, 1]), unify([x, y], s)))),
+                         [[[1, 0, 1], []],
+                          [[], [1, 0, 1]],
+                          [[1], [0, 0, 1]],
+                          [[0, 0, 1], [1]],
+                          [[1, 1], [0, 1]],
+                          [[0, 1], [1, 1]],]) # 7.126
+        self.assertEqual(run(fresh(lambda s, x, y: conj(pluso(x, y, [1, 0, 1]), unify([x, y], s)))),
+                         [[[1, 0, 1], []],
+                          [[], [1, 0, 1]],
+                          [[1], [0, 0, 1]],
+                          [[0, 0, 1], [1]],
+                          [[1, 1], [0, 1]],
+                          [[0, 1], [1, 1]],]) # 7.128
+
+        self.assertEqual(run(fresh(lambda q: minuso([0, 0, 0, 1], [1, 0, 1], q))), [[1, 1]]) # 7.131
+        self.assertEqual(run(fresh(lambda q: minuso(8, 5, q))), [int_to_list(3)]) # 7.131.1
+        self.assertEqual(run(fresh(lambda q: minuso(8, 5, q)), post=lambda r: int(num(r.car, r.cdr))), [3]) # 7.131.2
+        self.assertEqual(run(fresh(lambda q: minuso(6, 6, q)), post=lambda r: 0 if r == [] else r), [0]) # 7.132
+        self.assertEqual(run(fresh(lambda q: minuso(6, 8, q)), post=lambda r: 0 if r == [] else r), []) # 7.133
+
+
+    @unittest.expectedFailure
+    def test_rightmost_representative(self):
+        self.assertEqual(rightmost_representative(num.build([0, 1, 1])), [[0, 1, 1], [], 2]) # 7.92
+        self.assertEqual(rightmost_representative(num.build((0, var(0), 1, 0, var(1), var(2)))), 
+                         [[0, var(0), 1], (0, var(1), var(2)), 2]) # 7.93
+        self.assertEqual(rightmost_representative(num.build((0, 0, var(0), var(1)))), [[], None, 2]) # 7.94
+        self.assertEqual(rightmost_representative(num.build(var(0))), [[], None, 0]) # 7.95
+
+
+
+
+
+
+
 
 

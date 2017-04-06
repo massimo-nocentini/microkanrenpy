@@ -297,7 +297,7 @@ def bind(α, g, interleaving):
 
 def run(goal, n=False, 
         var_selector=lambda *args: args[0],
-        post=lambda arg: arg):
+        post=lambda r: cons_to_list(r) if isinstance(r, cons) else r):
     '''
     Returns a list [v ...] of associations (u, v) ... for the var `u` subject of the `run`
 
@@ -321,7 +321,7 @@ def run(goal, n=False,
         r = walk_star(main_var, sub) # instantiate every content in the expr associated to `main_var` in `sub` to the most specific value
         reified_sub = reify(r, sub={}) # reify the most specific instantiation in order to hide impl details from vars names
         r = walk_star(r, reified_sub) # finally, reduce the most specific instantiation to use vars hiding
-        return post(cons_to_list(r) if isinstance(r, cons) else r) # apply `post` processing for pretty printing
+        return post(r) # apply `post` processing for pretty printing
 
     return list(map(λ, subs))
 

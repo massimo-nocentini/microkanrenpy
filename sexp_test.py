@@ -1,5 +1,6 @@
 
 import unittest
+from functools import partialmethod
 
 from muk.sexp import *
 
@@ -33,19 +34,27 @@ class sexp_tests(unittest.TestCase):
     def test_more_nested_improper_lists_into_proper_list_to_cons(self):
         self.isomorphism(l=[[3],(4,5), 6], c=cons(cons(3, []), cons(cons(4, 5), cons(6, []))))
 
-    @unittest.expectedFailure
     def test_invalid_improper_list(self):
-        list_to_cons(l=(3,))
+        with self.assertRaises(ImproperListError):
+            list_to_cons(l=(3,))
 
-    @unittest.expectedFailure
     def test_invalid_improper_cons(self):
-        cons_to_list(c=cons(3, ()))
+        with self.assertRaises(ImproperListError):
+            cons_to_list(c=cons(3, ()))
 
     def isomorphism(self, l, c):
         self.assertEqual(c, list_to_cons(l))
         self.assertEqual(l, cons_to_list(c))
-
          
+    def test_tuple_wrapping_and_ctor_call(self):
+
+        class A(tuple):
+            __int__ = partialmethod(sum)
+
+        a = (1,2,3,4) # vanilla tuple obj
+        self.assertEqual(tuple, type(a))
+        self.assertEqual(A, type(A(a)))
+        self.assertEqual(10, int(A(a)))
 
 
 

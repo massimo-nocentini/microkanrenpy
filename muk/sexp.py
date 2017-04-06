@@ -14,14 +14,12 @@ class ImproperListError(ValueError):
 
 def list_to_cons(l):
 
-    λ = type(l) 
-    if λ == str or λ == cons:
-        return l # we consider a `str` obj not an iterable obj but as an atom
+    if isinstance(l, (str, cons)): return l # we consider a `str` obj not an iterable obj but as an atom
 
+    λ = type(l) 
     try:
         car, cadr, *cddr = l
     except:
-
         try:
             car, *cdr = l
         except: 
@@ -69,10 +67,21 @@ def adapt_iterables_to_conses(selector, ctor=list_to_cons):
 
 all_arguments = lambda *args: set(args)
 
-
-def num(i): 
+def int_to_list(i):
     return list(map(int, reversed(bin(i)[2:]))) if i else []
 
+class num(cons): 
+
+    @classmethod
+    def build(cls, obj):
+        if isinstance(obj, int): obj = int_to_list(obj)
+        c = list_to_cons(obj)
+        return num(c.car, c.cdr) if isinstance(c, cons) else c
+
+    def __int__(self):
+        def I(c, e):
+            return 0 if c == [] else c.car * 2**e + I(c.cdr, e+1)
+        return I(self, e=0)
 
 
 

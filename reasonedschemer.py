@@ -167,7 +167,7 @@ def flattenrevo(s, out):
 
 def anyo(g):
     return conde([g, succeed],
-                  else_clause=[fresh(lambda: anyo(g))])
+                  else_clause=[fresh(lambda: anyo(g))]) # by η-inversion  
 
 nevero = anyo(fail) # `nevero` ever succeeds because although the question of the first `conde` line within `anyo` fails,
                     # the answer of the second `conde` line, namely `anyo(fail)` is where we started.
@@ -177,23 +177,77 @@ def succeed_at_least(g, times=1):
     return conde(*[[succeed, succeed] for _ in range(times)],
                  else_clause=[g])
 
-def bit_xoro(x, y, r):
-    return conde([unify(0, x), unify(0, y), unify(0, r)],
-                 [unify(1, x), unify(0, y), unify(1, r)],
-                 [unify(0, x), unify(1, y), unify(1, r)],
-                 [unify(1, x), unify(1, y), unify(0, r)],)
+def bit_xoro(α, β, γ):
+    return conde([unify(0, α), unify(0, β), unify(0, γ)],
+                 [unify(1, α), unify(0, β), unify(1, γ)],
+                 [unify(0, α), unify(1, β), unify(1, γ)],
+                 [unify(1, α), unify(1, β), unify(0, γ)],)
 
-def bit_ando(x, y, r):
-    return conde([unify(0, x), unify(0, y), unify(0, r)],
-                 [unify(1, x), unify(0, y), unify(0, r)],
-                 [unify(0, x), unify(1, y), unify(0, r)],
-                 [unify(1, x), unify(1, y), unify(1, r)],)
+def bit_ando(α, β, γ):
+    return conde([unify(0, α), unify(0, β), unify(0, γ)],
+                 [unify(1, α), unify(0, β), unify(0, γ)],
+                 [unify(0, α), unify(1, β), unify(0, γ)],
+                 [unify(1, α), unify(1, β), unify(1, γ)],)
 
-def half_addero(x, y, r, c):
-    return conj(bit_xoro(x, y, r), bit_ando(x, y, c))
+def half_addero(α, β, γ, δ):
+    return conj(bit_xoro(α, β, γ), bit_ando(α, β, δ))
 
-def full_addero(b, x, y, r, c):
-    return fresh(lambda w, xy, wb: conj(half_addero(x, y, w, xy), 
-                                        half_addero(b, w, r, wb), 
-                                        bit_xoro(xy, wb, c)))
+def full_addero(ε, α, β, γ, δ):
+    return fresh(lambda w, αβ, wε: conj(half_addero(α, β, w, αβ), 
+                                        half_addero(ε, w, γ, wε), 
+                                        bit_xoro(αβ, wε, δ)))
 
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def poso(n):
+    return pairo(n)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def greater_than_oneo(n):
+    return fresh(lambda a, ad, dd: unify([a, ad] + dd, n))
+
+def rightmost_representative(n):
+    raise NotImplemented
+
+def _rightmost_representative(n):
+
+    def R(n, col, i):
+        try:
+            a, d = n
+            ad, dd = d
+        except:
+            return col([], None, i)
+        else:
+            return col(num(ad, []), dd, i) if ad == 1 else R(d, lambda rr, dd, ii: col(num(a, num(ad, rr)), dd, ii), i+1)
+
+    return R(n, lambda r, d, i: [r, d, i], 0)
+
+
+@adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
+def addero(δ, n, m, r):
+    return condi([unify(0, δ), unify([], m), unify(n, r)],
+                 [unify(0, δ), poso(m), unify([], n), unify(m, r)],
+                 [unify(1, δ), unify([], m), fresh(lambda: addero(0, n, [1], r))],
+                 [unify(1, δ), poso(m), unify([], n), fresh(lambda: addero(0, [1], m, r))],
+                 [unify([1], n), unify([1], m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
+                 [unify([1], n), _addero(δ, [1], m, r)],
+                 [greater_than_oneo(n), unify([1], m), fresh(lambda: addero(δ, [1], n, r))], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
+                 [greater_than_oneo(n), _addero(δ, n, m, r)])
+
+
+@adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
+def _addero(δ, n, m, r): # alias for `gen_adder` as it appears in The Reasoned Schemer
+    return fresh(lambda α, β, γ, ε, x, y, z:
+                    conj(unify((α, x), n),
+                         unify((β, y), m), poso(y),
+                         unify((γ, z), r), poso(z),
+                         conj(full_addero(δ, α, β, γ, ε),  
+                              addero(ε, x, y, z), 
+                              interleaving=True)))
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def pluso(n, m, k):
+    return addero(0, n, m, k)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def minuso(n, m, k):
+    return pluso(k, m, n)
