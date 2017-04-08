@@ -200,16 +200,12 @@ def succeed(s : state):
 def fail(s : state):
     yield from mzero()
 
-@adapt_iterables_to_conses(all_arguments)
-def unify(u, v):
+def _unify(u, v):
 
     def U(s : state):
-        try:
-            sub = unification(u, v, s.sub)
-        except UnificationError:
-            yield from mzero()
-        else:
-            yield from unit(state(sub, s.next_index))
+        try: sub = unification(u, v, s.sub)
+        except UnificationError: yield from mzero()
+        else: yield from unit(state(sub, s.next_index))
 
     return U
 
@@ -287,20 +283,20 @@ def mplus(α, β, interleaving):
     if interleaving:
         while True:
             try:
-                a = next(α)
+                s : state = next(α)
             except StopIteration:
                 yield from β
                 break
             else:
-                yield a
+                yield s
                 α, β = β, α
     else:
         yield from chain(α, β)
 
 def bind(α, g, interleaving):
-    try: a = next(α)
+    try: s : state = next(α)
     except StopIteration: yield from mzero()
-    else: yield from mplus(g(a), bind(α, g, interleaving), interleaving)
+    else: yield from mplus(g(s), bind(α, g, interleaving), interleaving)
 
 
 # }}}
