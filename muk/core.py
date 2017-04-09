@@ -232,7 +232,8 @@ def fresh(f, arity=None):
         logic_vars = [var(s.next_index+i, n) for (i, n) in params]
         setattr(F, 'logic_vars', logic_vars) # set the attribute in any case, even if `logic_vars == []` for η-inversion  
         g = f(*logic_vars)
-        yield from g(state(s.sub, s.next_index + arity))
+        α = g(state(s.sub, s.next_index + arity))
+        yield from α
 
     return F
 
@@ -247,7 +248,8 @@ def _disj(g1, g2, interleaving):
 def _conj(g1, g2, interleaving):
 
     def C(s : state):
-        yield from bind(g1(s), g2, interleaving)
+        α = g1(s)
+        yield from bind(α, g2, interleaving)
 
     return C
 
@@ -256,7 +258,8 @@ def _delimited(d, pv, g):
     def B(s : state):
         sub = s.sub.copy()
         sub[pv] = sub.get(pv, 0) + 1
-        yield from g(state(sub, s.next_index)) if sub[pv] <= d else mzero()
+        α = g(state(sub, s.next_index)) if sub[pv] <= d else mzero() 
+        yield from α
 
     return B
 
@@ -265,7 +268,8 @@ def project(*logic_vars, into):
     def P(s : state):
         walked_vars = [walk_star(v, s.sub) for v in logic_vars]
         g = into(*walked_vars)
-        yield from g(s)
+        α = g(s) 
+        yield from α
 
     return P
 

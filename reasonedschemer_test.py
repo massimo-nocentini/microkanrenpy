@@ -767,40 +767,34 @@ class reasonedschemer_test(unittest.TestCase):
 
         def question_6_32(q):
             return conj(
-                    conj(conde([unify(False, q), succeed],
+                    conji(conde([unify(False, q), succeed],
                                else_clause=[unify(True, q)]),
-                         alwayso,
-                         interleaving=True),
+                         alwayso),
                     unify(True, q))
         self.assertEqual(run(fresh(question_6_32), n=1), [True])
         self.assertEqual(run(fresh(question_6_32), n=5), [True, True, True, True, True]) # 6.33
         
-        def question_6_33_1(q, interleaving): 
-            return conj(conde([unify(False, q), succeed], 
-                              else_clause=[unify(True, q)]), 
-                        alwayso, 
-                        interleaving=interleaving)
-        self.assertEqual(run(fresh(lambda q: question_6_33_1(q, False)), n=6), [False, False, False, False, False, False])
-        self.assertEqual(run(fresh(lambda q: question_6_33_1(q, True)), n=6), [False, True, False, True, False, True])
+        def question_6_33_1(q, C): 
+            return C(conde([unify(False, q), succeed], 
+                            else_clause=[unify(True, q)]), 
+                     alwayso)
+        self.assertEqual(run(fresh(lambda q: question_6_33_1(q, conj)), n=6), [False, False, False, False, False, False])
+        self.assertEqual(run(fresh(lambda q: question_6_33_1(q, conji)), n=6), [False, True, False, True, False, True])
 
         def question_6_34(q):
             return conj(
-                    conj(conde([unify(True, q), succeed],
+                    conji(conde([unify(True, q), succeed],
                                else_clause=[unify(False, q)]),
-                         alwayso,
-                         interleaving=True),
+                         alwayso),
                     unify(True, q))
         self.assertEqual(run(fresh(question_6_34), n=5), [True, True, True, True, True])
 
-        def question_6_34_1(q, interleaving): 
-            return conj(conde([unify(True, q), succeed], 
-                              else_clause=[unify(False, q)]), 
-                        alwayso, 
-                        interleaving=interleaving)
-        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, False)), n=6), 
-                         [True,True,True,True,True,True,])
-        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, True)), n=6), 
-                         [True, False, True, False, True, False])
+        def question_6_34_1(q, C): 
+            return C(conde([unify(True, q), succeed], 
+                            else_clause=[unify(False, q)]), 
+                     alwayso)
+        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, conj)), n=6), [True,True,True,True,True,True,])
+        self.assertEqual(run(fresh(lambda q: question_6_34_1(q, conji)), n=6), [True, False, True, False, True, False])
 
         def question_6_35(q):
             return conj(
@@ -812,10 +806,9 @@ class reasonedschemer_test(unittest.TestCase):
 
         def question_6_36(q):
             return conj(
-                    conj(conde([succeed, succeed],
+                    conji(conde([succeed, succeed],
                                else_clause=[nevero]),
-                         alwayso,
-                         interleaving=True),
+                         alwayso),
                     unify(True, q))
         self.assertEqual(run(fresh(question_6_36), n=1), [True]) 
         with self.assertRaises(RecursionError): run(fresh(question_6_36), n=2)
@@ -824,36 +817,25 @@ class reasonedschemer_test(unittest.TestCase):
 
     def test_bitwise_ops(self):
 
-        def question_7_6(s, x, y): return conj(bit_xoro(x, y, 0), unify([x, y], s))
-        self.assertEqual(run(fresh(question_7_6)), [[0,0], [1,1]])
-
-        def question_7_7(s, x, y): return conj(bit_xoro(x, y, 1), unify([x, y], s))
-        self.assertEqual(run(fresh(question_7_7)), [[1,0], [0,1]])
-
-        def question_7_8(r, s, x, y): return conj(bit_xoro(x, y, s), unify([x, y, s], r))
-        self.assertEqual(run(fresh(question_7_8)), 
+        self.assertEqual(run(fresh(lambda s, x, y: conj(bit_xoro(x, y, 0), unify([x, y], s)))), [[0,0], [1,1]]) # 7.6
+        self.assertEqual(run(fresh(lambda s, x, y: conj(bit_xoro(x, y, 1), unify([x, y], s)))), [[1,0], [0,1]]) # 7.7
+        self.assertEqual(run(fresh(lambda r, s, x, y: conj(bit_xoro(x, y, s), unify([x, y, s], r)))), 
                          [[0,0,0], 
                           [1,0,1], 
                           [0,1,1], 
-                          [1,1,0]])
+                          [1,1,0]]) # 7.8
         self.assertEqual(run(fresh(rel(bit_xoro))),
                          [[0,0,0], 
                           [1,0,1], 
                           [0,1,1], 
-                          [1,1,0]])
-
-        def question_7_11(s, x, y): return conj(bit_ando(x, y, 1), unify([x, y], s))
-        self.assertEqual(run(fresh(question_7_11)), [[1,1]])
-
-        def question_7_12(r): return half_addero(1, 1, r, 1)
-        self.assertEqual(run(fresh(question_7_12)), [0])
-
+                          [1,1,0]]) # 7.8.1
+        self.assertEqual(run(fresh(lambda s, x, y: conj(bit_ando(x, y, 1), unify([x, y], s)))), [[1,1]]) # 7.11
+        self.assertEqual(run(fresh(lambda r: half_addero(1, 1, r, 1))), [0]) # 7.12
         self.assertEqual(run(fresh(rel(half_addero))), 
                          [[0,0,0,0],
                           [1,0,1,0],
                           [0,1,1,0],
                           [1,1,0,1]]) # 7.13
-        
         self.assertEqual(run(fresh(lambda s, r, c: conj(full_addero(0, 1, 1, r, c), unify([r,c], s)))), [[0,1]]) # 7.15
         self.assertEqual(run(fresh(lambda s, r, c: conj(full_addero(1, 1, 1, r, c), unify([r,c], s)))), [[1,1]]) # 7.16
         self.assertEqual(run(fresh(rel(full_addero))), 
@@ -879,17 +861,20 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(num.build(19), num(1, num(1, num(0, num(0, num(1, [])))))) # 7.42
         self.assertEqual(num.build(36), num(0, num(0, num(1, num(0, num(0, num(1, []))))))) # 7.43
 
-    def test_a_bit_too_much(self):
+    def test_poso(self):
         self.assertEqual(run(fresh(lambda q: conj(poso([0, 1, 1]), unify(True, q)))), [True]) # 7.80
         self.assertEqual(run(fresh(lambda q: conj(poso([1]), unify(True, q)))), [True]) # 7.81
         self.assertEqual(run(fresh(lambda q: conj(poso([]), unify(True, q)))), []) # 7.82
         self.assertEqual(run(fresh(poso)), [(var(0), var(1))]) # 7.83
+
+    def test_greater_than_oneo(self):
         self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([0, 1, 1]), unify(True, q)))), [True]) # 7.86
         self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([0, 1]), unify(True, q)))), [True]) # 7.87
         self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([1]), unify(True, q)))), []) # 7.88
         self.assertEqual(run(fresh(lambda q: conj(greater_than_oneo([]), unify(True, q)))), []) # 7.89
         self.assertEqual(run(fresh(greater_than_oneo)), [(var(0), var(1), var(2))]) # 7.90
         
+    def test_addero(self):
         self.assertEqual(run(fresh(lambda s, x, y, r: conj(addero(0, x, y, r), unify([x, y, r], s))), n=3),
                          [[var(1), [], var(1)],
                           [[], (var(2), var(3)), (var(2), var(3))],
@@ -936,6 +921,7 @@ class reasonedschemer_test(unittest.TestCase):
                           [[1, 1], [0, 1]],
                           [[0, 1], [1, 1]],]) # 7.128
 
+    def test_minuso(self):
         self.assertEqual(run(fresh(lambda q: minuso([0, 0, 0, 1], [1, 0, 1], q))), [[1, 1]]) # 7.131
         self.assertEqual(run(fresh(lambda q: minuso(8, 5, q))), [int_to_list(3)]) # 7.131.1
         self.assertEqual(run(fresh(lambda q: minuso(8, 5, q)), post=lambda r: int(num(r.car, r.cdr))), [3]) # 7.131.2
@@ -956,7 +942,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda q: conj(unify(False, q), project(q, into=lambda q: unify(not(not q), q))))), [False]) # 9.47
         self.assertEqual(run(fresh(lambda q: conj(unify(False, q), unify(not(not q), q)))), []) # 9.47
         self.assertEqual(run(fresh(lambda q: conj(unify(3, q), project(q, into=lambda q: unify(q+1, 4))))), [3]) # 9.47.1
-        with self.assertRaises(Exception): run(fresh(lambda q: conj(unify(3, q), unify(q+1, 4)))) # 9.47.2
+        with self.assertRaises(TypeError): run(fresh(lambda q: conj(unify(3, q), unify(q+1, 4)))) # 9.47.2
 
 
 
