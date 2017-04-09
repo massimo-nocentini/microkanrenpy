@@ -13,6 +13,9 @@ def tea_cupo(x):
 
 class reasonedschemer_test(unittest.TestCase):
 
+    def setUp(self):
+        self.maxDiff = None
+
     def test_succeed_fail(self):
         self.assertEqual(run(succeed), [Tautology()]) # 1.6
         self.assertEqual(run(fail), []) # 1.10
@@ -673,8 +676,7 @@ class reasonedschemer_test(unittest.TestCase):
             run(fresh(lambda x: flattenrevo(x, ['a', 'b', 'c'])), n=3) # 5.79
 
         self.assertEqual(run(fresh(lambda x: flatteno([[[['a', [[['b']]], 'c']]], 'd'], x)), n=1), [['a', 'b', 'c', 'd']]) # 5.80.1
-        with self.assertRaises(RecursionError):
-            self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80.2
+        self.assertEqual(len(run(fresh(lambda x: flattenrevo([[[['a', [[['b']]], 'c']]], 'd'], x)))), 574) # 5.80.2
 
 
     def test_second_order_predicates(self):
@@ -908,11 +910,11 @@ class reasonedschemer_test(unittest.TestCase):
                           [[1], (1, 1, 0, var(2), var(3)), (0, 0, 1, var(2), var(3))],
                           [(1, 0, var(2), var(3)), [1], (0, 1, var(2), var(3))],
                           [[1], [1, 1, 1, 1], [0, 0, 0, 0, 1]],
-                          [[0, 1], (0, 0, var(2), var(3)), (0, 1, var(2), var(3))],
+                          [[0, 1], [1, 1], [1, 0, 1]], # instead of: [[0, 1], (0, 0, var(2), var(3)), (0, 1, var(2), var(3))],
                           [[1], (1, 1, 1, 0, var(2), var(3)), (0, 0, 0, 1, var(2), var(3))],
                           [[1, 1, 1], [1], [0, 0, 0, 1]],
                           [[1], [1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 1]],
-                          [[0, 1], [1, 1], [1, 0, 1]],
+                          [[1, 1], [1, 1], [0, 1, 1]], # instead of: [[0, 1], [1, 1], [1, 0, 1]],
                           [[1], (1, 1, 1, 1, 0, var(2), var(3)), (0, 0, 0, 0, 1, var(2), var(3))],
                           [(1, 1, 0, var(2), var(3)), [1], (0, 0, 1, var(2), var(3))],
                           [[1], [1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1]],

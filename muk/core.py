@@ -239,7 +239,8 @@ def fresh(f, arity=None):
 def _disj(g1, g2, interleaving):
     
     def D(s : state):
-        yield from mplus(g1(s), g2(s), interleaving)
+        α, β = g1(s), g2(s)   
+        yield from mplus(iter([α, β]), interleaving)
         
     return D
 
@@ -278,26 +279,28 @@ def unit(s : state):
 def mzero(s : state = None):
     yield from iter([])
 
-def mplus(α, β, interleaving):
+def mplus(streams, interleaving):
 
     if interleaving:
         while True:
             try:
-                s : state = next(α)
+                α = next(streams)
             except StopIteration:
-                yield from β
                 break
             else:
-                yield s
-                α, β = β, α
+                try:
+                    s : state = next(α)
+                except StopIteration:
+                    continue # α stream exhausted 
+                else:
+                    yield s
+                    streams = chain(streams, [α])
     else:
-        yield from chain(α, β)
+        for α in streams: yield from α
 
 def bind(α, g, interleaving):
-    try: s : state = next(α)
-    except StopIteration: yield from mzero()
-    else: yield from mplus(g(s), bind(α, g, interleaving), interleaving)
-
+    streams = (β for s in α for β in [g(s)])
+    yield from mplus(streams, interleaving) 
 
 # }}}
 
