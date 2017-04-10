@@ -19,7 +19,7 @@
         `cond` with `conde`, and unnest each question and answer. 
 '''
 
-from collections import namedtuple, Iterable
+from collections import namedtuple
 from itertools import chain, count
 from contextlib import contextmanager
 from inspect import signature
@@ -37,7 +37,8 @@ def emptystate():
 
 @contextmanager
 def states_stream(g, initial_state=emptystate()):
-    yield g(initial_state)
+    α = g(initial_state)
+    yield α
 
 # }}}
 
@@ -230,7 +231,7 @@ def fresh(f, arity=None):
 
     def F(s : state):
         logic_vars = [var(s.next_index+i, n) for (i, n) in params]
-        setattr(F, 'logic_vars', logic_vars) # set the attribute in any case, even if `logic_vars == []` for η-inversion  
+        setattr(F, 'logic_vars', logic_vars) # set the attr in any case, even if `logic_vars == []` because of η-inversion  
         g = f(*logic_vars)
         α = g(state(s.sub, s.next_index + arity))
         yield from α
@@ -240,7 +241,7 @@ def fresh(f, arity=None):
 def _disj(g1, g2, interleaving):
     
     def D(s : state):
-        α, β = g1(s), g2(s)   
+        α, β = g1(s), g2(s)
         yield from mplus(iter([α, β]), interleaving)
         
     return D
