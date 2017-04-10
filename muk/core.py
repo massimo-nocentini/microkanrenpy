@@ -48,18 +48,14 @@ def states_stream(g, initial_state=emptystate()):
 class var:
 
     _subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
-    _default_var_name = '▢'
 
-    def __init__(self, index, name=None):
-        if name == self._default_var_name: 
-            raise ValueError
+    def __init__(self, index, name):
 
         self.index = index
-        self.name = name if name else self._default_var_name
-        self.is_var = True
+        self.name = name
 
     def __eq__(self, other):
-        return self.index == other.index and self.name == other.name if is_var(other) else False
+        return self.index == other.index and self.name == other.name if isinstance(other, var) else False
 
     def __hash__(self):
         t = self.index, self.name
@@ -96,8 +92,34 @@ class var:
             λ = type(other) 
             return λ([self]) + other
 
-def is_var(obj):
-    return getattr(obj, 'is_var', False)
+    def walk_star(self, W):
+        return self
+
+    def reify_s(self, sub, R):
+        return ext_s(self, rvar(len(sub)), sub)
+
+    def unification(self, other, sub, U, E): 
+        try:
+            UV = other._unification_var
+        except AttributeError:
+            return ext_s(self, other, sub)   
+        else:
+            return UV(self, sub, U)
+
+    def _unification_var(self, other_var, sub, U):
+        return sub if self == other_var else ext_s(other_var, self, sub)
+
+    def _unification_cons(self, other_cons, sub, U):
+        return ext_s(self, other_cons, sub)
+
+
+class rvar(var):
+
+    def __init__(self, index, reifed_name='▢'):
+        super().__init__(index, name=reifed_name)
+        
+    def reify_s(self, sub, R):
+        return sub
 
 # }}}
 
@@ -115,47 +137,52 @@ class UnificationError(ValueError):
     pass
 
 def unification(u, v, sub):
+
     u, v = walk(u, sub), walk(v, sub)
-    if is_var(u) and is_var(v) and u == v: return sub
-    elif is_var(u): return ext_s(u, v, sub)
-    elif is_var(v): return ext_s(v, u, sub)
-    elif isinstance(u, cons) and isinstance(v, cons):
-        if u.cdr == tuple():
-            return unification(u.car, v, sub)
-        if v.cdr == tuple():
-            return unification(v.car, u, sub)
-        else:
-            cars_sub = unification(u.car, v.car, sub)
-            return unification(u.cdr, v.cdr, cars_sub)
-    elif isinstance(u, (tuple, list)) and isinstance(v, (tuple, list)):
+
+    if hasattr(u, 'unification'): 
+        try: return u.unification(v, sub, unification, UnificationError)
+        except UnificationError: pass
+
+    if hasattr(v, 'unification'): 
+        try: return v.unification(u, sub, unification, UnificationError)
+        except UnificationError: pass
+
+    if  (isinstance(u, tuple) and isinstance(v, tuple)) or \
+        (isinstance(u, list) and isinstance(v, list)):
         # this branch permits either `u` or `v` to be `cons` cells too:
         # can be source of trouble or should be a kind of generalization
         u, v = iter(u), iter(v)
         subr = reduce(lambda subr, pair: unification(*pair, subr), zip(u, v), sub)
-        try:
-            u0 = next(u)
+        try: next(u)
         except StopIteration:
-            try:
-                v0 = next(v)
+            try: next(v)
             except StopIteration:
-                return subr # because both iterables are empty, so there's no counterexample against their unification
+                # because both iterables are empty, so there's no
+                # counterexample against their unification
+                return subr 
     elif u == v:
         return sub
-
-    raise UnificationError()
+    else:
+        raise UnificationError()
 
 # }}}
 
 # SUBSTITUTION {{{
 
 def walk(u, sub):
-    return walk(sub[u], sub) if is_var(u) and u in sub else u
+
+    try: 
+        while True: u = sub[u]
+    except (TypeError, KeyError): 
+        # TypeError to defend against unhashable objs 
+        # KeyError to defend from "ground" objs and stop iter when `u` is a _fresh var_
+        return u 
 
 def walk_star(v, sub):
     v = walk(v, sub)
-    if is_var(v): return v  
-    elif isinstance(v, list): return [walk_star(u, sub) for u in v]  
-    elif isinstance(v, cons): return cons(walk_star(v.car, sub), walk_star(v.cdr, sub))
+    if isinstance(v, list): return [walk_star(u, sub) for u in v]  
+    elif hasattr(v, 'walk_star'): return v.walk_star(lambda u: walk_star(u, sub))
     else: return v
 
 def ext_s(u, v, sub):
@@ -170,12 +197,14 @@ def ext_s(u, v, sub):
     e[u] = v
     return e
 
-def reify(v, sub):
+def reify_s(v, sub):
     v = walk(v, sub)
-    if is_var(v): return ext_s(v, var(len(sub)), sub)
-    elif isinstance(v, cons): return reify(v.cdr, reify(v.car, sub))
-    elif isinstance(v, list): return reduce(lambda sub, u: reify(u, sub), v, sub)
+    if hasattr(v, 'reify_s'): return v.reify_s(sub, reify_s)
+    elif isinstance(v, list): return reduce(lambda sub, u: reify_s(u, sub), v, sub)
     else: return sub
+
+def reify(v):
+    return walk_star(v, reify_s(v, sub={}))
 
 # }}}
 
@@ -325,9 +354,8 @@ def run(goal, n=False,
 
     def λ(sub): 
         r = walk_star(main_var, sub) # instantiate every content in the expr associated to `main_var` in `sub` to the most specific value
-        reified_sub = reify(r, sub={}) # reify the most specific instantiation in order to hide impl details from vars names
-        r = walk_star(r, reified_sub) # finally, reduce the most specific instantiation to use vars hiding
-        return post(r) # apply `post` processing for pretty printing
+        v = reify(r)
+        return post(v)
 
     return list(map(λ, subs))
 

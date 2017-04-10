@@ -39,8 +39,6 @@ conji = partial(conj, interleaving=True)
 def iterwrap(obj, classes=(tuple,)):
     return obj if isinstance(obj, classes) else [obj]
 
-
-
 def rel(r):
     def R(res):
         def recv(*args): 
@@ -49,5 +47,6 @@ def rel(r):
         return fresh(recv, arity=len(r_sig.parameters))
     return R
 
-
+def lvars(vars_names, splitter=' '):
+    return [var(b, n.strip()) for b, n in enumerate(vars_names.split(splitter))]
 

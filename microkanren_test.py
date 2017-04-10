@@ -98,7 +98,7 @@ class microkanren_tests(unittest.TestCase):
             return fresh(lambda x, y: unify([y, 4, x], r))
 
         results = run(fresh(gbody))
-        self.assertEqual(results, [[var(0), 4, var(1)]])
+        self.assertEqual(results, [[rvar(0), 4, rvar(1)]])
 
 
     def test_unify(self):

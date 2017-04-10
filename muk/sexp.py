@@ -7,7 +7,26 @@ from inspect import signature
 def identity(a):
     return a
 
-cons = namedtuple('cons', ['car', 'cdr'])
+class cons(namedtuple('_cons', ['car', 'cdr'])):
+
+    def walk_star(self, W):
+        return cons(W(self.car), W(self.cdr))
+
+    def unification(self, other, sub, U, E):
+        try: UC = other._unification_cons
+        except AttributeError: raise E
+        else: return UC(self, sub, U)
+
+    def _unification_cons(self, other_cons, sub, U):
+
+        if other_cons.cdr == (): return U(other_cons.car, self, sub)
+        if self.cdr == (): return U(self.car, other_cons, sub)
+
+        cars_sub = U(other_cons.car, self.car, sub)
+        return U(other_cons.cdr, self.cdr, cars_sub)
+
+    def reify_s(self, sub, R):
+        return R(self.cdr, R(self.car, sub))
 
 class ImproperListError(ValueError):
     pass
