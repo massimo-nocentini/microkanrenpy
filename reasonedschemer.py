@@ -233,7 +233,7 @@ def addero(δ, n, m, r):
                  [unify(1, δ), poso(m), unify([], n), fresh(lambda: addero(0, [1], m, r))],
                  [unify([1], n), unify([1], m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
                  [unify([1], n), _addero(δ, [1], m, r)],
-                 [greater_than_oneo(n), unify([1], m), fresh(lambda: addero(δ, [1], n, r))], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
+                 [greater_than_oneo(n), unify([1], m), fresh(lambda: _addero(δ, [1], n, r))], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
                  [greater_than_oneo(n), _addero(δ, n, m, r)])
 
 
@@ -243,9 +243,8 @@ def _addero(δ, n, m, r): # alias for `gen_adder` as it appears in The Reasoned 
                     conj(unify((α, x), n),
                          unify((β, y), m), poso(y),
                          unify((γ, z), r), poso(z),
-                         conj(full_addero(δ, α, β, γ, ε),  
-                              addero(ε, x, y, z), 
-                              interleaving=True)))
+                         conji(full_addero(δ, α, β, γ, ε),  
+                               addero(ε, x, y, z))))
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def pluso(n, m, k):
