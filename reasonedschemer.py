@@ -125,12 +125,15 @@ def swappendso(l, s, out):
                  else_clause=[nullo(l), unify(s, out)])
 
 def bswappendso(bound):
+
     with delimited(bound) as D:
         @adapt_iterables_to_conses(all_arguments)
         def R(l, s, out):
-            def E(a, d, res): return conj(unify([a] + d, l), unify([a] + res, out), R(d, s, res))
-            return D(conde([succeed, fresh(E)], else_clause=[nullo(l), unify(s, out)]))
-        return R
+            return D(conde([succeed, fresh(lambda a, d, res: conj(unify([a] + d, l),
+                                                                  unify([a] + res, out),
+                                                                  R(d, s, res)))],
+                           else_clause=[nullo(l), unify(s, out)]))
+    return R
 
 @adapt_iterables_to_conses(lambda x, out: {x})
 def unwrapo(x, out):

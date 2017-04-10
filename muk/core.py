@@ -99,20 +99,6 @@ class var:
 def is_var(obj):
     return getattr(obj, 'is_var', False)
 
-class pvar:
-
-    _unique_id = count()
-
-    def __init__(self):
-        self.index = next(self._unique_id)
-
-    def __hash__(self):
-        t = (self.index, self.__class__.__name__)
-        return hash(t)
-
-    def __eq__(self, other):
-        return other is self   
-
 # }}}
 
 # UNIFICATION {{{
@@ -254,15 +240,19 @@ def _conj(g1, g2, interleaving):
 
     return C
 
-def _delimited(d, pv, g):
+@contextmanager
+def delimited(d):
 
-    def B(s : state):
-        sub = s.sub.copy()
-        sub[pv] = sub.get(pv, 0) + 1
-        α = g(state(sub, s.next_index)) if sub[pv] <= d else mzero() 
-        yield from α
+    depth = -1
+    def D(g): 
+        def G(s : state):
+            nonlocal depth
+            depth += 1
+            α = g(s) if depth < d else mzero() 
+            yield from α
+        return G
 
-    return B
+    yield D
 
 def project(*logic_vars, into):
 

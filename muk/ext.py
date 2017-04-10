@@ -4,7 +4,7 @@ from functools import wraps, partial
 from contextlib import contextmanager
 
 from muk.core import *
-from muk.core import _conj, _disj, _delimited, _unify
+from muk.core import _conj, _disj, _unify
 
 
 def snooze(f, formal_vars):
@@ -39,12 +39,6 @@ conji = partial(conj, interleaving=True)
 def iterwrap(obj, classes=(tuple,)):
     return obj if isinstance(obj, classes) else [obj]
 
-@contextmanager
-def delimited(d):
-    pv = pvar()
-    def D(g): 
-        return _delimited(d, pv, g)
-    yield D
 
 
 def rel(r):
