@@ -1,10 +1,11 @@
 
 import collections
-from functools import wraps, partial
+from functools import wraps, partial, reduce
 from contextlib import contextmanager
 
 from muk.core import *
 from muk.core import _conj, _disj, _unify_pure, _unify_occur_check
+from muk.utils import *
 
 
 def snooze(f, formal_vars):
@@ -36,12 +37,24 @@ def cond(*clauses, else_clause=[fail], interleaving):
 conde = partial(cond, interleaving=False)
 condi = partial(cond, interleaving=True)
 
+def cond_if(*clauses, else_clause=[fail], interleaving, committed):
+
+    C = partial(conj, interleaving=interleaving)
+    I = partial(ifa, interleaving=interleaving, committed=committed)
+
+    def λ(clause, otherwise):  
+        question, *then = clause
+        return I(question, C(*then), otherwise)
+    
+    r = foldr(λ, clauses, initialize=C(*else_clause))  
+    return r
+
+conda = partial(cond_if, interleaving=False, committed=False)
+condu = partial(cond_if, interleaving=False, committed=True)
+
 equalo = unify
 
 conji = partial(conj, interleaving=True)
-
-def iterwrap(obj, classes=(tuple,)):
-    return obj if isinstance(obj, classes) else [obj]
 
 def rel(r):
     def R(res):

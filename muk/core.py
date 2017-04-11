@@ -23,7 +23,7 @@ from collections import namedtuple
 from itertools import chain, count
 from contextlib import contextmanager
 from inspect import signature
-from functools import partial, reduce
+from functools import partial, reduce, wraps
 
 from muk.sexp import *
 
@@ -177,9 +177,8 @@ def walk(u, sub):
 
     try: 
         while True: u = sub[u]
-    except (TypeError, KeyError): 
-        # TypeError to defend against unhashable objs 
-        # KeyError to defend from "ground" objs and stop iter when `u` is a _fresh var_
+    except (TypeError, # to defend against unhashable objs 
+            KeyError): # to defend from "ground" objs and stop iter when `u` is a *fresh* var
         return u 
 
 def walk_star(v, sub):
@@ -307,6 +306,40 @@ def _conj(g1, g2, interleaving):
         yield from bind(α, g2, interleaving)
 
     return C
+
+def ife(g0, g1, g2):
+    
+    def IFE(s : state):
+        C = _conj(g0, g1, interleaving=False) 
+        α, β = C(s), g2(s)
+        yield from mplus(iter([α, β]), interleaving=False)
+
+    return IFE
+
+def ifi(g0, g1, g2):
+    
+    def IFI(s : state):
+        C = _conj(g0, g1, interleaving=False) 
+        α, β = C(s), g2(s)
+        yield from mplus(iter([α, β]), interleaving=True)
+
+    return IFI
+
+def ifa(question, answer, otherwise, *, interleaving, committed):
+
+    def IFA(s : state):
+        α = question(s) 
+        try:
+            r : state = next(α)
+        except StopIteration: 
+            β = otherwise(s) 
+            yield from β
+        else:
+            γ = answer(r) if committed else bind(chain([r], α), answer, interleaving)
+            yield from γ
+
+    return IFA
+
 
 @contextmanager
 def delimited(d):

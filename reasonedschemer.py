@@ -253,3 +253,10 @@ def pluso(n, m, k):
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def minuso(n, m, k):
     return pluso(k, m, n)
+
+def not_thingo(x, *, what):
+    return conda([unify(what, x), fail],
+                 else_clause=[succeed])
+
+
+

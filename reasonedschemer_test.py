@@ -1015,6 +1015,51 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda x: sub(of=unify([x], x)))), 
                          [{var(0, 'x'):cons(var(0, 'x'), [])}]) # 9.70
 
+    def test_conda(self):
+        self.assertEqual(run(fresh(lambda q: conda([fail, succeed], else_clause=[fail]))), []) # 10.1
+        self.assertEqual(run(fresh(lambda q: conde([fail, succeed], else_clause=[fail]))), []) # 10.1.1
+        self.assertEqual(run(fresh(lambda q: condi([fail, succeed], else_clause=[fail]))), []) # 10.1.2
+        
+        self.assertEqual(run(fresh(lambda q: conda([fail, succeed], else_clause=[succeed]))), [rvar(0)]) # 10.2
+        self.assertEqual(run(fresh(lambda q: conde([fail, succeed], else_clause=[succeed]))), [rvar(0)]) # 10.2.1
+        self.assertEqual(run(fresh(lambda q: condi([fail, succeed], else_clause=[succeed]))), [rvar(0)]) # 10.2.2
 
+        self.assertEqual(run(fresh(lambda q: conda([succeed, fail], else_clause=[succeed]))), []) # 10.3
+        self.assertEqual(run(fresh(lambda q: conda([succeed, succeed], else_clause=[fail]))), [rvar(0)]) # 10.4
+        self.assertEqual(run(fresh(lambda x: conda([unify('olive', x), succeed],
+                                                   [unify('oil', x), succeed],
+                                                   else_clause=[fail]))), ['olive']) # 10.5
+        self.assertEqual(run(fresh(lambda x: conda([unify('virgin', x), fail],
+                                                   [unify('olive', x), succeed],
+                                                   [unify('oil', x), succeed],
+                                                   else_clause=[fail]))), []) # 10.7
+        self.assertEqual(run(fresh(lambda q: 
+            conj(fresh(lambda x, y: conj(unify('split', x), 
+                                         unify('pea', y), 
+                                         conda([unify('split', x), unify(x, y)], 
+                                               else_clause=[succeed]))), 
+                 unify(True, q)))), []) # 10.8
+        self.assertEqual(run(fresh(lambda q: 
+            conj(fresh(lambda x, y: conj(unify('split', x), 
+                                         unify('pea', y), 
+                                         conda([unify(x, y), unify('split', x)], 
+                                               else_clause=[succeed]))), 
+                 unify(True, q)))), [True]) # 10.9
+        self.assertEqual(run(fresh(lambda x: conda([not_thingo(x, what='pasta'), fail],
+                                                   else_clause=[unify('spaghetti', x)]))), ['spaghetti']) # 10.11
+        self.assertEqual(run(fresh(lambda x: conj(unify('spaghetti', x),
+                                                  conda([not_thingo(x, what='pasta'), fail],
+                                                        else_clause=[unify('spaghetti', x)])))), []) # 10.12
+        with self.assertRaises(RecursionError): 
+            run(fresh(lambda q: conj(conda([alwayso, succeed]), unify(True, q)))) # 10.13
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda q: conj(conda([alwayso, succeed]), fail, unify(True, q)))) # 10.17
+
+
+    def test_condu(self):
+        self.assertEqual(run(fresh(lambda q: conj(condu([alwayso, succeed]), unify(True, q)))), [True]) # 10.14
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda q: conj(condu([succeed, alwayso]), unify(True, q)))) # 10.15
+        self.assertEqual(run(fresh(lambda q: conj(condu([alwayso, succeed]), fail, unify(True, q)))), []) # 10.18
 
 
