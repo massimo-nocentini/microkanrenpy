@@ -989,9 +989,31 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda q: conj(unify(3, q), project(q, into=lambda q: unify(q+1, 4))))), [3]) # 9.47.1
         with self.assertRaises(TypeError): run(fresh(lambda q: conj(unify(3, q), unify(q+1, 4)))) # 9.47.2
 
-
-
-
+    def test_occur_check(self):
+        with self.assertRaises(RecursionError): run(fresh(lambda x: unify([x], x))) # 9.61
+        self.assertEqual(run(fresh(lambda q, x: conj(unify([x], x), unify(True, q)))), [True]) # 9.62
+        self.assertEqual(run(fresh(lambda q, x, y: conj(unify([x], y), 
+                                                        unify([y], x), 
+                                                        unify(True, q)))), [True]) # 9.63
+        with self.assertRaises(OccurCheck): run(fresh(lambda x: unify([x], x, occur_check=True))) # 9.64  
+        self.assertEqual(run(fresh(lambda x: unify_occur_check([x], x))), []) # 9.64.1
+        with self.assertRaises(RecursionError): 
+            run(fresh(lambda x, y, z: conj(unify(x, z), 
+                                           unify(['a', 'b', z], y), 
+                                           unify(x, y)))) # 9.65  
+        with self.assertRaises(RecursionError): 
+            run(fresh(lambda x, y, z: conj(unify(x, z, occur_check=True), 
+                                           unify(['a', 'b', z], y), 
+                                           unify(x, y)))) # 9.65.1 
+        with self.assertRaises(OccurCheck): 
+            run(fresh(lambda x, y, z: conj(unify(x, z), 
+                                           unify(['a', 'b', z], y), 
+                                           unify(x, y, occur_check=True)))) # 9.65.2 
+        self.assertEqual(run(fresh(lambda x, y, z: conj(unify(x, z), 
+                                                        unify(['a', 'b', z], y), 
+                                                        unify_occur_check(x, y)))), []) # 9.65.3
+        self.assertEqual(run(fresh(lambda x: sub(of=unify([x], x)))), 
+                         [{var(0, 'x'):cons(var(0, 'x'), [])}]) # 9.70
 
 
 

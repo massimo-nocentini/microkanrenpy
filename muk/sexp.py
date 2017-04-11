@@ -12,21 +12,24 @@ class cons(namedtuple('_cons', ['car', 'cdr'])):
     def walk_star(self, W):
         return cons(W(self.car), W(self.cdr))
 
-    def unification(self, other, sub, U, E):
+    def unification(self, other, sub, ext_s, U, E):
         try: UC = other._unification_cons
         except AttributeError: raise E
-        else: return UC(self, sub, U)
+        else: return UC(self, sub, ext_s, U)
 
-    def _unification_cons(self, other_cons, sub, U):
+    def _unification_cons(self, other_cons, sub, ext_s, U):
 
-        if other_cons.cdr == (): return U(other_cons.car, self, sub)
-        if self.cdr == (): return U(self.car, other_cons, sub)
+        if other_cons.cdr == (): return U(other_cons.car, self, sub, ext_s)
+        if self.cdr == (): return U(self.car, other_cons, sub, ext_s)
 
-        cars_sub = U(other_cons.car, self.car, sub)
-        return U(other_cons.cdr, self.cdr, cars_sub)
+        cars_sub = U(other_cons.car, self.car, sub, ext_s)
+        return U(other_cons.cdr, self.cdr, cars_sub, ext_s)
 
     def reify_s(self, sub, R):
         return R(self.cdr, R(self.car, sub))
+
+    def occur_check(self, u, O, E):
+        return O(u, self.car) or O(u, self.cdr)
 
 class ImproperListError(ValueError):
     pass

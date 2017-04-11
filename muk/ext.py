@@ -4,7 +4,7 @@ from functools import wraps, partial
 from contextlib import contextmanager
 
 from muk.core import *
-from muk.core import _conj, _disj, _unify
+from muk.core import _conj, _disj, _unify_pure, _unify_occur_check
 
 
 def snooze(f, formal_vars):
@@ -20,9 +20,13 @@ def conj(*goals, interleaving=False):
     C = partial(_conj, interleaving=interleaving)
     return C(g, conj(*gs, interleaving=interleaving)) if gs else C(g, succeed)
 
+@adapt_iterables_to_conses(lambda u, v, occur_check: {u, v})
+def unify(u, v, occur_check=False):
+    return _unify_pure(u, v, occur_check)
+
 @adapt_iterables_to_conses(all_arguments)
-def unify(u, v):
-    return _unify(u, v)
+def unify_occur_check(u, v):
+    return _unify_occur_check(u, v)
 
 def cond(*clauses, else_clause=[fail], interleaving):
     C = partial(conj, interleaving=interleaving)

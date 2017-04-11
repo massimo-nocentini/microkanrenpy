@@ -98,19 +98,22 @@ class var:
     def reify_s(self, sub, R):
         return ext_s(self, rvar(len(sub)), sub)
 
-    def unification(self, other, sub, U, E): 
+    def unification(self, other, sub, ext_s, U, E): 
         try:
             UV = other._unification_var
         except AttributeError:
             return ext_s(self, other, sub)   
         else:
-            return UV(self, sub, U)
+            return UV(self, sub, ext_s, U)
 
-    def _unification_var(self, other_var, sub, U):
+    def _unification_var(self, other_var, sub, ext_s, U):
         return sub if self == other_var else ext_s(other_var, self, sub)
 
-    def _unification_cons(self, other_cons, sub, U):
+    def _unification_cons(self, other_cons, sub, ext_s, U):
         return ext_s(self, other_cons, sub)
+
+    def occur_check(self, u, O, E):
+        if self == u: raise E
 
 
 class rvar(var):
@@ -136,24 +139,24 @@ class Tautology:
 class UnificationError(ValueError):
     pass
 
-def unification(u, v, sub):
+def unification(u, v, sub, ext_s):
 
     u, v = walk(u, sub), walk(v, sub)
 
     if hasattr(u, 'unification'): 
-        try: return u.unification(v, sub, unification, UnificationError)
+        try: return u.unification(v, sub, ext_s, unification, UnificationError)
         except UnificationError: pass
 
     if hasattr(v, 'unification'): 
-        try: return v.unification(u, sub, unification, UnificationError)
+        try: return v.unification(u, sub, ext_s, unification, UnificationError)
         except UnificationError: pass
 
-    if  (isinstance(u, tuple) and isinstance(v, tuple)) or \
+    if  (type(u) is tuple and type(v) is tuple) or \
         (isinstance(u, list) and isinstance(v, list)):
         # this branch permits either `u` or `v` to be `cons` cells too:
         # can be source of trouble or should be a kind of generalization
         u, v = iter(u), iter(v)
-        subr = reduce(lambda subr, pair: unification(*pair, subr), zip(u, v), sub)
+        subr = reduce(lambda subr, pair: unification(*pair, subr, ext_s), zip(u, v), sub)
         try: next(u)
         except StopIteration:
             try: next(v)
@@ -185,6 +188,28 @@ def walk_star(v, sub):
     elif hasattr(v, 'walk_star'): return v.walk_star(lambda u: walk_star(u, sub))
     else: return v
 
+class OccurCheck(ValueError):
+    pass
+
+def occur_check(ext_s):
+
+    @wraps(ext_s)
+    def E_s(u, v, sub, occur_check=False):
+        
+        def O(u, v):
+            v = walk(v, sub)
+            if hasattr(v, 'occur_check'): 
+                v.occur_check(u, O, OccurCheck)
+            elif type(v) is tuple or isinstance(v, list): 
+                for vv in v: O(u, vv)
+
+        if occur_check: O(u, v)
+
+        return ext_s(u, v, sub)
+
+    return E_s
+
+@occur_check
 def ext_s(u, v, sub):
 
     if u == v: raise ValueError('According to 9.12 of The Reasoned Schemer')
@@ -216,15 +241,29 @@ def succeed(s : state):
 def fail(s : state):
     yield from mzero()
 
-def _unify(u, v):
+def _unify(u, v, ext_s):
 
     def U(s : state):
-        try: sub = unification(u, v, s.sub)
+        try: sub = unification(u, v, s.sub, ext_s)
         except UnificationError: yield from mzero()
         else: yield from unit(state(sub, s.next_index))
 
     return U
 
+def _unify_pure(u, v, occur_check):
+    return _unify(u, v, partial(ext_s, occur_check=occur_check))
+
+def _unify_occur_check(u, v):
+
+    U = _unify_pure(u, v, occur_check=True)
+
+    def U_oc(s : state):
+        try:
+            yield from U(s)
+        except OccurCheck:
+            yield from mzero()
+
+    return U_oc
 
 def fresh(f, arity=None):
     '''
@@ -293,6 +332,21 @@ def project(*logic_vars, into):
 
     return P
 
+def sub(*logic_vars, of):
+
+    def λ(s : state):  
+        lvars = set(logic_vars) if logic_vars else s.sub.keys()
+        return state({v:{v:s.sub[v]} for v in lvars if v in s.sub}, s.next_index)
+        
+    def S(s : state):
+        α = of(s) 
+        yield from map(λ, α)
+
+    return S
+
+
+
+
 # }}}
 
 # STATE STREAMS {{{
@@ -350,12 +404,12 @@ def run(goal, n=False,
         subs = [a.sub for i, a in zip(range(n) if n else count(), α)]
 
     logic_vars = getattr(goal, 'logic_vars', None) # defaults to `None` instead of `[]` to distinguish attr set by `_fresh` 
-    main_var = var_selector(*logic_vars) if logic_vars else Tautology() # any satisfying sub is a Tautology if there are no logic vars
+    m_var = var_selector(*logic_vars) if logic_vars else Tautology() # any satisfying sub is a Tautology if there are no logic vars
 
     def λ(sub): 
-        r = walk_star(main_var, sub) # instantiate every content in the expr associated to `main_var` in `sub` to the most specific value
-        v = reify(r)
-        return post(v)
+        w_var = walk_star(m_var, sub) # instantiate every content in the expr associated to `main_var` in `sub` to the most specific value
+        r_var = reify(w_var)
+        return post(r_var)
 
     return list(map(λ, subs))
 
