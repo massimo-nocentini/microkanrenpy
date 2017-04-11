@@ -147,6 +147,11 @@ class reasonedschemer_test(unittest.TestCase):
                           conde([unify(True, q), succeed], else_clause=[unify(False, q)]))
         self.assertEqual(run(fresh(goal)), [False]) # 1.61
 
+        self.assertEqual(run(fresh(lambda r: conde([tea_cupo(r), succeed],
+                                                   [unify(False, r), succeed]))), 
+                         ['tea', 'cup', False]) # 10.21
+
+
 
     def test_caro(self):
         self.assertEqual(run(fresh(lambda a: caro(list('acorn'), a))), ['a']) # 2.6
@@ -1054,6 +1059,14 @@ class reasonedschemer_test(unittest.TestCase):
             run(fresh(lambda q: conj(conda([alwayso, succeed]), unify(True, q)))) # 10.13
         with self.assertRaises(RecursionError):
             run(fresh(lambda q: conj(conda([alwayso, succeed]), fail, unify(True, q)))) # 10.17
+        
+        self.assertEqual(run(fresh(lambda r: conda([tea_cupo(r), succeed],
+                                                   [unify(False, r), succeed]))), 
+                         ['tea', 'cup']) # 10.22
+        self.assertEqual(run(fresh(lambda r: conj(unify(False, r),
+                                                  conda([tea_cupo(r), succeed], 
+                                                        [unify(False, r), succeed])))), 
+                         [False]) # 10.23
 
 
     def test_condu(self):
@@ -1061,5 +1074,13 @@ class reasonedschemer_test(unittest.TestCase):
         with self.assertRaises(RecursionError):
             run(fresh(lambda q: conj(condu([succeed, alwayso]), unify(True, q)))) # 10.15
         self.assertEqual(run(fresh(lambda q: conj(condu([alwayso, succeed]), fail, unify(True, q)))), []) # 10.18
+        self.assertEqual(run(fresh(lambda r: conj(unify(False, r),
+                                                  condu([tea_cupo(r), succeed], 
+                                                        [unify(False, r), succeed])))), 
+                         [False]) # 10.23
+
+    def test_onceo(self):
+        self.assertEqual(run(fresh(lambda x: onceo(tea_cupo(x)))), ['tea']) # 10.19
+        self.assertEqual(run(fresh(lambda q: conj(onceo(succeed_at_least(nevero)), fail))), []) # 10.20
 
 

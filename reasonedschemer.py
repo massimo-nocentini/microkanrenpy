@@ -258,5 +258,6 @@ def not_thingo(x, *, what):
     return conda([unify(what, x), fail],
                  else_clause=[succeed])
 
-
+def onceo(g):
+    return condu([g, succeed])
 
