@@ -1122,7 +1122,30 @@ class reasonedschemer_test(unittest.TestCase):
                              [[[1, 1, 1], [1, 1, 1], [0, 1, 1, 1]]]) # 10.56
         with self.assertRaises(RecursionError):
             run(fresh(lambda q: gentesto(pluseo, [0, 1], [1, 1], [1, 0, 1])), n=1)
-
+        self.assertEqual(run(fresh(lambda s, x, y, r: conj(addereo(0, x, y, r), unify([x, y, r], s))), n=22),
+                         [[rvar(0), [], rvar(0)],
+                          [[], (rvar(0), rvar(1)), (rvar(0), rvar(1))],
+                          [[1], [1], [0, 1]],
+                          [[1], (0, rvar(0), rvar(1)), (1, rvar(0), rvar(1))],
+                          [(0, rvar(0), rvar(1)), [1], (1, rvar(0), rvar(1))],
+                          [[1], [1, 1], [0, 0, 1]],
+                          [[0, 1], [0, 1], [0, 0, 1]],
+                          [[1], (1, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))],
+                          [[1, 1], [1], [0, 0, 1]],
+                          [[1], [1, 1, 1], [0, 0, 0, 1]],
+                          [[0, 1], (0, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))], # replaces [[1, 1], [0, 1], [1, 0, 1]], using `addero`
+                          [[1], (1, 1, 0, rvar(0), rvar(1)), (0, 0, 1, rvar(0), rvar(1))],
+                          [(1, 0, rvar(0), rvar(1)), [1], (0, 1, rvar(0), rvar(1))],
+                          [[1], [1, 1, 1, 1], [0, 0, 0, 0, 1]],
+                          [(0, 0, rvar(0), rvar(1)), [0, 1], (0, 1, rvar(0), rvar(1))], # replaces [[0, 1], [1, 1], [1, 0, 1]] using `addero`, instead of: [[0, 1], (0, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))],
+                          [[1], (1, 1, 1, 0, rvar(0), rvar(1)), (0, 0, 0, 1, rvar(0), rvar(1))],
+                          [[1, 1, 1], [1], [0, 0, 0, 1]],
+                          [[1], [1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 1]],
+                          [[0, 1], [0, 1, 1], [0, 0, 0, 1]], # replaces [[1, 1], [1, 1], [0, 1, 1]] using `addero`, instead of: [[0, 1], [1, 1], [1, 0, 1]],
+                          [[1], (1, 1, 1, 1, 0, rvar(0), rvar(1)), (0, 0, 0, 0, 1, rvar(0), rvar(1))],
+                          [(1, 1, 0, rvar(0), rvar(1)), [1], (0, 0, 1, rvar(0), rvar(1))],
+                          [[1], [1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1]],
+                          ]) # 10.61
 
 
 

@@ -321,7 +321,7 @@ ifi = partial(if_pure, interleaving=True)
 
 def if_softcut(question, answer, otherwise, *, doer):
 
-    def IFA(s : state):
+    def I(s : state):
         α = question(s) 
         try:
             r : state = next(α)
@@ -332,7 +332,7 @@ def if_softcut(question, answer, otherwise, *, doer):
             γ = doer(r, α, answer)
             yield from γ
 
-    return IFA
+    return I
 
 ifa = partial(if_softcut, doer=lambda r, α, answer: bind(chain([r], α), answer, interleaving=False))
 ifu = partial(if_softcut, doer=lambda r, α, answer: answer(r))
@@ -412,7 +412,17 @@ def mplus(streams, interleaving):
 
 def bind(α, g, interleaving):
     streams = (β for s in α for β in [g(s)])
-    yield from mplus(streams, interleaving) 
+    yield from mplus(streams, interleaving)
+    '''
+    try:
+        s : state = next(α)
+    except StopIteration:
+        yield from mzero()
+    else:
+        β = g(s)
+        γ = bind(α, g, interleaving)
+        yield from mplus(iter([β, γ]), interleaving)
+    '''
 
 # }}}
 
