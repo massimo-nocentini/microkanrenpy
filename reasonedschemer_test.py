@@ -83,7 +83,7 @@ class reasonedschemer_test(unittest.TestCase):
     def test_conde(self):
         self.assertEqual(run(conde([fail, succeed])), []) # 1.44
         self.assertEqual(run(conde([fail, fail], else_clause=[succeed])), [Tautology()]) # 1.45
-        self.assertEqual(run(conde([fail], [succeed], else_clause=[succeed])), [Tautology(), Tautology()]) # 1.45
+        self.assertEqual(run(conde([fail, succeed], [succeed, succeed], else_clause=[succeed])), [Tautology(), Tautology()]) # 1.45.1
         self.assertEqual(run(conde([succeed, succeed])), [Tautology()]) # 1.46
         self.assertEqual(run(fresh(lambda x: conde([unify('olive', x), succeed], 
                                                    [unify('oil', x), succeed]))), 
@@ -1076,8 +1076,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda q: conj(condu([alwayso, succeed]), fail, unify(True, q)))), []) # 10.18
         self.assertEqual(run(fresh(lambda r: conj(unify(False, r),
                                                   condu([tea_cupo(r), succeed], 
-                                                        [unify(False, r), succeed])))), 
-                         [False]) # 10.23
+                                                        [unify(False, r), succeed])))), [False]) # 10.24
 
     def test_onceo(self):
         self.assertEqual(run(fresh(lambda x: onceo(tea_cupo(x)))), ['tea']) # 10.19

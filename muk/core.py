@@ -291,7 +291,7 @@ def fresh(f, arity=None):
 
     return F
 
-def _disj(g1, g2, interleaving):
+def _disj(g1, g2, *, interleaving):
     
     def D(s : state):
         α, β = g1(s), g2(s)
@@ -299,7 +299,7 @@ def _disj(g1, g2, interleaving):
         
     return D
 
-def _conj(g1, g2, interleaving):
+def _conj(g1, g2, *, interleaving):
 
     def C(s : state):
         α = g1(s)
@@ -307,25 +307,19 @@ def _conj(g1, g2, interleaving):
 
     return C
 
-def ife(g0, g1, g2):
+def if_pure(question, answer, otherwise, *, interleaving):
     
-    def IFE(s : state):
-        C = _conj(g0, g1, interleaving=False) 
-        α, β = C(s), g2(s)
-        yield from mplus(iter([α, β]), interleaving=False)
+    def I(s : state):
+        C = _conj(question, answer, interleaving=False) 
+        α, β = C(s), otherwise(s)
+        yield from mplus(iter([α, β]), interleaving)
 
-    return IFE
+    return I
 
-def ifi(g0, g1, g2):
-    
-    def IFI(s : state):
-        C = _conj(g0, g1, interleaving=False) 
-        α, β = C(s), g2(s)
-        yield from mplus(iter([α, β]), interleaving=True)
+ife = partial(if_pure, interleaving=False)
+ifi = partial(if_pure, interleaving=True)
 
-    return IFI
-
-def ifa(question, answer, otherwise, *, interleaving, committed):
+def if_softcut(question, answer, otherwise, *, doer):
 
     def IFA(s : state):
         α = question(s) 
@@ -335,22 +329,29 @@ def ifa(question, answer, otherwise, *, interleaving, committed):
             β = otherwise(s) 
             yield from β
         else:
-            γ = answer(r) if committed else bind(chain([r], α), answer, interleaving)
+            γ = doer(r, α, answer)
             yield from γ
 
     return IFA
 
+ifa = partial(if_softcut, doer=lambda r, α, answer: bind(chain([r], α), answer, interleaving=False))
+ifu = partial(if_softcut, doer=lambda r, α, answer: answer(r))
 
 @contextmanager
 def delimited(d):
 
-    depth = -1
+    available = iter(range(d)) if d else count()
+
+    def one_more():
+        try: next(available)
+        except StopIteration: return False
+        else: return True
+
     def D(g): 
         def G(s : state):
-            nonlocal depth
-            depth += 1
-            α = g(s) if depth < d else mzero() 
+            α = g(s) if one_more() else mzero()
             yield from α
+                
         return G
 
     yield D

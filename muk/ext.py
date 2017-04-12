@@ -12,14 +12,14 @@ def snooze(f, formal_vars):
     return fresh(lambda: f(*formal_vars))
 
 def disj(*goals, interleaving=True):
-    g, *gs = goals
     D = partial(_disj, interleaving=interleaving)
-    return D(g, disj(*gs, interleaving=interleaving)) if gs else D(g, fail)
+    return foldr(D, goals, initialize=fail)
 
 def conj(*goals, interleaving=False):
-    g, *gs = goals
     C = partial(_conj, interleaving=interleaving)
-    return C(g, conj(*gs, interleaving=interleaving)) if gs else C(g, succeed)
+    return foldr(C, goals, initialize=succeed)
+
+conji = partial(conj, interleaving=True)
 
 @adapt_iterables_to_conses(lambda u, v, occur_check: {u, v})
 def unify(u, v, occur_check=False):
@@ -29,32 +29,22 @@ def unify(u, v, occur_check=False):
 def unify_occur_check(u, v):
     return _unify_occur_check(u, v)
 
-def cond(*clauses, else_clause=[fail], interleaving):
-    C = partial(conj, interleaving=interleaving)
-    conjuctions = [C(*clause) for clause in clauses] + [C(*else_clause)]
-    return disj(*conjuctions, interleaving=interleaving)
+def cond(*clauses, else_clause=[fail], λ_if):
 
-conde = partial(cond, interleaving=False)
-condi = partial(cond, interleaving=True)
-
-def cond_if(*clauses, else_clause=[fail], interleaving, committed):
-
-    C = partial(conj, interleaving=interleaving)
-    I = partial(ifa, interleaving=interleaving, committed=committed)
-
-    def λ(clause, otherwise):  
+    def λ(clause, otherwise):
         question, *then = clause
-        return I(question, C(*then), otherwise)
+        return λ_if(question, conj(*then), otherwise)
     
-    r = foldr(λ, clauses, initialize=C(*else_clause))  
+    r = foldr(λ, clauses, initialize=conj(*else_clause))  
     return r
 
-conda = partial(cond_if, interleaving=False, committed=False)
-condu = partial(cond_if, interleaving=False, committed=True)
+conde = partial(cond, λ_if=ife)
+condi = partial(cond, λ_if=ifi)
+conda = partial(cond, λ_if=ifa)
+condu = partial(cond, λ_if=ifu)
 
 equalo = unify
 
-conji = partial(conj, interleaving=True)
 
 def rel(r):
     def R(res):
