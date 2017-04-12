@@ -261,3 +261,46 @@ def not_thingo(x, *, what):
 def onceo(g):
     return condu([g, succeed])
 
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def bumpo(n, x):
+    return conde([unify(n, x), succeed],
+                 else_clause=[fresh(lambda m: conj(minuso(n, [1], m), bumpo(m, x)))])
+
+def gentesto(op, *args):
+    return onceo(fresh(lambda *lvars: conj(op(*lvars), *[unify(a, l) for a, l in zip(args, lvars)]), 
+                       arity=len(args)))
+
+def enumerateo(op, r, n):
+    return fresh(lambda i, j, k: conj(bumpo(n, i),
+                                      bumpo(n, j),
+                                      op(i, j, k),
+                                      gentesto(op, i, j, k),
+                                      unify([i, j, k], r)))
+
+
+@adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
+def _addereo(δ, n, m, r): # alias for `gen_adder` as it appears in The Reasoned Schemer
+    return fresh(lambda α, β, γ, ε, x, y, z:
+                    conj(unify((α, x), n),
+                         unify((β, y), m), poso(y),
+                         unify((γ, z), r), poso(z),
+                         conj(full_addero(δ, α, β, γ, ε),  
+                              addereo(ε, x, y, z))))
+
+@adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
+def addereo(δ, n, m, r):
+    return condi([unify(0, δ), unify([], m), unify(n, r)],
+                 [unify(0, δ), poso(m), unify([], n), unify(m, r)],
+                 [unify(1, δ), unify([], m), fresh(lambda: addereo(0, n, [1], r))],
+                 [unify(1, δ), poso(m), unify([], n), fresh(lambda: addereo(0, [1], m, r))],
+                 [unify([1], n), unify([1], m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
+                 [unify([1], n), _addereo(δ, [1], m, r)],
+                 [greater_than_oneo(n), unify([1], m), fresh(lambda: _addereo(δ, [1], n, r))], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
+                 [greater_than_oneo(n), _addereo(δ, n, m, r)])
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def pluseo(n, m, k):
+    return addereo(0, n, m, k)
+
+
+

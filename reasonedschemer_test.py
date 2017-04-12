@@ -1,11 +1,13 @@
 
-import unittest
+import unittest, sys
 
 from muk.core import *
 from muk.ext import *
 from muk.sexp import *
+from muk.utils import *
 from reasonedschemer import *
 from reasonedschemer import _addero
+
 
 def tea_cupo(x):
     return conde([unify('tea', x), succeed],
@@ -1081,5 +1083,51 @@ class reasonedschemer_test(unittest.TestCase):
     def test_onceo(self):
         self.assertEqual(run(fresh(lambda x: onceo(tea_cupo(x)))), ['tea']) # 10.19
         self.assertEqual(run(fresh(lambda q: conj(onceo(succeed_at_least(nevero)), fail))), []) # 10.20
+
+    def test_bumpo(self):
+        self.assertEqual(run(fresh(lambda x: bumpo([1, 1, 1], x))), 
+                         [[1, 1, 1], 
+                          [0, 1, 1], 
+                          [1, 0, 1], 
+                          [0, 0, 1], 
+                          [1, 1], 
+                          [0, 1], 
+                          [1], 
+                          []]) # 10.25
+
+    def test_gentesto(self):
+        self.assertEqual(run(fresh(lambda q: conj(gentesto(pluso, [0, 0, 1], [1, 1], [1, 1, 1]), 
+                                                  unify(True, q)))), [True]) # 10.27
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda q: conj(gentesto(pluso, [0, 0, 1], [1, 1], [0, 1, 1]))), n=1) # 10.40
+        self.assertEqual(run(fresh(lambda s: enumerateo(pluso, s, [1, 1]))), 
+                          [[[1, 1], [1, 1], [0, 1, 1]], 
+                           [[1, 1], [0, 1], [1, 0, 1]], 
+                           [[1, 1], [1], [0, 0, 1]], 
+                           [[1, 1], [], [1, 1]], 
+                           [[0, 1], [1, 1], [1, 0, 1]], 
+                           [[0, 1], [0, 1], [0, 0, 1]], 
+                           [[0, 1], [1], [1, 1]], 
+                           [[0, 1], [], [0, 1]], 
+                           [[1], [1, 1], [0, 0, 1]], 
+                           [[1], [0, 1], [1, 1]], 
+                           [[1], [1], [0, 1]], 
+                           [[1], [], [1]], 
+                           [[], [1, 1], [1, 1]], 
+                           [[], [0, 1], [0, 1]], 
+                           [[], [1], [1]], 
+                           [[], [], []]]) # 10.43
+        with recursion_limit(10000):
+            self.assertEqual(run(fresh(lambda s: enumerateo(pluso, s, [1, 1, 1])), n=1), 
+                             [[[1, 1, 1], [1, 1, 1], [0, 1, 1, 1]]]) # 10.56
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda q: gentesto(pluseo, [0, 1], [1, 1], [1, 0, 1])), n=1)
+
+
+
+
+
+
+
 
 

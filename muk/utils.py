@@ -1,5 +1,10 @@
 
+import sys
+
 from itertools import tee
+from contextlib import contextmanager
+
+
 
 def iterwrap(obj, classes=(tuple,)):
     return obj if isinstance(obj, classes) else [obj]
@@ -20,4 +25,13 @@ def empty_iterable(α):
     try: next(α0)
     except StopIteration: return True
     else: return False
+
+@contextmanager
+def recursion_limit(n):
+    previous = sys.getrecursionlimit()
+    sys.setrecursionlimit(n)
+    yield
+    sys.setrecursionlimit(previous)
+
+
 
