@@ -201,6 +201,14 @@ def full_addero(ε, α, β, γ, δ):
                                         bit_xoro(αβ, wε, δ)))
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def zeroo(n):
+    return unify([], n)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def oneo(n):
+    return unify([1], n)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def poso(n):
     return pairo(n)
 
@@ -289,13 +297,14 @@ def _addereo(δ, n, m, r): # alias for `gen_adder` as it appears in The Reasoned
 
 @adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
 def addereo(δ, n, m, r):
-    return condi([unify(0, δ), unify([], m), unify(n, r)],
-                 [unify(0, δ), poso(m), unify([], n), unify(m, r)],
-                 [unify(1, δ), unify([], m), fresh(lambda: addereo(0, n, [1], r))],
-                 [unify(1, δ), poso(m), unify([], n), fresh(lambda: addereo(0, [1], m, r))],
-                 [unify([1], n), unify([1], m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
-                 [unify([1], n), _addereo(δ, [1], m, r)],
-                 [greater_than_oneo(n), unify([1], m), fresh(lambda: _addereo(δ, [1], n, r))], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
+    return condi([unify(0, δ), zeroo(m), unify(n, r)],
+                 [unify(0, δ), poso(m), zeroo(n), unify(m, r)],
+                 [unify(1, δ), zeroo(m), fresh(lambda: addereo(0, n, [1], r))],
+                 [unify(1, δ), poso(m), zeroo(n), fresh(lambda: addereo(0, [1], m, r))],
+                 [oneo(n), oneo(m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), 
+                                                            unify([α, β], r)))],
+                 [oneo(n), _addereo(δ, [1], m, r)],
+                 [greater_than_oneo(n), oneo(m), _addereo(δ, [1], n, r)], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
                  [greater_than_oneo(n), _addereo(δ, n, m, r)])
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
@@ -303,4 +312,35 @@ def pluseo(n, m, k):
     return addereo(0, n, m, k)
 
 
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def multiplyo(n, m, p):
+    return condi([zeroo(n), zeroo(p)],
+                 [poso(n), zeroo(m), zeroo(p)],
+                 [oneo(n), poso(m), unify(m, p)],
+                 [poso(n), oneo(m), unify(n, p)],
+                 [fresh(lambda x, z: conj(unify((0, x), n), poso(x),
+                                          unify((0, z), p), poso(z),
+                                          greater_than_oneo(m),
+                                          fresh(lambda: multiplyo(x, m, z)))), succeed],
+                 [fresh(lambda x, y: conj(unify((1, x), n), poso(x),
+                                          unify((0, y), m), poso(y),
+                                          fresh(lambda: multiplyo(m, n, p)))), succeed],
+                 [fresh(lambda x, y: conj(unify((1, x), n), poso(x),
+                                          unify((1, y), m), poso(y),
+                                          multiply_oddo(x, n, m, p))), succeed])
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def multiply_oddo(x, n, m, p):
+    return fresh(lambda q: conj(multiply_boundo(q, p, n, m),
+                                multiplyo(x, m, q),
+                                pluso((0, q), m, p)))
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def multiply_boundo(q, p, n, m):
+    return conde([nullo(q), pairo(p)],
+                 else_clause=[fresh(lambda x, y, z: 
+                                        conj(cdro(q, x), 
+                                             cdro(p, y), 
+                                             condi([nullo(n), cdro(m, z), fresh(lambda: multiply_boundo(x, y, z, []))],
+                                                   else_clause=[cdro(n, z), fresh(lambda: multiply_boundo(x, y, z, m))])))])
 

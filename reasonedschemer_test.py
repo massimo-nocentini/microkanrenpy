@@ -85,6 +85,7 @@ class reasonedschemer_test(unittest.TestCase):
     def test_conde(self):
         self.assertEqual(run(conde([fail, succeed])), []) # 1.44
         self.assertEqual(run(conde([fail, fail], else_clause=[succeed])), [Tautology()]) # 1.45
+        self.assertEqual(run(conde([fail], else_clause=[succeed])), [Tautology()]) # 1.45.1
         self.assertEqual(run(conde([fail, succeed], [succeed, succeed], else_clause=[succeed])), [Tautology(), Tautology()]) # 1.45.1
         self.assertEqual(run(conde([succeed, succeed])), [Tautology()]) # 1.46
         self.assertEqual(run(fresh(lambda x: conde([unify('olive', x), succeed], 
@@ -1152,6 +1153,48 @@ class reasonedschemer_test(unittest.TestCase):
                              [[[1, 1, 1], [1, 1, 1], [0, 1, 1, 1]]]) # 10.56
         with self.assertRaises(RecursionError):
             run(fresh(lambda q: gentesto(pluseo, [0, 1], [1, 1], [1, 0, 1])), n=1)
+
+    def test_multiplyo(self):
+        self.assertEqual(run(fresh(lambda t, x, y, r: conj(multiplyo(x, y, r), unify([x, y, r], t))), n=34),
+                         [[[], rvar(0), []],
+                          [(rvar(0), rvar(1)), [], []],
+                          [[1], (rvar(0), rvar(1)), (rvar(0), rvar(1))],
+                          [(rvar(0), rvar(1)), [1], (rvar(0), rvar(1))], # instead of [(rvar(0), rvar(1), rvar(2)), [1], (rvar(0), rvar(1), rvar(2))], againt The Reasoned Schemer
+                          [[0, 1], (rvar(0), rvar(1), rvar(2)), (0, rvar(0), rvar(1), rvar(2))],
+                          [(1, rvar(0), rvar(1)), [0, 1], (0, 1, rvar(0), rvar(1))],
+                          [[0, 0, 1], (rvar(0), rvar(1), rvar(2)), (0, 0, rvar(0), rvar(1), rvar(2))],
+                          [[1, 1], [1, 1], [1, 0, 0, 1]],
+                          [(0, 1, rvar(0), rvar(1)), [0, 1], (0, 0, 1, rvar(0), rvar(1))],
+                          [(1, rvar(0), rvar(1)), [0, 0, 1], (0, 0, 1, rvar(0), rvar(1))],
+                          [[0, 0, 0, 1], (rvar(0), rvar(1), rvar(2)), (0, 0, 0, rvar(0), rvar(1), rvar(2))],
+                          [[1, 1], [1, 0, 1], [1, 1, 1, 1]],
+                          [[0, 1, 1], [1, 1], [0, 1, 0, 0, 1]],
+                          [[1, 1], [0, 1, 1], [0, 1, 0, 0, 1]],
+                          [(0, 0, 1, rvar(0), rvar(1)), [0, 1], (0, 0, 0, 1, rvar(0), rvar(1))],
+                          [[1, 1], [1, 1, 1], [1, 0, 1, 0, 1]],
+                          [(0, 1, rvar(0), rvar(1)), [0, 0, 1], (0, 0, 0, 1, rvar(0), rvar(1))],
+                          [(1, rvar(0), rvar(1)), [0, 0, 0, 1], (0, 0, 0, 1, rvar(0), rvar(1))],
+                          [[0, 0, 0, 0, 1], (rvar(0), rvar(1), rvar(2)), (0, 0, 0, 0, rvar(0), rvar(1), rvar(2))],
+                          [[1, 0, 1], [1, 1], [1, 1, 1, 1]],
+                          [[0, 1, 1], [1, 0, 1], [0, 1, 1, 1, 1]],
+                          [[1, 0, 1], [0, 1, 1], [0, 1, 1, 1, 1]],
+                          [[0, 0, 1, 1], [1, 1], [0, 0, 1, 0, 0, 1]],
+                          [[1, 1], [1, 0, 0, 1], [1, 1, 0, 1, 1]],
+                          [[0, 1, 1], [0, 1, 1], [0, 0, 1, 0, 0, 1]],
+                          [[1, 1], [0, 0, 1, 1], [0, 0, 1, 0, 0, 1]],
+                          [(0, 0, 0, 1, rvar(0), rvar(1)), [0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))],
+                          [[1, 1], [1, 1, 0, 1], [1, 0, 0, 0, 0, 1]],
+                          [[0, 1, 1], [1, 1, 1], [0, 1, 0, 1, 0, 1]],
+                          [[1, 1, 1], [0, 1, 1], [0, 1, 0, 1, 0, 1]],
+                          [(0, 0, 1, rvar(0), rvar(1)), [0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))],
+                          [[1, 1], [1, 0, 1, 1], [1, 1, 1, 0, 0, 1]],
+                          [(0, 1, rvar(0), rvar(1)), [0, 0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))],
+                          [(1, rvar(0), rvar(1)), [0, 0, 0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))]]) # 8.1
+        self.assertEqual(run(fresh(lambda t, n, m: conj(multiplyo(n, m, [1]), unify([n, m], t))), n=1), [[[1], [1]]]) # 8.20
+        self.assertEqual(run(fresh(lambda t, n, m: conj(multiplyo(n, m, [1]), unify([n, m], t))), n=2), [[[1], [1]], [[1], [1]]]) # 8.23, this test should never terminate according to The Reasoned Schemer
+        self.assertEqual(run(fresh(lambda t, n, m: conj(multiplyo(n, m, [1]), unify([n, m], t))), n=3), [[[1], [1]], [[1], [1]]]) # 8.23.1
+        self.assertEqual(run(fresh(lambda p: multiplyo([1, 1, 1], [1, 1, 1, 1, 1, 1], p))), [[1, 0, 0, 1, 1, 1, 0, 1, 1]]) # 8.24
+
 
 
 
