@@ -1281,7 +1281,29 @@ class reasonedschemer_test(unittest.TestCase):
         with self.assertRaises(RecursionError): run(fresh(lambda n: lto(n, n))) # 8.52
 
 
-
-
-
+    def test_divmodo(self):
+        self.assertEqual(run(fresh(rel(divmodo)), n=15),
+                         [[[], (rvar(0), rvar(1)), [], []],
+                          [(rvar(0), rvar(1)), (rvar(0), rvar(1)), [1], []], # instead of [[1], [1], [1], []],
+                          [[0, 1], [1, 1], [], [0, 1]],
+                          [[1, 1], [0, 1], [1], [1]], # instead of [[0, 1], [1], [0, 1], []],
+                          [[1], (rvar(0), rvar(1), rvar(2)), [], [1]],
+                          [[rvar(0), 1], [1], [rvar(0), 1], []], # instead of [[rvar(0), 1], [rvar(1), 1], [1], []],
+                          [[0, rvar(0), 1], [1, rvar(0), 1], [], [0, rvar(0), 1]],
+                          [[rvar(0), rvar(1), 1], [1], [rvar(0), rvar(1), 1], []], # instead of [[0, rvar(0), 1], [rvar(0), 1], [0, 1], []],
+                          [[rvar(0), 1], (rvar(1), rvar(2), rvar(3), rvar(4)), [], [rvar(0), 1]],
+                          [[rvar(0), rvar(1), rvar(2), 1], [1], [rvar(0), rvar(1), rvar(2), 1], []], # instead of [[1, 1], [0, 1], [1], [1]],
+                          [[0, 0, 1], [0, 1, 1], [], [0, 0, 1]],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), 1], [1], [rvar(0), rvar(1), rvar(2), rvar(3), 1], []], # instead of [[1, 1], [1], [1, 1], []],
+                          [[rvar(0), rvar(1), 1], (rvar(2), rvar(3), rvar(4), rvar(5), rvar(6)), [], [rvar(0), rvar(1), 1]],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), 1], [1] , [rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), 1], []], # instead of [[rvar(0), rvar(1), 1], [rvar(0), rvar(1), 1], [1], []],
+                          [[1, 0, 1], [0, 1, 1], [], [1, 0, 1]],]) # 8.53
+        self.assertEqual(run(fresh(lambda m, r: divmodo([1, 0, 1], m, [1, 1, 1], r))), []) # 8.71
+        with self.assertRaises(RecursionError):
+            run(fresh(lambda t, y, z: conj(divmodo((1, 0, y), [0, 1], z, []), unify([y, z], t))), n=3) # 8.81.1
+        self.assertEqual(run(fresh(lambda t, y, z: conj(divmod_proo((1, 0, y), [0, 1], z, []), unify([y, z], t))), n=3), []) # 8.81.2
+        #with self.assertRaises(RecursionError):
+        with recursion_limit(100000):
+            self.assertEqual(run(fresh(lambda dm, q, r: conj(divmodo(83, 6, q, r), unify([q, r], dm)))), [[int_to_list(13), int_to_list(5)]])
+            self.assertEqual(run(fresh(lambda dm, q, r: conj(divmod_proo(83, 6, q, r), unify([q, r], dm))), n=1), [[int_to_list(13), int_to_list(5)]])
 

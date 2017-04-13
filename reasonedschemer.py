@@ -385,4 +385,63 @@ def leq(n, m):
     return condi([unify(n, m), succeed],
                  [lto(n, m), succeed])
 
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def divmodo(n, m, q, r):
+    return condi([zeroo(q), unify(n, r), lto(r, m)],
+                 [oneo(q), zeroo(r), equalo(n, m), lto(r, m)], 
+                 [lto(m, n), lto(r, m), fresh(lambda mq: 
+                                                conj(length_equalo(mq, n),
+                                                     multiplyo(m, q, mq),
+                                                     pluso(mq, r, n)))])
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def divmod_proo(n, m, q, r):
+    return condi([zeroo(q), lto(n, m), unify(r, n)],
+                 [oneo(q), length_equalo(n, m), pluso(r, m, n), lto(r, m)],
+                 else_clause=[conji(length_lto(m, n), lto(r, m), poso(q),
+                                    fresh(lambda n_h, n_l, q_h, q_l, qlm, qlmr, rr, r_h:
+                                            conji(splito(n, r, n_l, n_h),
+                                                  splito(q, r, q_l, q_h),
+                                                  conde([zeroo(n_h), zeroo(q_h), minuso(n_l, r, qlm), multiplyo(q_l, m, qlm)],
+                                                        else_clause=[conji(poso(n_h),
+                                                                          multiplyo(q_l, m, qlm),
+                                                                          pluso(qlm, r, qlmr),
+                                                                          minuso(qlmr, n_l, rr),
+                                                                          splito(rr, r, [], r_h),
+                                                                          fresh(lambda: divmod_proo(n_h, m, q_h, r_h)))]))))])
+
+def splito(n, r, l, h):
+    return condi([zeroo(n), zeroo(l), zeroo(h)],
+                 [fresh(lambda β, n_hat: 
+                            conj(unify((0, β, n_hat), n), 
+                                 zeroo(r), 
+                                 unify((β, n_hat), h), 
+                                 zeroo(l))), succeed],
+                 [fresh(lambda n_hat: 
+                            conj(unify((1, n_hat), n), 
+                                 zeroo(r), 
+                                 unify(n_hat, h), 
+                                 oneo(l))), succeed],
+                 [fresh(lambda α, β, n_hat, r_hat: 
+                            conj(unify((0, β, n_hat), n), 
+                                 unify((α, r_hat), r),  
+                                 zeroo(l), 
+                                 fresh(lambda: splito((β, n_hat), r_hat, [], h)))), succeed],
+                 [fresh(lambda α, n_hat, r_hat: 
+                            conj(unify((1, n_hat), n), 
+                                 unify((α, r_hat), r),  
+                                 oneo(l), 
+                                 fresh(lambda: splito(n_hat, r_hat, [], h)))), succeed],
+                 [fresh(lambda α, β, n_hat, r_hat, l_hat: 
+                            conj(unify((β, n_hat), n), 
+                                 unify((α, r_hat), r), 
+                                 unify((β, l_hat), l), 
+                                 poso(l), 
+                                 fresh(lambda: splito(n_hat, r_hat, l_hat, h)))), succeed],)
+
+
+
+
+
+
 
