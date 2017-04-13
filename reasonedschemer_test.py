@@ -1195,9 +1195,90 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda t, n, m: conj(multiplyo(n, m, [1]), unify([n, m], t))), n=3), [[[1], [1]], [[1], [1]]]) # 8.23.1
         self.assertEqual(run(fresh(lambda p: multiplyo([1, 1, 1], [1, 1, 1, 1, 1, 1], p))), [[1, 0, 0, 1, 1, 1, 0, 1, 1]]) # 8.24
 
+    def test_length_equalo(self):
+        self.assertEqual(run(fresh(lambda t, w, x, y: conj(length_equalo((1, w, x, y), [0, 1, 1, 0, 1]),
+                                                           unify([w, x, y], t)))), 
+                         [[rvar(0), rvar(1), [rvar(2), 1]]]) # 8.27
+        self.assertEqual(run(fresh(lambda b: length_equalo([1], [b]))), [1]) # 8.28
+        self.assertEqual(run(fresh(lambda n: length_equalo((1, 0, 1, n), [0, 1, 1, 0, 1]))), [[rvar(0), 1]]) # 8.29
+        self.assertEqual(run(fresh(lambda t, y, z: conj(length_equalo((1, y), (1, z)), unify([y, z], t))), n=5),
+                         [[[], []],
+                          [[1], [1]],
+                          [[rvar(0), 1], [rvar(1), 1]],
+                          [[rvar(0), rvar(1), 1], [rvar(2), rvar(3), 1]],
+                          [[rvar(0), rvar(1), rvar(2), 1], [rvar(3), rvar(4), rvar(5), 1]],]) # 8.30
+        self.assertEqual(run(fresh(lambda t, y, z: conj(length_equalo((1, y), (0, z)), unify([y, z], t))), n=5),
+                         [[[1], [1]],
+                          [[rvar(0), 1], [rvar(1), 1]],
+                          [[rvar(0), rvar(1), 1], [rvar(2), rvar(3), 1]],
+                          [[rvar(0), rvar(1), rvar(2), 1], [rvar(3), rvar(4), rvar(5), 1]],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), 1], [rvar(4), rvar(5), rvar(6), rvar(7), 1]],]) # 8.31
+        self.assertEqual(run(fresh(lambda t, y, z: conj(length_equalo((1, y), (0, 1, 1, 0, 1, z)), unify([y, z], t))), n=5),
+                         [[[rvar(0), rvar(1), rvar(2), 1], []],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), 1], [1]],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), 1], [rvar(5), 1]],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), rvar(5), 1], [rvar(6), rvar(7), 1]],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), rvar(5), rvar(6), 1], [rvar(7), rvar(8), rvar(9), 1]],]) # 8.33
 
+    def test_length_lto(self):
+        self.assertEqual(run(fresh(lambda t, y, z: conj(length_lto((1, y), (0, 1, 1, 0, 1, z)), unify([y, z], t))), n=8),
+                         [[[], rvar(0)],
+                          [[1], rvar(0)],
+                          [[rvar(0), 1], rvar(1)],
+                          [[rvar(0), rvar(1), 1], rvar(2)],
+                          [[rvar(0), rvar(1), rvar(2), 1], (rvar(3), rvar(4))],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), 1], (rvar(4), rvar(5), rvar(6))],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), 1], (rvar(5), rvar(6), rvar(7), rvar(8))],
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), rvar(5), 1], (rvar(6), rvar(7), rvar(8), rvar(9), rvar(10))],]) # 8.35
+        with self.assertRaises(RecursionError): run(fresh(lambda n: length_lto(n, n)), n=1) # 8.37
 
+    def test_length_leqo(self):
+        self.assertEqual(run(fresh(rel(lengthe_leqo)), n=8), 
+                         [[[], []], 
+                          [[1], [1]], 
+                          [[rvar(0), 1], [rvar(1), 1]], 
+                          [[rvar(0), rvar(1), 1], [rvar(2), rvar(3), 1]], 
+                          [[rvar(0), rvar(1), rvar(2), 1], [rvar(3), rvar(4), rvar(5), 1]], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), 1], [rvar(4), rvar(5), rvar(6), rvar(7), 1]], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), 1], [rvar(5), rvar(6), rvar(7), rvar(8), rvar(9), 1]], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), rvar(5), 1], [rvar(6), rvar(7), rvar(8), rvar(9), rvar(10), rvar(11), 1]]]) # 8.39
+        self.assertEqual(run(fresh(lambda t, n, m: conj(lengthe_leqo(n, m), multiplyo(n, [0, 1], m), unify([n, m], t))), n=1), [[[], []]]) # 8.40
+        #with self.assertRaises(RecursionError): run(fresh(lambda t, n, m: conj(lengthe_leqo(n, m), multiplyo(n, [0, 1], m), unify([n, m], t))), n=2) # 8.41
+        self.assertEqual(run(fresh(lambda t, n, m: conj(lengthi_leqo(n, m), multiplyo(n, [0, 1], m), unify([n, m], t))), n=10),
+                         [[[], []], 
+                          [[1], [0, 1]], 
+                          [[0, 1], [0, 0, 1]], 
+                          [[1, 1], [0, 1, 1]], 
+                          [[0, 0, 1], [0, 0, 0, 1]], 
+                          [[1, rvar(0), 1], [0, 1, rvar(0), 1]], 
+                          [[0, 1, 1], [0, 0, 1, 1]], 
+                          [[0, 0, 0, 1], [0, 0, 0, 0, 1]], 
+                          [[1, rvar(0), rvar(1), 1], [0, 1, rvar(0), rvar(1), 1]], 
+                          [[0, 1, rvar(0), 1], [0, 0, 1, rvar(0), 1]]]) # 8.43
+        self.assertEqual(run(fresh(rel(lengthi_leqo)), n=15), 
+                         [[[], []], 
+                          [[], (rvar(0), rvar(1))], 
+                          [[1], [1]], 
+                          [[1], (rvar(0), rvar(1), rvar(2))], 
+                          [[rvar(0), 1], [rvar(1), 1]], 
+                          [[rvar(0), 1], (rvar(1), rvar(2), rvar(3), rvar(4))], 
+                          [[rvar(0), rvar(1), 1], [rvar(2), rvar(3), 1]], 
+                          [[rvar(0), rvar(1), 1], (rvar(2), rvar(3), rvar(4), rvar(5), rvar(6))], 
+                          [[rvar(0), rvar(1), rvar(2), 1], [rvar(3), rvar(4), rvar(5), 1]], 
+                          [[rvar(0), rvar(1), rvar(2), 1], (rvar(3), rvar(4), rvar(5), rvar(6), rvar(7), rvar(8))], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), 1], [rvar(4), rvar(5), rvar(6), rvar(7), 1]], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), 1], (rvar(4), rvar(5), rvar(6), rvar(7), rvar(8), rvar(9), rvar(10))], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), 1], [rvar(5), rvar(6), rvar(7), rvar(8), rvar(9), 1]], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), 1], (rvar(5), rvar(6), rvar(7), rvar(8), rvar(9), rvar(10), rvar(11), rvar(12))], 
+                          [[rvar(0), rvar(1), rvar(2), rvar(3), rvar(4), rvar(5), 1], [rvar(6), rvar(7), rvar(8), rvar(9), rvar(10), rvar(11), 1]]]) # 8.44
 
+    def test_lto(self):
+        self.assertEqual(run(fresh(lambda q: conj(lto([1, 0, 1], [1, 1, 1]), unify(True, q)))), [True]) # 8.47
+        self.assertEqual(run(fresh(lambda q: conj(lto([1, 1, 1], [1, 0, 1]), unify(True, q)))), []) # 8.48
+        self.assertEqual(run(fresh(lambda q: conj(lto([1, 0, 1], [1, 0, 1]), unify(True, q)))), []) # 8.49
+        self.assertEqual(run(fresh(lambda n: lto(n, [1, 0, 1])), n=6), [[], [0, 0, 1], [1], [rvar(0), 1]]) # 8.50
+        self.assertEqual(run(fresh(lambda m: lto([1, 0, 1], m)), n=6), [(rvar(0), rvar(1), rvar(2), rvar(3), rvar(4)), [0, 1, 1], [1, 1, 1]]) # 8.51
+        with self.assertRaises(RecursionError): run(fresh(lambda n: lto(n, n))) # 8.52
 
 
 

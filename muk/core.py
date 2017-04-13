@@ -445,7 +445,8 @@ def run(goal, n=False,
     '''
 
     with states_stream(goal) as α:
-        subs = [a.sub for i, a in zip(range(n) if n else count(), α)]
+        domain = range(n) if n else count()
+        subs = [a.sub for i, a in zip(domain, α)]
 
     logic_vars = getattr(goal, 'logic_vars', None) # defaults to `None` instead of `[]` to distinguish attr set by `_fresh` 
     m_var = var_selector(*logic_vars) if logic_vars else Tautology() # any satisfying sub is a Tautology if there are no logic vars

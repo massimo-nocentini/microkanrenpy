@@ -344,3 +344,45 @@ def multiply_boundo(q, p, n, m):
                                              condi([nullo(n), cdro(m, z), fresh(lambda: multiply_boundo(x, y, z, []))],
                                                    else_clause=[cdro(n, z), fresh(lambda: multiply_boundo(x, y, z, m))])))])
 
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def length_equalo(n, m):
+    return conde([zeroo(n), zeroo(m)],
+                 [oneo(n), oneo(m)],
+                 else_clause=[fresh(lambda α, β, x, y:
+                                        conj(unify((α, x), n), poso(x),
+                                             unify((β, y), m), poso(y),
+                                             fresh(lambda: length_equalo(x, y))))])  
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def length_lto(n, m):
+    return conde([zeroo(n), poso(m)],
+                 [oneo(n), greater_than_oneo(m)],
+                 else_clause=[fresh(lambda α, β, x, y:
+                                        conj(unify((α, x), n), poso(x),
+                                             unify((β, y), m), poso(y),
+                                             fresh(lambda: length_lto(x, y))))])
+
+def _length_leqo(n, m, condo):
+    return condo([length_equalo(n, m), succeed],
+                 [length_lto(n, m), succeed])
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def lengthe_leqo(n, m):
+    return _length_leqo(n, m, conde)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def lengthi_leqo(n, m):
+    return _length_leqo(n, m, condi)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def lto(n, m):
+    return condi([length_lto(n, m), succeed],
+                 [length_equalo(n, m), fresh(lambda x: conj(poso(x), pluso(n, x, m)))])
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def leq(n, m):
+    return disj(unify(n, m), lto(n, m))
+    return condi([unify(n, m), succeed],
+                 [lto(n, m), succeed])
+
+
