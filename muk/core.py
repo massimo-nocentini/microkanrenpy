@@ -378,9 +378,6 @@ def sub(*logic_vars, of):
 
     return S
 
-
-
-
 # }}}
 
 # STATE STREAMS {{{
@@ -403,7 +400,8 @@ def mplus(streams, interleaving):
                 try:
                     s : state = next(α)
                 except StopIteration:
-                    continue # α stream exhausted 
+                    #yield from mzero() # useless
+                    continue # to the next stream because stream α has been exhausted 
                 else:
                     yield s
                     streams = chain(streams, [α])

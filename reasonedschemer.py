@@ -216,32 +216,19 @@ def poso(n):
 def greater_than_oneo(n):
     return fresh(lambda a, ad, dd: unify([a, ad] + dd, n))
 
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def rightmost_representative(n):
     raise NotImplemented
 
-def _rightmost_representative(n):
-
-    def R(n, col, i):
-        try:
-            a, d = n
-            ad, dd = d
-        except:
-            return col([], None, i)
-        else:
-            return col(num(ad, []), dd, i) if ad == 1 else R(d, lambda rr, dd, ii: col(num(a, num(ad, rr)), dd, ii), i+1)
-
-    return R(n, lambda r, d, i: [r, d, i], 0)
-
-
 @adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
 def addero(δ, n, m, r):
-    return condi([unify(0, δ), unify([], m), unify(n, r)],
-                 [unify(0, δ), poso(m), unify([], n), unify(m, r)],
-                 [unify(1, δ), unify([], m), fresh(lambda: addero(0, n, [1], r))],
-                 [unify(1, δ), poso(m), unify([], n), fresh(lambda: addero(0, [1], m, r))],
-                 [unify([1], n), unify([1], m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
-                 [unify([1], n), _addero(δ, [1], m, r)],
-                 [greater_than_oneo(n), unify([1], m), fresh(lambda: _addero(δ, [1], n, r))], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
+    return condi([unify(0, δ), zeroo(m), unify(n, r)],
+                 [unify(0, δ), poso(m), zeroo(n), unify(m, r)],
+                 [unify(1, δ), zeroo(m), fresh(lambda: addero(0, n, [1], r))],
+                 [unify(1, δ), poso(m), zeroo(n), fresh(lambda: addero(0, [1], m, r))],
+                 [oneo(n), oneo(m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
+                 [oneo(n), _addero(δ, [1], m, r)],
+                 [greater_than_oneo(n), oneo(m), _addero(δ, [1], n, r)], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
                  [greater_than_oneo(n), _addero(δ, n, m, r)])
 
 

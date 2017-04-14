@@ -32,9 +32,10 @@ def unify_occur_check(u, v):
 def cond(*clauses, else_clause=[fail], λ_if):
 
     def λ(clause, otherwise):
-        question, *then = clause
-        return λ_if(question, conj(*then), otherwise)
+        question, *answers = clause
+        return λ_if(question, conj(*answers), otherwise)
     
+    else_clause = [succeed] + else_clause # to stick to the pattern [question answer ...] of a cond-line
     r = foldr(λ, clauses, initialize=conj(*else_clause))  
     return r
 
@@ -44,7 +45,6 @@ conda = partial(cond, λ_if=ifa)
 condu = partial(cond, λ_if=ifu)
 
 equalo = unify
-
 
 def rel(r):
     def R(res):
