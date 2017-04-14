@@ -209,6 +209,14 @@ def oneo(n):
     return unify([1], n)
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def twoo(n):
+    return unify([0, 1], n)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def threeo(n):
+    return unify([1, 1], n)
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def poso(n):
     return pairo(n)
 
@@ -427,8 +435,75 @@ def splito(n, r, l, h):
                                  fresh(lambda: splito(n_hat, r_hat, l_hat, h)))), succeed],)
 
 
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def logo(n, b, q, r):
+    return condi([oneo(n), poso(b), zeroo(q), zeroo(r)],
+                 [zeroo(q), lto(n, b), pluso(r, [1], n)],
+                 [oneo(q), greater_than_oneo(b), length_equalo(n, b), pluso(r, b, n)],
+                 [oneo(b), poso(q), pluso(r, [1], n)],
+                 [zeroo(b), poso(q), unify(r, n)],
+                 [twoo(b), fresh(lambda a, ad, dd, s: conj(poso(dd),
+                                                           unify((a, ad, dd), n),
+                                                           expo(n, [], q, base=2),
+                                                           splito(n, dd, r, s)))],
+                 [fresh(lambda a, ad, add, ddd: conde([threeo(b), succeed],
+                                                      else_clause=[unify((a, ad, add, ddd), b)])),
+                  length_lto(b, n),
+                  fresh(lambda bw1, bw, nw, nw1, ql1, q_l, s:
+                            conj(expo(b, [], bw1, base=2),
+                                 pluso(bw1, [1], bw),
+                                 length_lto(q, n),
+                                 fresh(lambda q_1, bwq1:
+                                            conj(pluso(q, [1], q_1),
+                                                 multiplyo(bw, q_1, bwq1),
+                                                 lto(nw1, bwq1),
+                                                 expo(n, [], nw1, base=2),
+                                                 pluso(nw1, [1], nw),
+                                                 divmodo(nw, bw, ql1, s),
+                                                 pluso(q_l, [1], ql1))),
+                                 conde([unify(q, q_l), succeed],
+                                       else_clause=[length_lto(q_l, q)]),
+                                 fresh(lambda bql, q_h, s, qdh, qd:
+                                            conj(multiply_repeatedo(b, q_l, bql),
+                                                 divmodo(nw, bw1, q_h, s),
+                                                 pluso(q_l, qdh, q_h),
+                                                 pluso(q_l, qd, q),
+                                                 conde([unify(qd, qdh), succeed],
+                                                       else_clause=[lto(qd, qdh)]),
+                                                 fresh(lambda bqd, bq1, bq:
+                                                            conj(multiply_repeatedo(b, qd, bqd),
+                                                                 multiplyo(bql, bqd, bq),
+                                                                 multiplyo(b, bq, bq1),
+                                                                 pluso(bq, r, n),
+                                                                 lto(n, bq1))))))), succeed])
+                    
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def expo(n, b, q, *, base):
+    return condi([oneo(n), zeroo(q)],
+                 [greater_than_oneo(n), oneo(q), fresh(lambda s: splito(n, b, s, [1]))],
+                 [fresh(lambda q_1, b_2:
+                            conji(unify((0, q_1), q), poso(q_1),
+                                  length_lto(b, n),
+                                  appendo(b, (1, b), b_2),
+                                  fresh(lambda: expo(n, b_2, q_1, base=base)))), succeed],
+                 [fresh(lambda q_1, n_h, b_2, s:
+                            conji(unify((1, q_1), q), poso(q_1),
+                                  poso(n_h),  
+                                  splito(n, b, s, n_h),
+                                  appendo(b, (1, b), b_2),
+                                  fresh(lambda: expo(n_h, b_2, q_1, base=base)))), succeed])
+
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def multiply_repeatedo(n, q, nq):
+    return conde([poso(n), zeroo(q), oneo(nq)],
+                 [oneo(q), unify(n, nq)],
+                 [greater_than_oneo(q), fresh(lambda q_1, nq1:
+                                                conj(pluso(q_1, [1], q),
+                                                     fresh(lambda: multiply_repeatedo(n, q_1, nq1)),
+                                                     multiplyo(nq1, n, nq)))])
 
 
-
-
+@adapt_iterables_to_conses(all_arguments, ctor=num.build)
+def powo(b, q, n):
+    return logo(n, b, q, [])
 
