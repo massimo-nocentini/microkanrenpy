@@ -50,12 +50,17 @@ class var:
     _subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
 
     def __init__(self, index, name):
-
         self.index = index
         self.name = name
 
     def __eq__(self, other):
-        return self.index == other.index and self.name == other.name if isinstance(other, var) else False
+        try:
+            return other.__eq__var(self)
+        except AttributeError:
+            return False
+
+    def __eq__var(self, other):
+        return self.index == other.index and self.name == other.name
 
     def __hash__(self):
         t = self.index, self.name
@@ -400,7 +405,6 @@ def mplus(streams, interleaving):
                 try:
                     s : state = next(α)
                 except StopIteration:
-                    #yield from mzero() # useless
                     continue # to the next stream because stream α has been exhausted 
                 else:
                     yield s
