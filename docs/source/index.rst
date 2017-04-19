@@ -3,19 +3,29 @@
    You can adapt this file completely to your liking, but it should at least
    contain the root `toctree` directive.
 
-Welcome to microkanrenpy's documentation!
-=========================================
+=========
+μkanrenpy
+=========
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 3
    :caption: Contents:
 
    primer
+   under_the_hood
 
 
-Indices and tables
-==================
+Abstract
+--------
+
+References
+----------
+
+Quick links
+-----------
 
 * :ref:`genindex`
-* :ref:`modindex`
 * :ref:`search`
+
+..
+    * :ref:`modindex`

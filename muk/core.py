@@ -1,19 +1,23 @@
 
 '''
-    __Laws__
+    Laws
+    ====
 
-    ● law of fresh
+    *law of fresh*
         if x is fresh, then unify(v, x) succeeds and associates x with v    
-    ● law of unify
+
+    *law of unify*
         unify(v, w) is the same as unify(w, v)
-    ● law of conde
+
+    *law of conde*
         to get more values from conde, pretend that the successful conde line
         has failed, refreshing all variables that got an association from that
         line
 
-    __Commandments__
+    Commandments
+    ============
 
-    ● second
+    *second*
         to transform a function whose value is not a Boolean into a function
         whose value is a goal, add an extra argument to hold its value, replace
         `cond` with `conde`, and unnest each question and answer. 
@@ -240,6 +244,8 @@ def reify(v):
 # GOAL CTORS {{{
 
 def succeed(s : state):
+    ''' A goal that is satisfied by any substitution '''
+
     yield from unit(s)
 
 def fail(s : state):
