@@ -10,6 +10,7 @@ Welcome to microkanrenpy's documentation!
    :maxdepth: 2
    :caption: Contents:
 
+   primer
 
 
 Indices and tables
