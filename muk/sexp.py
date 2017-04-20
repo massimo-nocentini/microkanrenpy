@@ -4,8 +4,7 @@ from contextlib import contextmanager
 from functools import wraps
 from inspect import signature
 
-def identity(a):
-    return a
+from muk.utils import identity
 
 class cons(namedtuple('_cons', ['car', 'cdr'])):
 
@@ -31,10 +30,17 @@ class cons(namedtuple('_cons', ['car', 'cdr'])):
     def occur_check(self, u, O, E):
         return O(u, self.car) or O(u, self.cdr)
 
+    def __radd__(self, other):
+        
+        if isinstance(other, list):
+            return list_to_cons(other, post=lambda l: self if l == [] else l)
+
+        raise NotImplemented
+
 class ImproperListError(ValueError):
     pass
 
-def list_to_cons(l):
+def list_to_cons(l, post=identity):
 
     if isinstance(l, (str, cons)): return l # we consider a `str` obj not an iterable obj but as an atom
 
@@ -49,6 +55,7 @@ def list_to_cons(l):
         else:
             cdr = λ(cdr) # again, restore correct type of the tail
             if cdr == (): raise ImproperListError # otherwise outer try couldn't fail
+            cdr = post(cdr)
             return cons(car=list_to_cons(car), cdr=list_to_cons(cdr))
     else:
         cddr = λ(cddr) # restore correct type of tail collecting obj

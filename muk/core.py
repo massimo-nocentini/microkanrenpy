@@ -89,18 +89,6 @@ class var:
 
         raise NotImplemented
 
-    def __add__(self, other):
-        
-        raise NotImplemented
-
-        # although the following implementation seems reasonable, it permits
-        # `unify([3,[4,5],6], x + ([4, y], z))` to bind `x` to `3` whereas the
-        # correct deduction should be `x==[3]`.  In other words, it does the
-        # work of `appendo`.
-        if isinstance(other, (list, tuple)):
-            λ = type(other) 
-            return λ([self]) + other
-
     def walk_star(self, W):
         return self
 
@@ -220,8 +208,12 @@ def occur_check(ext_s):
 @occur_check
 def ext_s(u, v, sub):
 
-    if u == v: raise ValueError('According to 9.12 of The Reasoned Schemer')
+    if not isinstance(u, var): 
+        raise ValueError("Non `var` obj {} as key in substitution {}".format(u, sub))
 
+    if u == v: 
+        raise ValueError('Illegal identity association between {} and {}, according to 9.12 of The Reasoned Schemer'.format(u, v))
+        
     if u in sub: # check to ensure consistency of previously unified values
         if sub[u] != v: raise UnificationError
         else: return sub
@@ -245,7 +237,6 @@ def reify(v):
 
 def succeed(s : state):
     ''' A goal that is satisfied by any substitution '''
-
     yield from unit(s)
 
 def fail(s : state):

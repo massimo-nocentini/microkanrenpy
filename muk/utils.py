@@ -4,7 +4,8 @@ import sys
 from itertools import tee
 from contextlib import contextmanager
 
-
+def identity(a):
+    return a
 
 def iterwrap(obj, classes=(tuple,)):
     return obj if isinstance(obj, classes) else [obj]
@@ -33,5 +34,7 @@ def recursion_limit(n):
     yield
     sys.setrecursionlimit(previous)
 
-
+@contextmanager
+def let(*args):
+    yield (args[0] if len(args) == 1 else args)
 
