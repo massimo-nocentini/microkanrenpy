@@ -25,14 +25,36 @@ def appendo(r, s, out):
     return A(r, out)
 
 @adapt_iterables_to_conses(all_arguments)
+def reverseo(a, l):
+    return conde([nullo(a), nullo(l)],
+                 else_clause=[fresh(lambda car, cdr, res: 
+                                        conji(unify([car]+cdr, a), 
+                                              appendo(res, [car], l),
+                                              fresh(lambda: reverseo(cdr, res)),))])
+
+@adapt_iterables_to_conses(all_arguments)
 def associateo(γ, γ2γ):
     return appendo(γ, [2]+γ, γ2γ)
+
+@adapt_iterables_to_conses(all_arguments)
+def symmetrico(α):
+    return reverseo(α, α)
+
+@adapt_iterables_to_conses(all_arguments)
+def repeato(γ, γγ):
+    return appendo(γ, γ, γγ)
 
 def mcculloch_first_ruleo(α, β, *, machine):
     return fresh(lambda η: conj(unify([2]+η, α), unify(η, β)))
 
 def mcculloch_second_ruleo(α, δ2δ, *, machine):
     return fresh(lambda η, δ: conj(unify([3]+η, α), associateo(δ, δ2δ), machine(η, δ)))
+
+def mcculloch_third_ruleo(α, δ_reversed, *, machine):
+    return fresh(lambda η, δ: conj(unify([4]+η, α), reverseo(δ, δ_reversed), machine(η, δ)))
+
+def mcculloch_fourth_ruleo(α, δδ, *, machine):
+    return fresh(lambda η, δ: conj(unify([5]+η, α), repeato(δ, δδ), machine(η, δ)))
 
 mccullocho = machine(rules=[ mcculloch_second_ruleo, mcculloch_first_ruleo, ])
 
@@ -53,5 +75,8 @@ def lengtho(α, l):
 def leqo(a, b):
     return project(a, b, into=lambda a, b: unify(True, a <= b))
 
+
+mcculloch_o = machine(rules=[ mcculloch_second_ruleo, mcculloch_third_ruleo, mcculloch_first_ruleo, ])
+mcculloch__o = machine(rules=[ mcculloch_second_ruleo, mcculloch_fourth_ruleo, mcculloch_third_ruleo, mcculloch_first_ruleo, ])
 
 

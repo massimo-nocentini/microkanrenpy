@@ -208,12 +208,13 @@ def occur_check(ext_s):
 @occur_check
 def ext_s(u, v, sub):
 
-    if not isinstance(u, var): 
-        raise ValueError("Non `var` obj {} as key in substitution {}".format(u, sub))
+    if False:
+        if not isinstance(u, var): 
+            raise ValueError("Non `var` obj {} as key in substitution {}".format(u, sub))
 
-    if u == v: 
-        raise ValueError('Illegal identity association between {} and {}, according to 9.12 of The Reasoned Schemer'.format(u, v))
-        
+        if u == v: 
+            raise ValueError('Illegal identity association between {} and {}, according to 9.12 of The Reasoned Schemer'.format(u, v))
+            
     if u in sub: # check to ensure consistency of previously unified values
         if sub[u] != v: raise UnificationError
         else: return sub
@@ -379,6 +380,19 @@ def sub(*logic_vars, of):
         yield from map(λ, α)
 
     return S
+
+def complement(g):
+
+    def C(s : state):
+        α = g(s)
+        try:
+            r : state = next(α)
+        except StopIteration:
+            yield s
+        else:
+            yield from mzero()    
+
+    return C
 
 # }}}
 

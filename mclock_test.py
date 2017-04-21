@@ -23,7 +23,11 @@ class mcculloch_test(unittest.TestCase):
                                                      appendo(α, [5], β)))), 
                          [[3, 3, 2], [2, 5, 2, 5, 2, 5, 2], [3, 2, 5, 2],])   
 
-    def test_a_curious_number_machine(self):
+    def test_third_rule(self):
+        self.assertEqual(run(fresh(lambda α: mcculloch_o([4,2,7,6,9,5], α)), n=1), [[5,9,6,7]])
+
+    def test_a_curious_number_machine_chapter(self):
+
         self.assertEqual(run(fresh(lambda α: mccullocho(α, α)), n=1), [[3,2,3]]) # 1
         self.assertEqual(run(fresh(lambda α, β: conj(associateo(α, β), mccullocho(α, β))), n=1), [[3, 3, 2, 3, 3]]) # 2
         with let([3, 3, 2, 3, 3]) as N: self.assertEqual(run(fresh(lambda α: mccullocho(N, α)), n=1), [N+[2]+N]) # 2.1
@@ -122,3 +126,58 @@ class mcculloch_test(unittest.TestCase):
                           [[rvar(0)], [3, 3, 3, 2, rvar(0), 3, 3, 3]],
                           [[rvar(0), rvar(1)], [3, 3, 3, 2, rvar(0), rvar(1), 3, 3, 3]],
                           [[rvar(0), rvar(1), rvar(2)], [3, 3, 3, 2, rvar(0), rvar(1), rvar(2), 3, 3, 3]]]) # proof of 11
+
+
+    def test_craigs_law_chapter(self):
+        self.assertEqual(run(fresh(lambda α: mcculloch_o(α, α)), n=3),
+                         [[3, 2, 3], [4, 3, 4, 2, 4, 3, 4], [3, 4, 4, 2, 3, 4, 4]]) # 1
+        self.assertEqual(run(fresh(lambda α, α_reversed: conj(reverseo(α, α_reversed), 
+                                                              mcculloch_o(α, α_reversed), 
+                                                              complement(symmetrico(α)))), n=6), 
+                         [[3, 4, 2, 3, 4], 
+                          [4, 3, 2, 4, 3],
+                          [3, 4, 4, 4, 2, 3, 4, 4, 4],
+                          [4, 3, 4, 4, 2, 4, 3, 4, 4],
+                          [4, 4, 3, 4, 2, 4, 4, 3, 4],
+                          [4, 4, 4, 3, 2, 4, 4, 4, 3]]) # 2
+        self.assertEqual(run(fresh(lambda α, α_reversed, α_reversed2α_reversed: 
+                                        conji(reverseo(α, α_reversed), 
+                                              associateo(α_reversed, α_reversed2α_reversed),
+                                              mcculloch_o(α, α_reversed2α_reversed),)), n=4), 
+                         [[3, 3, 2, 3, 3],
+                          [3, 3, 4, 2, 3, 3, 4],
+                          [3, 4, 4, 3, 2, 3, 4, 4, 3],
+                          [3, 3, 4, 4, 4, 2, 3, 3, 4, 4, 4]]) # 3.e
+        self.assertEqual(run(fresh(lambda α, α_reversed, α_reversed2α_reversed: 
+                                        conj(reverseo(α, α_reversed), 
+                                              associateo(α_reversed, α_reversed2α_reversed),
+                                              mcculloch_o(α, α_reversed2α_reversed),)), n=4), 
+                         [[3, 3, 2, 3, 3],
+                          [3, 3, 4, 2, 3, 3, 4],
+                          [4, 3, 3, 2, 4, 3, 3],
+                          [3, 4, 3, 2, 3, 4, 3]]) # 3.i
+        self.assertEqual(run(fresh(lambda α, αα: conj(repeato(α, αα), mcculloch__o(α, αα))), n=2), 
+                         [[5, 3, 2, 5, 3], [5, 5, 2, 5, 5, 2]]) # 4
+        self.assertEqual(run(fresh(lambda α, αα, α_reversed:        
+                                        conji(
+                                              unify([4,5,3,2,4,5,3], α),
+                                              repeato(α, αα), 
+                                              reverseo(αα, α_reversed), 
+                                              mcculloch__o(α, α_reversed),
+                                              )), n=1), 
+                         [[4,5,3,2,4,5,3]]) # 5, I can only verify this answer, not generate it  :(
+        self.assertEqual(run(fresh(lambda α, αα: conj(repeato(α, αα), mcculloch__o([5]+α, αα))), n=3),
+                         [[3, 2, 3], [5, 2, 5, 2], [3, 4, 4, 2, 3, 4, 4]]) # 7
+        self.assertEqual(run(fresh(lambda α, α2α, α2αα2α:        
+                                        conj(associateo(α, α2α), 
+                                             repeato(α2α, α2αα2α), 
+                                             mcculloch__o(α, α2αα2α),)), n=1), 
+                         [[5, 3, 3, 2, 5, 3, 3]]) # 8
+        self.assertEqual(run(fresh(lambda α, αα, αα2αα:        
+                                        conj(repeato(α, αα), 
+                                             associateo(αα, αα2αα), 
+                                             mcculloch__o(α, αα2αα),)), n=2), 
+                         [[3, 5, 3, 2, 3, 5, 3], [3, 5, 5, 2, 3, 5, 5, 2]]) # 9
+
+
+
