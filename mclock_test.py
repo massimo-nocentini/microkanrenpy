@@ -85,8 +85,11 @@ class mcculloch_test(unittest.TestCase):
                                                                  mccullocho(ν2ν, ν2ν2ν2ν))), n=1), [[3,3]]) # 18
         self.assertEqual(run(fresh(lambda α, α23: conji(appendo(α, [2,3], α23), mccullocho(α, α23))), n=1), [[3,2,3,2,3]]) # 19
 
-        return
 
+    @unittest.skip('Unsatisfiable goals but running forever')
+    def test_hopeless(self):
+
+        # TODO: fix the following when we'll have the constraint system
         self.assertEqual(run(fresh(lambda α, α2, α2α, α2_l, α2α_l: 
                                         conji(mccullocho(α, α2α), lengtho(α2α, α2α_l),
                                               appendo(α, [2], α2), lengtho(α2, α2_l),
