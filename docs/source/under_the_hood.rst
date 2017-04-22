@@ -9,4 +9,5 @@ Under the hood
 .. automodule:: muk.core
 .. autofunction:: muk.core.succeed
 .. autofunction:: muk.core.fail
+.. autofunction:: muk.core.run
 
