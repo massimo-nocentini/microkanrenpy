@@ -388,7 +388,7 @@ def complement(g):
         try:
             r : state = next(α)
         except StopIteration:
-            yield s
+            yield from unit(s)
         else:
             yield from mzero()    
 

@@ -119,7 +119,7 @@ On the other hand, things get interesting when fresh variables are mixed in:
     >>> run(fresh(lambda q: unify([[2, 3], 1, 2, 3], [q, 1] + q)))
     [[2, 3]]
 
-When two fresh vars are unified it is said that they *share*:
+When two fresh vars are unified it is said that they *share* or *co-refer*:
 
 .. doctest::
     
@@ -168,13 +168,68 @@ satisfied when *both* the former *and* the latter goal can be satisfied:
     ...                          unify(q, True))))
     [True]
 
-More goal ctors
----------------
+Facts and recursive goals
+-------------------------
+
+In order to represent *facts* we introduce the :py:obj:`conde` goal ctor,
+which is defined as a combination of conjs and disjs and we show how to write
+recursive relation, possibly countable infinite.
 
 ``conde``
 ~~~~~~~~~
-
+The following simple example resembles facts declaration in Prolog:
 .. doctest::
 
     >>> run(fresh(lambda q: conde([unify(q, 'orange'), succeed],
-    ...                           [unify(q, 'apple'), succeed]
+    ...                           [unify(q, 'lemon'), fail],
+    ...                           [unify(q, 'pear'), succeed],
+    ...                           [unify(q, 'apple'), succeed])))
+    ['orange', 'pear', 'apple']
+
+``η-inversion``
+~~~~~~~~~~~~~~~  
+
+Let us define a relation that yields countably many 5 objects; in order to do that,
+the usual solution is to write a recursive definition. However, we proceed step by step,
+adjusting and learning from the Python semantic of argument evaluation at *function-call time*.
+Consider the following as initial definition:
+
+.. doctest::
+
+    >>> def fives(x):
+    ...     return disj(unify(5, x), fives(x))
+    ...
+    >>> run(fresh(lambda x: fives(x)))
+    Traceback (most recent call last):
+    ...
+    RecursionError: maximum recursion depth exceeded while calling a Python object
+
+Exception ``RecursionError`` is raised because in the body of function ``fives`` it
+is required to evaluate ``fives(x)`` in order to return a ``disj`` object, but this is
+the point from were we started, hence no progress for recursion.
+
+Keeping in mind the previous argument, why not wrapping the recursion on ``fives(x)``
+refreshing the var ``x`` at each invocation?
+
+.. doctest::
+
+    >>> def fives(x):
+    ...     return disj(unify(5, x), fresh(lambda x: fives(x)))
+    ...
+    >>> run(fresh(lambda x: fives(x)))
+    Traceback (most recent call last):
+    ...
+    RecursionError: maximum recursion depth exceeded while calling a Python object
+
+Again the same exception as before, this time for a different reason, however:
+since we ask for all associations that satisfy the *countably infinite*
+relation ``fives``, function ``run`` continue to look for such values which are
+infinite, of course. So, select only the first 10 objects:
+
+.. doctest::
+
+    >>> def fives(x):
+    ...     return disj(unify(5, x), fresh(lambda x: fives(x)))
+    ...
+    >>> run(fresh(lambda x: fives(x)), n=10)
+    [5, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀]
