@@ -10,4 +10,5 @@ Under the hood
 .. autofunction:: muk.core.succeed
 .. autofunction:: muk.core.fail
 .. autofunction:: muk.core.run
-
+.. autofunction:: muk.core.mplus
+.. autofunction:: muk.core.bind

@@ -1,5 +1,9 @@
 
 '''
+    ***********
+    Core module
+    ***********
+
     Laws
     ====
 
@@ -21,6 +25,9 @@
         to transform a function whose value is not a Boolean into a function
         whose value is a goal, add an extra argument to hold its value, replace
         `cond` with `conde`, and unnest each question and answer. 
+
+    >>> from muk.core import *
+    >>> from muk.ext import *
 '''
 
 from collections import namedtuple
@@ -405,12 +412,26 @@ def mzero(s : state = None):
     yield from iter([])
 
 def mplus(streams, interleaving):
+    '''
+    A stream combinator.
 
-    if interleaving:
+    .. math::
+
+        s \stackrel{g_{1}}{\\mapsto} \\gamma = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)
+          \stackrel{map(g_{2}, \\gamma)}{\\mapsto} \left( \\begin{array}{ccccc}        
+                                                s_{00} & s_{01} & s_{02} & s_{03} & \\ldots \\\\
+                                                s_{10} & s_{11} & s_{12} & \\ldots &        \\\\
+                                                s_{20} & s_{21} & \\ldots &        &         \\\\
+                                                s_{30} & \\ldots &        &        &         \\\\
+                                                \\ldots &        &        &        &         \\\\
+                                                \\end{array}\\right)
+
+    The following implementation yields a *non-fair* schedule of state streams::
+
         while True:
-            try:
+            try: 
                 α = next(streams)
-            except StopIteration:
+            except StopIteration: 
                 break
             else:
                 try:
@@ -420,41 +441,72 @@ def mplus(streams, interleaving):
                 else:
                     yield s
                     streams = chain(streams, [α])
+
+
+
+    '''
+
+    if interleaving:
+
+        try: α = next(streams)
+        except StopIteration: return
+        else: S = [α]
+
+        while S:
+
+            for j in reversed(range(len(S))):
+                β = S[j]
+                try: s = next(β)
+                except StopIteration: del S[j]
+                else: yield s
+            
+            try: α = next(streams)
+            except StopIteration: pass
+            else: S.append(α)
+                
     else:
         for α in streams: yield from α
 
 def bind(α, g, interleaving):
-    streams = (β for s in α for β in [g(s)])
-    yield from mplus(streams, interleaving)
     '''
-    try:
-        s : state = next(α)
-    except StopIteration:
-        yield from mzero()
-    else:
-        β = g(s)
-        γ = bind(α, g, interleaving)
-        yield from mplus(iter([β, γ]), interleaving)
+    Another stream combinator.
+
+    A recursive implementation, that in some cases raises ``RecursionError``::
+
+        try:
+            s : state = next(α)
+        except StopIteration:
+            yield from mzero()
+        else:
+            β = g(s)
+            γ = bind(α, g, interleaving)
+            yield from mplus(iter([β, γ]), interleaving)
+
     '''
+    yield from mplus(map(g, α), interleaving)
 
 # }}}
 
 # INTERFACE {{{
 
-def run(goal, n=False, 
+def run(goal, 
+        n=False, 
         var_selector=lambda *args: args[0],
         post=lambda r: cons_to_list(r) if isinstance(r, cons) else r):
     '''
-    Returns a list [v ...] of associations (u, v) ... for the var `u` subject of the `run`
+    Looks for a list of at most ``n`` associations ``[(u, v) for v in ...]``
+    such that when var ``u`` takes value ``v`` the relation ``goal`` is
+    satisfied, where ``u`` is the *main var* respect the whole ``run``
+    invocation; otherwise, it enumerates the relation if ``n`` is ``False``.
 
-    __Args__
-    goal:
-        a goal obj to be satisfied
-    var_selector:
-        a callable that consumes a list of formal vars used in the goal, usually built by `fresh`.
-        It is mandatory to return exactly one var, which becomes the subject of this run.
-    post:
-        a callable to be applied to each satisfying value `v` for the subject var, before returning.
+    :param goal: the relation to be satisfied respect to the main var according to :py:obj:`var_selector`.
+
+
+    :Examples:
+
+    >>> run(succeed)
+    [Tautology]
+
     '''
 
     with states_stream(goal) as α:
