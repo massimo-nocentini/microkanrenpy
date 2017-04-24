@@ -79,4 +79,33 @@ def leqo(a, b):
 mcculloch_o = machine(rules=[ mcculloch_second_ruleo, mcculloch_third_ruleo, mcculloch_first_ruleo, ])
 mcculloch__o = machine(rules=[ mcculloch_second_ruleo, mcculloch_fourth_ruleo, mcculloch_third_ruleo, mcculloch_first_ruleo, ])
 
+@adapt_iterables_to_conses(all_arguments)
+def opnumbero(α):
+     return disj(nullo(α), fresh(lambda a, β: conj(appendo(β, [a], α), 
+                                     condi([unify(a, 3), succeed],
+                                           [unify(a, 4), succeed],
+                                           [unify(a, 5), succeed]), 
+                                     fresh(lambda: opnumbero(β)))))
+
+@adapt_iterables_to_conses(all_arguments)
+def _operationo(M, α, β):
+    machine = mcculloch__o
+    return conji(opnumbero(M),
+                 conde([nullo(M), unify(α, β)],
+                       else_clause=[fresh(lambda γ, m, mα, δ: conji(appendo(γ, [m], M), 
+                                                                    unify([m]+α, mα), 
+                                                                    machine(mα, δ), 
+                                                                    fresh(lambda: operationo(γ, δ, β))))]))
+
+def opnumbers(machine):
+    @adapt_iterables_to_conses(all_arguments)
+    def operationo(M, α, β):
+        return fresh(lambda Mα: conji(appendo(M, α, Mα), complement(nullo(M)), machine(Mα, β)))
+        #return fresh(lambda Mα, Z: conji(appendo(M, [2], Z), complement(nullo(M)), appendo(Z, α, Mα), machine(Mα, β)))
+    return operationo
+
+
+
+
+
 
