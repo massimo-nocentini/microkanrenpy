@@ -411,6 +411,49 @@ def unit(s : state):
 def mzero(s : state = None):
     yield from iter([])
 
+def strategy_breadthfirst(streams):
+    '''
+    A strategy for exploring the space of satisfiable states.
+
+    The following implementation yields a *non-fair* schedule of state streams.
+
+    '''
+
+    while True:
+        try: 
+            α = next(streams)
+        except StopIteration: 
+            break
+        else:
+            try:
+                s : state = next(α)
+            except StopIteration:
+                continue # to the next stream because stream α has been exhausted 
+            else:
+                yield s
+                streams = chain(streams, [α])
+    
+def strategy_dovetail(streams):
+
+    try: α = next(streams)
+    except StopIteration: return
+    else: S = [α]
+
+    while S:
+
+        for j in reversed(range(len(S))):
+            β = S[j]
+            try: s = next(β)
+            except StopIteration: del S[j]
+            else: yield s
+        
+        try: α = next(streams)
+        except StopIteration: pass
+        else: S.append(α)
+
+def strategy_depthfirst(streams):
+    for α in streams: yield from α
+
 def mplus(streams, interleaving):
     '''
     A stream combinator.
@@ -426,46 +469,12 @@ def mplus(streams, interleaving):
                                                 \\ldots &        &        &        &         \\\\
                                                 \\end{array}\\right)
 
-    The following implementation yields a *non-fair* schedule of state streams::
-
-        while True:
-            try: 
-                α = next(streams)
-            except StopIteration: 
-                break
-            else:
-                try:
-                    s : state = next(α)
-                except StopIteration:
-                    continue # to the next stream because stream α has been exhausted 
-                else:
-                    yield s
-                    streams = chain(streams, [α])
-
-
-
     '''
 
-    if interleaving:
+    strategy = strategy_dovetail if interleaving else strategy_depthfirst
+    yield from strategy(streams)
 
-        try: α = next(streams)
-        except StopIteration: return
-        else: S = [α]
-
-        while S:
-
-            for j in reversed(range(len(S))):
-                β = S[j]
-                try: s = next(β)
-                except StopIteration: del S[j]
-                else: yield s
-            
-            try: α = next(streams)
-            except StopIteration: pass
-            else: S.append(α)
                 
-    else:
-        for α in streams: yield from α
 
 def bind(α, g, interleaving):
     '''
