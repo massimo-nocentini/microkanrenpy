@@ -245,17 +245,17 @@ def reify(v):
 
 def succeed(s : state):
     ''' A goal that is satisfied by any substitution '''
-    yield from unit(s)
+    yield from iter([s])
 
 def fail(s : state):
-    yield from mzero()
+    yield from iter([])
 
 def _unify(u, v, ext_s):
 
     def U(s : state):
         try: sub = unification(u, v, s.sub, ext_s)
-        except UnificationError: yield from mzero()
-        else: yield from unit(state(sub, s.next_index))
+        except UnificationError: yield from fail(s)
+        else: yield from succeed(state(sub, s.next_index))
 
     return U
 
@@ -270,7 +270,7 @@ def _unify_occur_check(u, v):
         try:
             yield from U(s)
         except OccurCheck:
-            yield from mzero()
+            yield from fail(s)
 
     return U_oc
 
@@ -313,7 +313,7 @@ def _conj(g1, g2, *, interleaving):
 
     def C(s : state):
         α = g1(s)
-        yield from bind(α, g2, interleaving)
+        yield from bind(α, g2, mplus=partial(mplus, interleaving=interleaving))
 
     return C
 
@@ -344,7 +344,8 @@ def if_softcut(question, answer, otherwise, *, doer):
 
     return I
 
-ifa = partial(if_softcut, doer=lambda r, α, answer: bind(chain([r], α), answer, interleaving=False))
+ifa = partial(if_softcut, doer=lambda r, α, answer: 
+        bind(chain([r], α), answer, mplus=partial(mplus, interleaving=False)))
 ifu = partial(if_softcut, doer=lambda r, α, answer: answer(r))
 
 @contextmanager
@@ -359,7 +360,7 @@ def delimited(d):
 
     def D(g): 
         def G(s : state):
-            α = g(s) if one_more() else mzero()
+            α = g(s) if one_more() else fail(s)
             yield from α
                 
         return G
@@ -395,9 +396,9 @@ def complement(g):
         try:
             r : state = next(α)
         except StopIteration:
-            yield from unit(s)
+            yield from succeed(s)
         else:
-            yield from mzero()    
+            yield from fail(s)    
 
     return C
 
@@ -405,11 +406,6 @@ def complement(g):
 
 # STATE STREAMS {{{
 
-def unit(s : state):
-    yield from iter([s])
-
-def mzero(s : state = None):
-    yield from iter([])
 
 def strategy_breadthfirst(streams):
     '''
@@ -434,6 +430,9 @@ def strategy_breadthfirst(streams):
                 streams = chain(streams, [α])
     
 def strategy_dovetail(streams):
+    '''
+    Dovetail strategy.
+    '''
 
     try: α = next(streams)
     except StopIteration: return
@@ -476,7 +475,7 @@ def mplus(streams, interleaving):
 
                 
 
-def bind(α, g, interleaving):
+def bind(α, g, *, mplus):
     '''
     Another stream combinator.
 
@@ -485,14 +484,13 @@ def bind(α, g, interleaving):
         try:
             s : state = next(α)
         except StopIteration:
-            yield from mzero()
+            yield from fail()
         else:
             β = g(s)
-            γ = bind(α, g, interleaving)
-            yield from mplus(iter([β, γ]), interleaving)
-
+            γ = bind(α, g, mplus)
+            yield from mplus(iter([β, γ]))
     '''
-    yield from mplus(map(g, α), interleaving)
+    yield from mplus(map(g, α))
 
 # }}}
 
