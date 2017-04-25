@@ -144,6 +144,10 @@ class UnificationError(ValueError):
     pass
 
 def unification(u, v, sub, ext_s):
+    '''
+    Attempts to augment substitution ``sub`` with associations that makes ``u``
+    unify with ``v``.
+    '''
 
     u, v = walk(u, sub), walk(v, sub)
 
@@ -156,7 +160,7 @@ def unification(u, v, sub, ext_s):
         except UnificationError: pass
 
     if  (type(u) is tuple and type(v) is tuple) or \
-        (isinstance(u, list) and isinstance(v, list)):
+        (type(u) is list and type(v) is list):
         # this branch permits either `u` or `v` to be `cons` cells too:
         # can be source of trouble or should be a kind of generalization
         u, v = iter(u), iter(v)
@@ -170,8 +174,8 @@ def unification(u, v, sub, ext_s):
                 return subr 
     elif u == v:
         return sub
-    else:
-        raise UnificationError()
+
+    raise UnificationError()
 
 # }}}
 
@@ -244,13 +248,18 @@ def reify(v):
 # GOAL CTORS {{{
 
 def succeed(s : state):
-    ''' A goal that is satisfied by any substitution '''
+    ''' A goal that is satisfied by *any* substitution.'''
     yield from iter([s])
 
 def fail(s : state):
+    ''' A goal that is satisfied by *no* substitution.'''
     yield from iter([])
 
 def _unify(u, v, ext_s):
+    '''
+    Attempts to perform :py:func:`unification <muk.core.unification>` to make
+    ``u`` and ``v`` unifiables provided associations for logic variables.
+    '''
 
     def U(s : state):
         try: sub = unification(u, v, s.sub, ext_s)
@@ -276,13 +285,21 @@ def _unify_occur_check(u, v):
 
 def fresh(f, arity=None):
     '''
-    def η_inverse(t):
+    Introduce new logic variables according to the needs of receiver ``f``.
 
-        def I(s : state):
-            g = t()
-            yield from g(s)
+    If ``f`` is a thunk then ``fresh`` is equivalent to the inversion of η-rule 
+    as defined in *higher-order* logic::
 
-        return I
+        def η_inverse(t):
+
+            def I(s : state):
+                g = t()
+                yield from g(s)
+
+            return I
+
+    having particular application in the definition of *recursive* relations.
+
     '''
 
     if arity:
@@ -302,6 +319,22 @@ def fresh(f, arity=None):
     return F
 
 def _disj(g1, g2, *, interleaving):
+    '''
+    A goal that is satisfiable if *either* goal ``g1`` *or* goal ``g2`` is satisfiable.
+
+    Formally, it produces the following states space:
+
+    .. math::
+
+         \left( \\begin{array}{c}s \stackrel{g_{1}}{\\mapsto} \\alpha \\\\ s \stackrel{g_{2}}{\\mapsto} \\beta \\end{array}\\right)
+          = \left( \\begin{array}{ccccc}        
+                s_{00} & s_{01} & s_{02} & s_{03} & \\ldots \\\\
+                s_{10} & s_{11} & s_{12} & s_{13} & \\ldots \\\\
+                \\end{array}\\right)
+
+    enumerated using ``mplus`` according to ``interleaving`` arg.
+    
+    '''
     
     def D(s : state):
         α, β = g1(s), g2(s)
@@ -310,6 +343,23 @@ def _disj(g1, g2, *, interleaving):
     return D
 
 def _conj(g1, g2, *, interleaving):
+    '''
+    A goal that is satisfiable if *both* goal ``g1`` *and* goal ``g2`` is satisfiable.
+
+    Formally, it produces the following states space:
+
+    .. math::
+
+        s \stackrel{g_{1}}{\\mapsto} \\alpha = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)
+          \stackrel{bind(\\alpha, g_{2})}{\\mapsto} \left( \\begin{array}{ccccc}        
+                                                s_{00} & s_{01} & s_{02} & s_{03} & \\ldots \\\\
+                                                s_{10} & s_{11} & s_{12} & \\ldots &        \\\\
+                                                s_{20} & s_{21} & \\ldots &        &         \\\\
+                                                s_{30} & \\ldots &        &        &         \\\\
+                                                \\ldots &        &        &        &         \\\\
+                                                \\end{array}\\right)
+    
+    '''
 
     def C(s : state):
         α = g1(s)
@@ -408,36 +458,97 @@ def complement(g):
 
 def mplus(streams, interleaving):
     '''
-    A stream combinator.
+    It enumerates the states space ``streams``, using different strategies
+    according to ``interleaving``.
+
+    In order to understand states enumeration can be helpful to use a matrix,
+    where we associate a row to each stream of states α belonging to
+    ``streams``.  Since ``streams`` is an ``iter`` obj over a *countably*,
+    possibly infinite, set of *states streams*, the matrix could have infinite
+    rows.  In parallel, since each states stream α lying on a row is a ``iter``
+    obj over a *countably*, possibly infinite, set of *satisfying states*, the
+    matrix could have infinite columns; therefore, the matrix we are building
+    could be infinite in both dimensions. So, let ``streams`` be represented as follows:
+
 
     .. math::
 
-        s \stackrel{g_{1}}{\\mapsto} \\gamma = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)
-          \stackrel{map(g_{2}, \\gamma)}{\\mapsto} \left( \\begin{array}{ccccc}        
-                                                s_{00} & s_{01} & s_{02} & s_{03} & \\ldots \\\\
-                                                s_{10} & s_{11} & s_{12} & \\ldots &        \\\\
-                                                s_{20} & s_{21} & \\ldots &        &         \\\\
-                                                s_{30} & \\ldots &        &        &         \\\\
-                                                \\ldots &        &        &        &         \\\\
-                                                \\end{array}\\right)
+        \left( \\begin{array}{ccccc}        
+        s_{00} & s_{01} & s_{02} & s_{03} & \\ldots \\\\
+        s_{10} & s_{11} & s_{12} & \\ldots &        \\\\
+        s_{20} & s_{21} & \\ldots &        &         \\\\
+        s_{30} & \\ldots &        &        &         \\\\
+        \\ldots &        &        &        &         \\\\
+        \\end{array}\\right)
 
-    The following implementation yields a *non-fair* schedule of state streams::
+    In order to enumerate this infinite matrix we have the following strategies:
 
-        while True:
-            try: 
-                α = next(streams)
-            except StopIteration: 
-                break
-            else:
-                try:
-                    s : state = next(α)
-                except StopIteration:
-                    continue # to the next stream because stream α has been exhausted 
+    *depth-first*
+        Enumerates a stream α committed to it until it is saturated or continue to yield its
+        ``state`` objects forever; in other words, it enumerates row by row. For the sake of clarity,
+        assume the first :math:`k` streams are finite and the :math:`k`-th is the first to be infinite, hence
+        we are in the following context:
+
+        .. math::
+
+            \left( \\begin{array}{ccccc}        
+            s_{00} & s_{01} & \\ldots & s_{0i_{0}} \\\\
+            s_{10} & s_{11} & \\ldots & s_{1i_{1}} \\\\
+            \ldots_{\\triangle} \\\\
+            s_{k-1, 0} & s_{k-1,1} & \\ldots &  s_{k-1,i_{k-1}} \\\\
+            s_{k0} & s_{k1} & \\ldots &  \ldots &  \ldots \\\\
+            s_{k+1, 0} & \\ldots &        &   \\\\
+            \\ldots &        &        &   \\\\
+            \\end{array}\\right)
+
+        so enumeration proceeds as follows: :math:`s_{00}, s_{01},\\ldots,
+        s_{0i_{0}}, s_{10}, s_{11}, \\ldots, s_{1i_{1}}, \\ldots_{\\triangle}, s_{k-1,0},
+        s_{k-1, 1},\\ldots, s_{k-1,i_{k-1}}, s_{k0}, s_{k1},\\ldots` yielding from stream :math:`\\alpha_{k}` forever,
+        *never* reaching :math:`s_{k+1, 0}`.
+
+    *breadth-first*
+        Enumerates interleaving *state* objects belonging to adjacent streams,
+        lying on the same column; in other words, it enumerates column by
+        column. If ``streams`` is an iterator over an infinite set of streams,
+        the it enumerates only the very first ``state`` objects, namely
+        :math:`s_{00}, s_{10}, s_{20}, s_{30},\ldots`. 
+        
+        The following is a straighforward implementation::
+
+            from itertools import chain
+
+            while True:
+                try: 
+                    α = next(streams)
+                except StopIteration: 
+                    break
                 else:
-                    yield s
-                    streams = chain(streams, [α])
+                    try:
+                        s : state = next(α)
+                    except StopIteration:
+                        continue
+                    else:
+                        yield s
+                        streams = chain(streams, [α])
+
+    *dovetail*
+        Enumerates interleaving `state` objects lying on the same *diagonal*,
+        resulting in a *fair scheduler* in the sense that *every* satisfying
+        ``state`` object will be reached, eventually. For the sake of clarity,
+        enumeration proceeds as follows: 
+        
+        .. math::
+
+            s_{00}, s_{10}, s_{01}, s_{20}, s_{11}, s_{02}, s_{30}, s_{21},
+            s_{12}, s_{03}, \\ldots
+
+        providing a *complete* enumeration strategy.
 
 
+    :param iter stream: an iterator over a *countable* set of ``state``-streams
+    :param bool interleaving: enumeration strategy selector: *dovetail* if ``interleaving`` else *depth-first*
+    :return: an ``iter`` object over satisfying ``state`` objects
+    
     '''
     
     if interleaving:
@@ -458,6 +569,7 @@ def mplus(streams, interleaving):
             except StopIteration: pass
             else: S.append(α)
     else:
+
         for α in streams: yield from α
 
 
@@ -465,9 +577,27 @@ def mplus(streams, interleaving):
 
 def bind(α, g, *, mplus):
     '''
-    Another stream combinator.
+    A stream combinator, it applies goal ``g`` to each ``state`` in stream ``α``.
 
-    A recursive implementation, that in some cases raises ``RecursionError``::
+    Such mapping can be *linear* in the sense of vanilla ``map`` application:
+
+    .. math::
+
+        \\alpha = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)
+          \stackrel{map(g, \\alpha)}{\\mapsto} \left( \\begin{array}{ccccc}        
+                                                s_{00} & s_{01} & s_{02} & s_{03} & \\ldots \\\\
+                                                s_{10} & s_{11} & s_{12} & \\ldots &        \\\\
+                                                s_{20} & s_{21} & \\ldots &        &         \\\\
+                                                s_{30} & \\ldots &        &        &         \\\\
+                                                \\ldots &        &        &        &         \\\\
+                                                \\end{array}\\right)
+
+    After the mapping obj is built, it is consumed as argument by ``mplus`` to
+    enumerate the states space.
+
+    Moreover, a recursive implementation can be written as found in *The
+    Reasoned Schemer*, but in some cases it raises ``RecursionError`` due to
+    Python limitation on stack usage::
 
         try:
             s : state = next(α)
@@ -477,6 +607,38 @@ def bind(α, g, *, mplus):
             β = g(s)
             γ = bind(α, g, mplus)
             yield from mplus(iter([β, γ]))
+
+    which produces the following states space:
+
+    .. math::
+
+        \\alpha = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)
+          \stackrel{bind(\\alpha, g)}{\\mapsto} \left( \\begin{array}{l}        
+                                                s_{00} \, s_{01} \, s_{02} \, s_{03} \, \\ldots \\\\
+                                                \left( \\begin{array}{l}        
+                                                s_{10} \, s_{11} \, s_{12} \, \\ldots \,        \\\\
+                                                \left( \\begin{array}{l}        
+                                                s_{20} \, s_{21} \, \\ldots \,        \,         \\\\
+                                                \left( \\begin{array}{l}        
+                                                s_{30} \, \\ldots \,        \,        \,         \\\\
+                                                \\ldots \,        \,        \,        \,         \\\\
+                                                \\end{array}\\right)
+                                            \\end{array}\\right)
+                                        \\end{array}\\right)
+                                    \\end{array}\\right)
+
+    assuming we want to enumerate using interleaving:
+
+    .. math::
+
+        s_{00}, s_{10}, s_{01}, s_{20}, s_{02}, s_{11}, s_{03}, s_{30}, s_{04}, s_{12}, s_{05}, s_{21}\ldots
+
+    which, although *complete*, is *unbalanced* in favor of first streams.
+
+    :param iter α: an iterator over a *countable* set of ``state`` objects
+    :param goal g: a relation to be satisfied
+    :param callable mplus: states space enumeration strategy
+    :return: an ``iter`` object over satisfying ``state`` objects
     '''
     yield from mplus(map(g, α))
 
@@ -497,10 +659,6 @@ def run(goal,
     :param goal: the relation to be satisfied respect to the main var according to :py:obj:`var_selector`.
 
 
-    :Examples:
-
-    >>> run(succeed)
-    [Tautology]
 
     '''
 
