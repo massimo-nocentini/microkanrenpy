@@ -113,8 +113,12 @@ class var:
     def _unification_var(self, other_var, sub, ext_s, U):
         return sub if self == other_var else ext_s(other_var, self, sub)
 
-    def _unification_cons(self, other_cons, sub, ext_s, U):
-        return ext_s(self, other_cons, sub)
+    def __getattr__(self, name):
+
+        if not name.startswith('_unification_'): 
+            raise AttributeError
+
+        return lambda other, sub, ext_s, U: ext_s(self, other, sub)
 
     def occur_check(self, u, O, E):
         if self == u: raise E
