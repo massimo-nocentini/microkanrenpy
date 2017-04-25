@@ -58,9 +58,8 @@ def mcculloch_fourth_ruleo(α, δδ, *, machine):
 
 mccullocho = machine(rules=[ mcculloch_second_ruleo, mcculloch_first_ruleo, ])
 
-@adapt_iterables_to_conses(all_arguments)
-def mcculloch_lawo(α, γ, αγ):    
-    return conj(appendo(α, γ, αγ), mccullocho(γ, αγ))
+def mcculloch_lawo(γ, αγ, *, machine=mccullocho):
+    return fresh(lambda α: conji(appendo([3, 2]+α, [3], γ), appendo(α, γ, αγ), complement(nullo(α)), machine(γ, αγ)))
 
 @adapt_iterables_to_conses(lambda α, l: {α})
 def lengtho(α, l):
@@ -105,7 +104,11 @@ def opnumbers(machine):
     return operationo
 
 
+def craig_lawo(Mγ, M_of_Mγ, *, machine=mcculloch__o):
+    return fresh(lambda γ: conji(mcculloch_lawo(γ, Mγ), machine(Mγ, M_of_Mγ)))
 
+def craig_second_lawo(Mγ, M_of_Mγ, *, machine=mcculloch__o):
+    return fresh(lambda γ, M, A: conji(mcculloch_lawo(γ, Mγ), appendo(A, M, Mγ), machine(Mγ, M_of_Mγ)))
 
 
 

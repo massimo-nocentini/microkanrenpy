@@ -36,14 +36,11 @@ class mcculloch_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda α: mccullocho(α, [7]+α)), n=1), [[3,2,7,3]]) # 5
         self.assertEqual(run(fresh(lambda α, β: conj(mccullocho([3]+α, β), associateo(α, β),)), n=1), [[3, 2, 3]]) # 6
         self.assertEqual(run(fresh(lambda α, β: conj(associateo([3]+α, β), mccullocho(α, β),)), n=1), [[3, 3, 2, 3, 3, 3]]) # 7
-        self.assertEqual(run(fresh(lambda γ: mcculloch_lawo([7], γ, [7]+γ)), n=1), [[3, 2, 7, 3]]) # 8, generalizes 5
-        self.assertEqual(run(fresh(lambda out, α, γ, β: conji(appendo([3, 2]+α, [3], γ), 
-                                                              mcculloch_lawo(α, γ, β),
-                                                              unify([α, γ], out))), n=4), 
-                         [[[], [3, 2, 3]],
-                          [[rvar(0)], [3, 2, rvar(0), 3]],
-                          [[rvar(0), rvar(1)], [3, 2, rvar(0), rvar(1), 3]],
-                          [[rvar(0), rvar(1), rvar(2)], [3, 2, rvar(0), rvar(1), rvar(2), 3]]]) # proof of 8
+        self.assertEqual(run(fresh(lambda γ: mcculloch_lawo(γ, [7]+γ)), n=1), [[3, 2, 7, 3]]) # 8, generalizes 5
+        self.assertEqual(run(fresh(lambda out, γ, αγ: conj(mcculloch_lawo(γ, αγ),
+                                                              unify([γ, αγ], out))), n=2), 
+                         [[[3, 2, rvar(0), 3], [rvar(0), 3, 2, rvar(0), 3]],
+                          [[3, 2, rvar(0), rvar(1), 3], [rvar(0), rvar(1), 3, 2, rvar(0), rvar(1), 3]]]) # proof of 8
         with let([5,6]) as A:
             self.assertEqual(run(fresh(lambda γ, Aγ, Aγ2Aγ: conji(appendo(A, γ, Aγ), 
                                                                   associateo(Aγ, Aγ2Aγ), 
@@ -209,8 +206,29 @@ class mcculloch_test(unittest.TestCase):
         #self.assertEqual(run(O([5], [2, 5], [5, 5])), [Tautology()])
         self.assertEqual(run(fresh(lambda out, M, α, Mα: conji(appendo(M, α, Mα), 
                                                                   O(M, α, Mα), 
-                                                                  unify([M, α, Mα], out))), n=5), [])
-
+                                                                  unify([M, α, Mα], out))), n=5),
+                         [[[3], [2, 3], [3, 2, 3]],
+                          [[3, 2], [3], [3, 2, 3]],
+                          [[5], [2, 5, 2], [5, 2, 5, 2]],
+                          [[3, 2, 3], [], [3, 2, 3]],
+                          [[5, 2], [5, 2], [5, 2, 5, 2]]])
+        self.assertEqual(run(fresh(lambda out, χ, M_of_χ, γ: 
+                                        conj(unify([3,5,4]+γ, χ), 
+                                             craig_lawo(χ, M_of_χ), 
+                                             unify([χ, M_of_χ], out))), n=1), 
+                         [[[3, 5, 4, 3, 2, 3, 5, 4, 3], [3, 4, 5, 3, 2, 3, 4, 5, 3, 3, 4, 5, 3, 2, 3, 4, 5, 3, 2, 3, 4, 5, 3, 2, 3, 4, 5, 3, 3, 4, 5, 3, 2, 3, 4, 5, 3]]]) # 20
+        self.assertEqual(run(fresh(lambda χ, _7χ7χ: conj(repeato([7]+χ, _7χ7χ), mcculloch__o(χ,_7χ7χ))), n=2), 
+                         [[5, 3, 2, 7, 5, 3], [5, 5, 2, 7, 5, 5, 2]]) # 21 
+        self.assertEqual(run(fresh(lambda χ, _9χ_reversed: conj(reverseo([9]+χ, _9χ_reversed), mcculloch__o(χ,_9χ_reversed))), n=2), 
+                         [[3, 4, 2, 9, 3, 4], [4, 3, 2, 9, 4, 3]]) # 22 
+        self.assertEqual(run(fresh(lambda χ, _89χ289χ: conj(associateo([8,9]+χ, _89χ289χ), mcculloch__o(χ,_89χ289χ))), n=2), 
+                         [[3, 3, 2, 8, 9, 3, 3], [3, 5, 2, 8, 9, 3, 5, 2]]) # 23 
+        # we do not solve problem 24, 25, 26 since I'm not able to imagine a decent solution for them.
+        self.assertEqual(run(fresh(lambda out, χ, M_of_χ, γ: 
+                                        conj(unify([3,3,3]+γ, χ), 
+                                             craig_lawo(χ, M_of_χ, machine=mccullocho), 
+                                             unify([χ, M_of_χ], out))), n=1), 
+                         [[[3, 3, 3, 2, 3, 3, 3], [3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3]]]) # discussion after question 26
     
 
 
