@@ -104,9 +104,9 @@ class var:
 
     def unification(self, other, sub, ext_s, U, E): 
         try:
-            UV = other._unification_var
+            UV = other._unification_var # attribute lookup to do double dispatch
         except AttributeError:
-            return ext_s(self, other, sub)   
+            return ext_s(self, other, sub)
         else:
             return UV(self, sub, ext_s, U)
 
@@ -262,7 +262,7 @@ def fail(s : state):
 def _unify(u, v, ext_s):
     '''
     Attempts to perform :py:func:`unification <muk.core.unification>` to make
-    ``u`` and ``v`` unifiables provided associations for logic variables.
+    ``u`` and ``v`` unifiable given a set of associations for logic variables.
     '''
 
     def U(s : state):
@@ -618,8 +618,8 @@ def bind(α, g, *, mplus):
 
         \\alpha = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)
           \stackrel{bind(\\alpha, g)}{\\mapsto} \left( \\begin{array}{l}        
-                                                s_{00} \, s_{01} \, s_{02} \, s_{03} \, \\ldots \\\\
-                                                \left( \\begin{array}{l}        
+                                                s_{00} \, s_{01} \, s_{02} \, s_{03} \, s_{04} \,s_{05} \,\\ldots \\\\
+                                                \left( \\begin{array}{l}
                                                 s_{10} \, s_{11} \, s_{12} \, \\ldots \,        \\\\
                                                 \left( \\begin{array}{l}        
                                                 s_{20} \, s_{21} \, \\ldots \,        \,         \\\\

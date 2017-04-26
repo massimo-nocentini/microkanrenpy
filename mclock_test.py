@@ -202,16 +202,18 @@ class mcculloch_test(unittest.TestCase):
                           [3, 4, 3],
                           [4, 4, 3],
                           [5, 4, 3],])
-        O = opnumbers(machine=mcculloch__o)
-        #self.assertEqual(run(O([5], [2, 5], [5, 5])), [Tautology()])
-        self.assertEqual(run(fresh(lambda out, M, α, Mα: conji(appendo(M, α, Mα), 
-                                                                  O(M, α, Mα), 
-                                                                  unify([M, α, Mα], out))), n=5),
-                         [[[3], [2, 3], [3, 2, 3]],
-                          [[3, 2], [3], [3, 2, 3]],
-                          [[5], [2, 5, 2], [5, 2, 5, 2]],
-                          [[3, 2, 3], [], [3, 2, 3]],
-                          [[5, 2], [5, 2], [5, 2, 5, 2]]])
+        self.assertEqual(run(fresh(lambda α, β: operationo([3,3], β, α)), n=3), 
+                         [[2,2,2], 
+                          [rvar(0), 2, rvar(0), 2, rvar(0), 2, rvar(0)],
+                          [rvar(0), rvar(1), 2, rvar(0), rvar(1), 2, rvar(0), rvar(1), 2, rvar(0), rvar(1)]])
+        self.assertEqual(run(fresh(lambda α, β: operationo([5, 4, 3], [8,7], α)), n=1), [[7, 8, 2, 7, 8, 7, 8, 2, 7, 8]])
+        self.assertEqual(run(fresh(lambda out, M, χ, M_of_χ, Mχ: 
+                                    conji(
+                                          appendo(M, χ, Mχ), 
+                                          complement(nullo(M)),
+                                          operationo(M, χ, M_of_χ), 
+                                          unify(Mχ, M_of_χ),
+                                          unify([M, χ], out))), n=1), [[[5], [5]]]) 
         self.assertEqual(run(fresh(lambda out, χ, M_of_χ, γ: 
                                         conj(unify([3,5,4]+γ, χ), 
                                              craig_lawo(χ, M_of_χ), 
@@ -231,4 +233,51 @@ class mcculloch_test(unittest.TestCase):
                          [[[3, 3, 3, 2, 3, 3, 3], [3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3, 2, 3, 3, 3]]]) # discussion after question 26
     
 
+    def test_fergusson_law_chapter(self):
+        self.assertEqual(run(fresh(lambda out, χ, ψ: conj(mccullocho(χ, ψ), mccullocho(ψ, χ), unify([χ, ψ], out))), n=1), 
+                         [[[2, 3, 2, 2, 3], [3, 2, 2, 3]]]) # 2
+        self.assertEqual(run(fresh(lambda out, χ, ψ, α, αχ: conji(appendo(α, χ, αχ), 
+                                                                  mccullocho(ψ, αχ), 
+                                                                  mccullocho(χ, ψ),  
+                                                                  unify([χ, ψ], out))), n=2), 
+                         [[[3, 2, 2, 3], [2, 3, 2, 2, 3]], [[3, 2, 2, rvar(0), 3], [2, rvar(0), 3, 2, 2, rvar(0), 3]]]) # 3
+        self.assertEqual(run(fresh(lambda out, χ, ψ, α, αχ: conji(appendo(α, χ, αχ), 
+                                                                  mccullocho(χ, ψ),  
+                                                                  mccullocho(ψ, αχ), 
+                                                                  unify([χ, ψ], out))), n=2), 
+                         [[[2, 3, 2, 2, 3], [3, 2, 2, 3]], [[2, 3, 2, rvar(0), 2, 3], [3, 2, rvar(0), 2, 3]]]) # 4
+        self.assertEqual(run(fresh(lambda out, χ, ψ, α, αχ, β, βψ: conji(appendo(α, χ, αχ), 
+                                                                         appendo(β, ψ, βψ), 
+                                                                         mccullocho(ψ, αχ), 
+                                                                         mccullocho(χ, βψ),  
+                                                                         unify([χ, ψ], out))), n=4), 
+                         [[[3, 2, 2, 3], [2, 3, 2, 2, 3]],
+                          [[3, 2, 2, rvar(0), 3], [2, rvar(0), 3, 2, 2, rvar(0), 3]],
+                          [[3, 2, rvar(0), 2, 3], [2, 3, 2, rvar(0), 2, 3]],
+                          [[3, 2, 2, rvar(0), rvar(1), 3], [2, rvar(0), rvar(1), 3, 2, 2, rvar(0), rvar(1), 3]]]) # 5.1
+        self.assertEqual(run(fresh(lambda out, χ, ψ, α, αχ, β, βψ: conji(appendo(α, χ, αχ), 
+                                                                         appendo(β, ψ, βψ), 
+                                                                         mccullocho(χ, βψ),  
+                                                                         mccullocho(ψ, αχ), 
+                                                                         unify([χ, ψ], out))), n=4), 
+                         [[[2, 3, 2, 2, 3], [3, 2, 2, 3]],
+                          [[2, 3, 2, rvar(0), 2, 3], [3, 2, rvar(0), 2, 3]],
+                          [[2, rvar(0), 3, 2, 2, rvar(0), 3], [3, 2, 2, rvar(0), 3]],
+                          [[2, 3, 2, rvar(0), rvar(1), 2, 3], [3, 2, rvar(0), rvar(1), 2, 3]]]) # 5.2
 
+        return
+        self.assertEqual(run(fresh(lambda out, χ, ψ, χ2χ, ψ_reversed: 
+                                    conj(
+                                          reverseo(ψ, ψ_reversed), 
+                                          mcculloch__o(ψ, χ2χ),
+                                          associateo(χ, χ2χ), 
+                                          mcculloch__o(χ, ψ_reversed), 
+                                          #operationo([4], ψ, ψ_reversed), 
+                                          #operationo([3], χ, χ2χ), 
+                                          unify([χ, ψ], out))), n=1), []) # 6
+        
+    def test_the_key_chapter(self):
+        self.assertEqual(run(fresh(lambda α: mcculloch___o(α, α)), n=3), 
+                         [[5, 4, 6, 4, 2, 5, 4, 6, 4, 2],
+                          [4, 5, 6, 4, 2, 4, 5, 6, 4, 2],
+                          [5, 4, 4, 4, 6, 4, 2, 5, 4, 4, 4, 6, 4, 2]]) # the keys!!!

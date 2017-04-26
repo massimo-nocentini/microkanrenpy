@@ -56,10 +56,22 @@ def mcculloch_third_ruleo(α, δ_reversed, *, machine):
 def mcculloch_fourth_ruleo(α, δδ, *, machine):
     return fresh(lambda η, δ: conj(unify([5]+η, α), repeato(δ, δδ), machine(η, δ)))
 
+def mcculloch_fifth_ruleo(α, β, *, machine):
+    return appendo([2]+β, [2], α)
+    #return conji(appendo([2]+β, [2], α), complement(nullo(β)))
+    #return fresh(lambda η: conji(appendo([2]+η, [2], α), unify(η, β)))
+
+def mcculloch_sixth_ruleo(α, _2δ, *, machine):
+    return fresh(lambda η, δ: conji(unify([6]+η, α), unify([2]+δ, _2δ), machine(η, δ)))
+
 mccullocho = machine(rules=[ mcculloch_second_ruleo, mcculloch_first_ruleo, ])
 
 def mcculloch_lawo(γ, αγ, *, machine=mccullocho):
-    return fresh(lambda α: conji(appendo([3, 2]+α, [3], γ), appendo(α, γ, αγ), complement(nullo(α)), machine(γ, αγ)))
+    return fresh(lambda α: conji(appendo([3, 2]+α, [3], γ), 
+                                 appendo(α, γ, αγ), 
+                                 complement(nullo(α)), 
+                                 complement(nullo(γ)), 
+                                 machine(γ, αγ)))
 
 @adapt_iterables_to_conses(lambda α, l: {α})
 def lengtho(α, l):
@@ -86,23 +98,9 @@ def opnumbero(α):
                                            [unify(a, 5), succeed]), 
                                      fresh(lambda: opnumbero(β)))))
 
-@adapt_iterables_to_conses(all_arguments)
-def _operationo(M, α, β):
-    machine = mcculloch__o
-    return conji(opnumbero(M),
-                 conde([nullo(M), unify(α, β)],
-                       else_clause=[fresh(lambda γ, m, mα, δ: conji(appendo(γ, [m], M), 
-                                                                    unify([m]+α, mα), 
-                                                                    machine(mα, δ), 
-                                                                    fresh(lambda: operationo(γ, δ, β))))]))
 
-def opnumbers(machine):
-    @adapt_iterables_to_conses(all_arguments)
-    def operationo(M, α, β):
-        return fresh(lambda Mα: conji(appendo(M, α, Mα), complement(nullo(M)), machine(Mα, β)))
-        #return fresh(lambda Mα, Z: conji(appendo(M, [2], Z), complement(nullo(M)), appendo(Z, α, Mα), machine(Mα, β)))
-    return operationo
-
+def operationo(M, χ, M_of_χ, *, machine=mcculloch__o):
+    return fresh(lambda M2χ: conji(appendo(M, [2]+χ, M2χ), machine(M2χ, M_of_χ)))
 
 def craig_lawo(Mγ, M_of_Mγ, *, machine=mcculloch__o):
     return fresh(lambda γ: conji(mcculloch_lawo(γ, Mγ), machine(Mγ, M_of_Mγ)))
@@ -110,5 +108,6 @@ def craig_lawo(Mγ, M_of_Mγ, *, machine=mcculloch__o):
 def craig_second_lawo(Mγ, M_of_Mγ, *, machine=mcculloch__o):
     return fresh(lambda γ, M, A: conji(mcculloch_lawo(γ, Mγ), appendo(A, M, Mγ), machine(Mγ, M_of_Mγ)))
 
+mcculloch___o = machine(rules=[ mcculloch_fourth_ruleo, mcculloch_third_ruleo, mcculloch_sixth_ruleo,mcculloch_fifth_ruleo ])
 
 
