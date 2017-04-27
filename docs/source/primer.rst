@@ -1,4 +1,6 @@
 
+.. _primer:
+
 A Primer
 ========
 

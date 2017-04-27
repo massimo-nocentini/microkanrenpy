@@ -1,9 +1,7 @@
 
-Under the hood
-==============
 
 ``muk.core`` module
--------------------
+===================
 .. automodule:: muk.core
 
 Primitive goals and ctors
