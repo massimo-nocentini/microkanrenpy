@@ -22,3 +22,7 @@ html: Makefile
 # Put it first so that "make" without argument is like "make help".
 help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+deploy:
+	rm -rf ~/Developer/working-copies/personal-stuff/massimo-nocentini.github.io/PhD/microkanrenpy
+	cp -r build/html ~/Developer/working-copies/personal-stuff/massimo-nocentini.github.io/PhD/microkanrenpy
