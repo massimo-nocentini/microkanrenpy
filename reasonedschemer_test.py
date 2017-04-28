@@ -1310,7 +1310,7 @@ class reasonedschemer_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda r: logo([0, 1, 1, 1], [0, 1], [1, 1], r))), [[0, 1, 1]]) # 8.89
         self.assertEqual(run(fresh(lambda t: powo([1, 1], [1, 0, 1], t)), n=1), [[1, 1, 0, 0, 1, 1, 1, 1]]) # 8.92
 
-    @unittest.skip("The following difficult test about `logo` takes longer and produces a wrong answer.")
+    #@unittest.skip("The following difficult test about `logo` takes longer and produces a wrong answer.")
     def test_difficult_logo(self):
         right_answer_8_90 = [[[1], (rvar(0), rvar(1), rvar(2)), [1, 1, 0, 0, 0, 0, 1]],
                              [[], (rvar(0), rvar(1), rvar(2)), [0, 0, 1, 0, 0, 0, 1]],
