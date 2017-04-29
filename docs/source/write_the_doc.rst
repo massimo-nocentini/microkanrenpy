@@ -321,7 +321,7 @@ documentation itself.
 README.rd first
 ---------------
 As raccomanded by `this article <http://tom.preston-werner.com/2010/08/23/readme-driven-development.html>`_,
-have a look to our `README.md <https://github.com/massimo-nocentini/on-python/blob/microkanren/README.md>`_ first.
+have a look to our `README.md <https://github.com/massimo-nocentini/on-python/blob/master/README.md>`_ first.
 
 How to get support
 ------------------
@@ -390,5 +390,5 @@ SOFTWARE.
      Ph.D. thesis, Indiana University, Bloomington, IN, 2009.
 
 .. _write_the_doc: http://www.writethedocs.org/guide/writing/beginners-guide-to-docs/
-.. _reasoned_schemer_unitests: https://github.com/massimo-nocentini/on-python/blob/microkanren/microkanren/reasonedschemer_test.py
-.. _mclock_unitests: https://github.com/massimo-nocentini/on-python/blob/microkanren/microkanren/mclock_test.py
+.. _reasoned_schemer_unitests: https://github.com/massimo-nocentini/on-python/blob/master/microkanren/reasonedschemer_test.py
+.. _mclock_unitests: https://github.com/massimo-nocentini/on-python/blob/master/microkanren/mclock_test.py
