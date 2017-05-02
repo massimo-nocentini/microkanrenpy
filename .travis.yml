@@ -4,8 +4,9 @@ python:
     - "3.5"
     - "3.6"
 # command to install dependencies
-install: true
+install: 
+    - pip install sphinx
 # command to run tests
 script: 
-    - make suite -C src PYTHON=python # pass plain `python` to be instantiate according to virtual env
+    #- make suite -C src PYTHON=python # pass plain `python` to be instantiate according to virtual env
     - make -C docs # to run doctests and code snippet in the documentation
