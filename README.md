@@ -7,4 +7,6 @@
 A *pythonic* implementation of the relational interpreter **ηkanren** in the
 family of *miniKanren* languages. 
 
-A comprehesive documentation can be found at http://microkanrenpy.readthedocs.io/
+A comprehesive documentation is hosted at https://readthedocs.org/projects/microkanrenpy/ ([read latest][read:doc]).
+
+[read:doc]: http://microkanrenpy.readthedocs.io/en/latest/
