@@ -1,0 +1,12 @@
+
+language: python
+python:
+    - "3.5"
+    - "3.6"
+# PyPy versions
+    - "pypy3"
+    - "pypy-5.3.1"
+# command to install dependencies
+install: true
+# command to run tests
+script: $(MAKE) tests -C src PYTHON=python 
