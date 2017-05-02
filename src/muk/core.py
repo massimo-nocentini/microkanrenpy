@@ -385,7 +385,7 @@ def if_softcut(question, answer, otherwise, *, doer):
     def I(s : state):
         α = question(s) 
         try:
-            r : state = next(α)
+            r = next(α) # r : state
         except StopIteration: 
             β = otherwise(s) 
             yield from β
@@ -445,7 +445,7 @@ def complement(g):
     def C(s : state):
         α = g(s)
         try:
-            r : state = next(α)
+            r = next(α) # r : state 
         except StopIteration:
             yield from succeed(s)
         else:
@@ -525,7 +525,7 @@ def mplus(streams, interleaving):
                     break
                 else:
                     try:
-                        s : state = next(α)
+                        s = next(α) # s : state 
                     except StopIteration:
                         continue
                     else:
@@ -601,7 +601,7 @@ def bind(α, g, *, mplus):
     Python limitation on stack usage::
 
         try:
-            s : state = next(α)
+            s = next(α) # s : state 
         except StopIteration:
             yield from fail()
         else:
