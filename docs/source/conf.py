@@ -22,6 +22,7 @@ import sys
 sys.path.insert(0, os.path.abspath('../../src/'))
 print(sys.path)
 import muk
+import mukk
 
 
 # -- General configuration ------------------------------------------------
