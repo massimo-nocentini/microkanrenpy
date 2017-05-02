@@ -9,4 +9,4 @@ python:
 # command to install dependencies
 install: true
 # command to run tests
-script: $(MAKE) suite -C src PYTHON=python 
+script: make suite -C src PYTHON=python 
