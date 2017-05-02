@@ -18,10 +18,11 @@ To be honest, this documentations has many targets:
     * to keep one foot in Lisp and the other in Python, however keep coding
 
 I would like to structure my exposition following advices from `an interesting
-group of people <write_the_doc_>`_ much more experienced that me on writing
-this kind of stuff; consequently, in what follows you will find the same
-sections as you find in the referenced page, hoping to provide answers and to
-taylor paragraphs to this particular project. Quoting their `Sidebar on open source
+group of people <write_the_doc_>`_, and `one of them in particular
+<holscher_>`_, much more experienced that me on writing this kind of stuff;
+consequently, in what follows you will find the same sections as you find in
+the referenced page, hoping to provide answers and to taylor paragraphs to this
+particular project. Quoting their `Sidebar on open source
 <http://www.writethedocs.org/guide/writing/beginners-guide-to-docs/#you-want-people-to-use-your-code>`_:
 
     There is a magical feeling that happens when you release your code. It comes in
@@ -43,8 +44,8 @@ taylor paragraphs to this particular project. Quoting their `Sidebar on open sou
 
     Congrats on being afraid! It means you're doing something important.
 
-from my little and humble position, I'm proud to have been afraid as I was doing
-all this stuff...
+from my little and humble point of view, I'm proud to have been afraid as I was
+doing all this stuff...
 
 Why write docs
 ==============
@@ -122,9 +123,7 @@ You want people to use your code
     .. code-block:: shell
         
         git clone https://github.com/massimo-nocentini/microkanrenpy.git # get stuff
-        cd on-python # go into there
-        git checkout microkanren # switch to the right branch
-        cd microkanren # go into the correct dir
+        cd microkanrenpy/src # go into there
         python3 # start the Python interpreter
     
     Now in the python interpreter it is possible to load our core module:
@@ -311,12 +310,32 @@ of the repository:
 
     https://github.com/massimo-nocentini/microkanrenpy
 
+.. note::
+
+    The actual repository has its roots from:
+        
+         https://github.com/massimo-nocentini/on-python/tree/master/microkanren
+
+    the transition to its new independent location has been possible by the following guide:
+    https://help.github.com/articles/splitting-a-subfolder-out-into-a-new-repository/
+
 Together with simplicity and elegance, we believe that *automated testing* is a
-vital principle to keep the code base healthy. Therefore, we try to capture
-almost every idea with unit tests as much as we can and documentation is no
-exception, namely every code snippet in the documentation and every doctest in
-docstrings should pass against their asserts in order to produce this
-documentation itself.
+vital principle to keep the code base healthy. Therefore, we link the git repo with:
+
+*Travis CI*
+    which performs continuous integration by running **all** test suites when we push 
+    something on the git repository; moreover, we use its capabilities to run doctests
+    and code snippets described in this documentation. The corresponding page is the following:
+
+        https://travis-ci.org/massimo-nocentini/microkanrenpy
+
+*Read The Docs*
+    which allows us to have an up-to-date documentation, namely the one you are reading, 
+    with the code base; although this service doesn't allow us to run doctests, this flaw 
+    is covered by Travis just described above. The corresponding page is the following:
+
+        https://readthedocs.org/projects/microkanrenpy/
+
 
 README.rd first
 ---------------
@@ -392,3 +411,4 @@ SOFTWARE.
 .. _write_the_doc: http://www.writethedocs.org/guide/writing/beginners-guide-to-docs/
 .. _reasoned_schemer_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/reasonedschemer_test.py
 .. _mclock_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/mclock_test.py
+.. _holscher: http://ericholscher.com/blog/2016/jul/1/sphinx-and-rtd-for-writers/

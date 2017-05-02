@@ -6,4 +6,6 @@ python:
 # command to install dependencies
 install: true
 # command to run tests
-script: make suite -C src PYTHON=python # pass plain `python` to be instantiate according to virtual env
+script: 
+    - make suite -C src PYTHON=python # pass plain `python` to be instantiate according to virtual env
+    - make -C docs # to run doctests and code snippet in the documentation
