@@ -17,8 +17,6 @@ First of all we start importing objects and definitions of the logic system:
     >>> from muk.core import *
     >>> from muk.ext import *
 
-    >>> print('hello')
-    world
 
 We use the interface function :py:func:`run <muk.core.run>` to ask for
 substitutions that satisfy the relation under study; moreover, nouns *relation*, 

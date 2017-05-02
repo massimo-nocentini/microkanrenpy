@@ -121,7 +121,7 @@ You want people to use your code
     
     .. code-block:: shell
         
-        git clone https://github.com/massimo-nocentini/on-python.git # get stuff
+        git clone https://github.com/massimo-nocentini/microkanrenpy.git # get stuff
         cd on-python # go into there
         git checkout microkanren # switch to the right branch
         cd microkanren # go into the correct dir
@@ -263,7 +263,7 @@ the first reproduces all examples (including those about the *discrete logarithm
 of [RS05]_, the second solves a logic puzzle by building an abstract machine composing
 inference rules.
  
-Lisp implementation
+Lisp implementations
 ~~~~~~~~~~~~~~~~~~~~
 There are many implementation in the Lisp family:
 
@@ -309,7 +309,7 @@ contributions according to this settings, using facilities provided by the
 platform to do discussions and to track issues.  Finally, here is the address
 of the repository:
 
-    https://github.com/massimo-nocentini/on-python
+    https://github.com/massimo-nocentini/microkanrenpy
 
 Together with simplicity and elegance, we believe that *automated testing* is a
 vital principle to keep the code base healthy. Therefore, we try to capture
@@ -321,7 +321,7 @@ documentation itself.
 README.rd first
 ---------------
 As raccomanded by `this article <http://tom.preston-werner.com/2010/08/23/readme-driven-development.html>`_,
-have a look to our `README.md <https://github.com/massimo-nocentini/on-python/blob/master/README.md>`_ first.
+have a look to our `README.md <https://github.com/massimo-nocentini/microkanrenpy/blob/master/README.md>`_ first.
 
 How to get support
 ------------------
@@ -390,5 +390,5 @@ SOFTWARE.
      Ph.D. thesis, Indiana University, Bloomington, IN, 2009.
 
 .. _write_the_doc: http://www.writethedocs.org/guide/writing/beginners-guide-to-docs/
-.. _reasoned_schemer_unitests: https://github.com/massimo-nocentini/on-python/blob/master/microkanren/reasonedschemer_test.py
-.. _mclock_unitests: https://github.com/massimo-nocentini/on-python/blob/master/microkanren/mclock_test.py
+.. _reasoned_schemer_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/reasonedschemer_test.py
+.. _mclock_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/mclock_test.py
