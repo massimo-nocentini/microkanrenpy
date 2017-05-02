@@ -36,6 +36,7 @@ We organize our thoughts according to the following outline:
    reasoned_schemer
    mclock
    under_the_hood
+   core
 
 This documentation is automatically generated using `Sphinx <sphinx_>`_, which
 provides content search facilities, so a `dedicated page <search.html>`_ is provided
