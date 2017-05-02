@@ -5,4 +5,4 @@
 The Reasoned Schemer
 ********************
 
-.. literalinclude:: ../../../reasonedschemer.py
+.. literalinclude:: ../../src/reasonedschemer.py
