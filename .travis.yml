@@ -5,8 +5,8 @@ python:
     - "3.6"
 # command to install dependencies
 install: 
-    - pip install sphinx
+    - pip install sphinx # necessary for Python version not present in the default test container
 # command to run tests
 script: 
-    #- make suite -C src PYTHON=python # pass plain `python` to be instantiate according to virtual env
+    - make suite -C src PYTHON=python # pass plain `python` to be instantiate according to virtual env
     - make -C docs # to run doctests and code snippet in the documentation
