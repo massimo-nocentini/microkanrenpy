@@ -5,4 +5,4 @@
 Monte Carlo Lock puzzle
 ***********************
 
-.. literalinclude:: ../../mclock.py
+.. literalinclude:: ../../src/mclock.py
