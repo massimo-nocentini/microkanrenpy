@@ -19,10 +19,11 @@
 #
 import os
 import sys
-print(sys.path)
+sys.path.append(os.path.abspath('.'))
 sys.path.append(os.path.abspath('../'))
 sys.path.append(os.path.abspath('../../'))
 sys.path.append(os.path.abspath('../../muk/'))
+print(sys.path)
 
 
 # -- General configuration ------------------------------------------------
