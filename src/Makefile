@@ -13,4 +13,4 @@ muk:
 reasoned_schemer:
 	$(PYTHON) -m unittest -v reasonedschemer_test.py
 
-tests: sexp muk reasoned_schemer mclock
+suite: sexp muk reasoned_schemer mclock
