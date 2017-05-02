@@ -409,6 +409,6 @@ SOFTWARE.
      Ph.D. thesis, Indiana University, Bloomington, IN, 2009.
 
 .. _write_the_doc: http://www.writethedocs.org/guide/writing/beginners-guide-to-docs/
-.. _reasoned_schemer_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/reasonedschemer_test.py
-.. _mclock_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/mclock_test.py
+.. _reasoned_schemer_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/src/reasonedschemer_test.py
+.. _mclock_unitests: https://github.com/massimo-nocentini/microkanrenpy/blob/master/src/mclock_test.py
 .. _holscher: http://ericholscher.com/blog/2016/jul/1/sphinx-and-rtd-for-writers/
