@@ -6,12 +6,12 @@
 
 Primitive goals and ctors
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. autofunction:: muk.core.succeed
-.. autofunction:: muk.core.fail
-.. autofunction:: muk.core._disj
-.. autofunction:: muk.core._conj
-.. autofunction:: muk.core.fresh
-.. autofunction:: muk.core._unify
+.. autoclass:: muk.core.succeed
+.. autoclass:: muk.core.fail
+.. autoclass:: muk.core._disj
+.. autoclass:: muk.core._conj
+.. autoclass:: muk.core.fresh
+.. autoclass:: muk.core._unify
 .. autofunction:: muk.core.unification
 
 States streams and enumerations

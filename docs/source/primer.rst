@@ -126,7 +126,7 @@ When two fresh vars are unified it is said that they *share* or *co-refer*:
     
     >>> run(fresh(lambda q, z: unify(q, z)))
     [▢₀]
-    >>> run(fresh(lambda q, z: conj(unify(q, z), unify(z, 3))), 
+    >>> run(fresh(lambda q, z: unify(q, z) & unify(z, 3)), 
     ...     var_selector=lambda q, z: q)
     [3]
 
@@ -139,13 +139,13 @@ satisfied when *either* the former *or* the latter goal can be satisfied:
 
 .. doctest::
 
-    >>> run(disj(succeed, fail))
+    >>> run(succeed | fail)
     [Tautology]
-    >>> run(disj(fail, fresh(lambda q: unify(q, True))))
+    >>> run(fail | fresh(lambda q: unify(q, True)))
     [Tautology]
-    >>> run(fresh(lambda q: disj(fail, fail)))
+    >>> run(fresh(lambda q: fail | fail))
     []
-    >>> run(fresh(lambda q: disj(unify(q, False), unify(q, True))))
+    >>> run(fresh(lambda q: unify(q, False) | unify(q, True)))
     [False, True]
 
 
@@ -157,16 +157,16 @@ satisfied when *both* the former *and* the latter goal can be satisfied:
 
 .. doctest::
 
-    >>> run(conj(succeed, fail))
+    >>> run(succeed & fail)
     []
-    >>> run(conj(fail, fresh(lambda q: unify(q, True))))
+    >>> run(fail & fresh(lambda q: unify(q, True)))
     []
-    >>> run(fresh(lambda q: conj(unify(q, 3), succeed)))
+    >>> run(fresh(lambda q: unify(q, 3) & succeed))
     [3]
-    >>> run(fresh(lambda q: conj(unify(q, False), unify(q, True))))
+    >>> run(fresh(lambda q: unify(q, False) & unify(q, True)))
     []
-    >>> run(fresh(lambda q: conj(fresh(lambda q: unify(q, False)), 
-    ...                          unify(q, True))))
+    >>> run(fresh(lambda q: fresh(lambda q: unify(q, False)) &
+    ...                     unify(q, True)))
     [True]
 
 Facts and recursive relations
@@ -200,7 +200,7 @@ definition:
 .. doctest::
 
     >>> def fives(x):
-    ...     return disj(unify(5, x), fives(x))
+    ...     return unify(5, x) | fives(x)
     ...
     >>> run(fresh(lambda x: fives(x)))
     Traceback (most recent call last):
@@ -218,7 +218,7 @@ each invocation?
 .. doctest::
 
     >>> def fives(x):
-    ...     return disj(unify(5, x), fresh(lambda x: fives(x)))
+    ...     return unify(5, x) | fresh(lambda x: fives(x))
     ...
     >>> run(fresh(lambda x: fives(x)))
     Traceback (most recent call last):
@@ -233,7 +233,7 @@ infinite, of course. So, select only the first 10 objects:
 .. doctest::
 
     >>> def fives(x):
-    ...     return disj(unify(5, x), fresh(lambda x: fives(x)))
+    ...     return unify(5, x) | fresh(lambda x: fives(x))
     ...
     >>> run(fresh(lambda x: fives(x)), n=10)
     [5, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀]
@@ -256,8 +256,7 @@ One way to actually get a list of fives is to unify inside the inner ``fresh``, 
 .. doctest::
 
     >>> def fives(x):
-    ...     return disj(unify(5, x), 
-    ...                 fresh(lambda y: conj(fives(y), unify(y, x))))
+    ...     return unify(5, x) | fresh(lambda y: fives(y) & unify(y, x))
     ...
     >>> run(fresh(lambda x: fives(x)), n=10)
     [5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
@@ -267,7 +266,7 @@ or to use ``fresh`` as *η-inversion* rule, as follows:
 .. doctest::
 
     >>> def fives(x):
-    ...     return disj(unify(5, x), fresh(lambda: fives(x)))
+    ...     return unify(5, x) | fresh(lambda: fives(x))
     ...
     >>> run(fresh(lambda x: fives(x)), n=10)
     [5, 5, 5, 5, 5, 5, 5, 5, 5, 5]
@@ -281,7 +280,7 @@ we can generate the naturals, taking only the first 10 as follows:
 .. doctest::
 
     >>> def nats(x, n=0):
-    ...     return disj(unify(n, x), fresh(lambda: nats(x, n+1)))
+    ...     return unify(n, x) | fresh(lambda: nats(x, n+1))
     ...
     >>> run(fresh(lambda x: nats(x)), n=10)
     [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]
@@ -305,9 +304,9 @@ so it follows the recursive definition, as usual:
     ...     def A(r, out): 
     ...         return conde([nullo(r), unify(s, out)],
     ...                      else_clause=[fresh(lambda a, d, res:
-    ...                                            conj(unify([a]+d, r),
-    ...                                                 unify([a]+res, out),
-    ...                                                 fresh(lambda: A(d, res)),))])
+    ...                                            unify([a]+d, r) &
+    ...                                            unify([a]+res, out) &
+    ...                                            fresh(lambda: A(d, res)))])
     ...     return A(r, out)
 
 Some examples follow:
@@ -322,8 +321,8 @@ Some examples follow:
      [1, 2, 3, ▢₀, ▢₁, 4, 5, 6], 
      [1, 2, 3, ▢₀, ▢₁, ▢₂, 4, 5, 6]]
     >>> run(fresh(lambda r, x, y: 
-    ...             conj(append(x, y, ['cake', 'with', 'ice', 'd', 't']),
-    ...                  unify([x, y], r)))) #doctest: +NORMALIZE_WHITESPACE
+    ...             append(x, y, ['cake', 'with', 'ice', 'd', 't']) &
+    ...             unify([x, y], r))) #doctest: +NORMALIZE_WHITESPACE
     [[[], ['cake', 'with', 'ice', 'd', 't']], 
      [['cake'], ['with', 'ice', 'd', 't']], 
      [['cake', 'with'], ['ice', 'd', 't']], 
