@@ -447,23 +447,31 @@ ifa = partial(if_softcut, doer=lambda r, α, answer:
 ifu = partial(if_softcut, doer=lambda r, α, answer: answer(r))
 
 @contextmanager
-def delimited(d):
+def delimiter(d):
 
-    available = iter(range(d)) if d else count()
+    key = object()
 
-    def one_more():
-        try: next(available)
-        except StopIteration: return False
-        else: return True
+    class D: 
+        def __gt__(self, g):
+            return delimited(key, d, g)
 
-    def D(g): 
-        def G(s : state):
-            α = g(s) if one_more() else fail(s)
+    yield D()
+
+class delimited(goal):
+    
+    def __init__(self, key, upper, g):
+        self.key = key
+        self.upper = upper
+        self.g = g
+
+    def __call__(self, s : state):
+        v = s.sub.get(self.key, 0)
+        if v < self.upper:
+            s.sub[self.key] = v + 1
+            α = self.g(s)
             yield from α
-                
-        return G
-
-    yield D
+        else:
+            yield from fail(s)
 
 class project(goal):
 

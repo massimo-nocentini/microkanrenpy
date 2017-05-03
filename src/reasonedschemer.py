@@ -126,13 +126,13 @@ def swappendso(l, s, out):
 
 def bswappendso(bound):
 
-    with delimited(bound) as D:
+    with delimiter(bound) as D:
         @adapt_iterables_to_conses(all_arguments)
         def R(l, s, out):
-            return D(conde([succeed, fresh(lambda a, d, res: conj(unify([a] + d, l),
+            return conde([succeed, fresh(lambda a, d, res: conj(unify([a] + d, l),
                                                                   unify([a] + res, out),
                                                                   R(d, s, res)))],
-                           else_clause=[nullo(l), unify(s, out)]))
+                           else_clause=[nullo(l), unify(s, out)]) < D
     return R
 
 @adapt_iterables_to_conses(lambda x, out: {x})

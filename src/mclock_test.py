@@ -104,7 +104,7 @@ class mcculloch_test(unittest.TestCase):
         with self.assertRaises(RecursionError): 
             self.assertEqual(run(fresh(lambda l, α: lengtho([3,2,8,7]+α, l))), [5])
 
-    #@unittest.skip("They takes too long")
+    @unittest.skip("They takes too long for Travis CI: it reports a failure because no output appears when running them")
     def test_longrunning(self):
 
         with let([7,8]) as A:
