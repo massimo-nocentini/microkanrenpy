@@ -18,19 +18,19 @@ def appendo(r, s, out):
     
     def A(r, out):
         return conde([nullo(r), unify(s, out)],
-                     else_clause=[fresh(lambda a, d, res: 
+                     else_clause=fresh(lambda a, d, res: 
                                             unify([a]+d, r) & 
                                             unify([a]+res, out) & 
-                                            fresh(lambda: A(d, res)))])
+                                            fresh(lambda: A(d, res))))
     return A(r, out)
 
 @adapt_iterables_to_conses(all_arguments)
 def reverseo(a, l):
     return conde([nullo(a), nullo(l)],
-                 else_clause=[fresh(lambda car, cdr, res: 
+                 else_clause=fresh(lambda car, cdr, res: 
                                         unify([car]+cdr, a) @
                                         appendo(res, [car], l) @
-                                        fresh(lambda: reverseo(cdr, res)))])
+                                        fresh(lambda: reverseo(cdr, res))))
 
 @adapt_iterables_to_conses(all_arguments)
 def associateo(γ, γ2γ):
@@ -76,7 +76,7 @@ def lengtho(α, l):
 
     def L(α, *, acc):
         return conde([nullo(α), unify(l, acc)],
-                     else_clause=[fresh(lambda a, β: unify([a]+β, α) & fresh(lambda: L(β, acc=acc+1)))])
+                     else_clause=fresh(lambda a, β: unify([a]+β, α) & fresh(lambda: L(β, acc=acc+1))))
 
     return L(α, acc=0)
 

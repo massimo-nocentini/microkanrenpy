@@ -78,7 +78,7 @@ def first_value(l):
 def memberrevo(x, l):
     return conde([nullo(l), fail],
                  [fresh(lambda d: conj(cdro(l, d), memberrevo(x, d))), succeed],
-                 else_clause=[caro(l, x)])
+                 else_clause=caro(l, x))
 
 def reverse_list(l):
     return run(fresh(lambda y: memberrevo(y, l)))
@@ -87,17 +87,14 @@ def reverse_list(l):
 def memo(x, l, out):
     return fresh(lambda a, d: conj(unify([a] + d, l), 
                                    conde([unify(a, x), unify(l, out)], 
-                                         else_clause=[memo(x, d, out)])))
+                                         else_clause=memo(x, d, out))))
 
 
 @adapt_iterables_to_conses(lambda x, l, out: {l, out})
 def rembero(x, l, out):
     return conde([nullo(l), nullo(out)],
-                 #[unify([x] + out, l), succeed], # in order to write this one we should promote `cons` to a class and implement __add__ and __radd__
                  [caro(l, x), cdro(l, out)],
-                 else_clause=[fresh(lambda a, d, res: conj(unify([a] + d, l), 
-                                                           rembero(x, d, res), 
-                                                           unify([a] + res, out)))])
+                 else_clause=fresh(lambda a, d, res: unify([a] + d, l) & rembero(x, d, res) & unify([a] + res, out)))
 
 @adapt_iterables_to_conses(lambda s, l: {l})
 def surpriseo(s, l):
@@ -106,23 +103,21 @@ def surpriseo(s, l):
 @adapt_iterables_to_conses(all_arguments)
 def appendo(l, s, out):
     return conde([nullo(l), unify(s, out)],
-                 else_clause=[fresh(lambda a, d, res: conj(unify([a] + d, l), 
-                                                           appendo(d, s, res), 
-                                                           unify([a] + res, out)))])
+                 else_clause=fresh(lambda a, d, res: unify([a] + d, l) & appendo(d, s, res) & unify([a] + res, out)))
 
 @adapt_iterables_to_conses(all_arguments)
 def appendso(l, s, out):
     return conde([nullo(l), unify(s, out)],
-                 else_clause=[fresh(lambda a, d, res: conj(unify([a] + d, l), 
+                 else_clause=fresh(lambda a, d, res: conj(unify([a] + d, l), 
                                                            unify([a] + res, out), 
-                                                           appendso(d, s, res)))])
+                                                           appendso(d, s, res))))
 
 @adapt_iterables_to_conses(all_arguments)
 def swappendso(l, s, out):
     return conde([succeed, fresh(lambda a, d, res: conj(unify([a] + d, l), 
                                                         unify([a] + res, out), 
                                                         swappendso(d, s, res)))],
-                 else_clause=[nullo(l), unify(s, out)])
+                 else_clause=nullo(l) & unify(s, out))
 
 def bswappendso(bound):
 
@@ -132,18 +127,18 @@ def bswappendso(bound):
             return conde([succeed, fresh(lambda a, d, res: conj(unify([a] + d, l),
                                                                   unify([a] + res, out),
                                                                   R(d, s, res)))],
-                           else_clause=[nullo(l), unify(s, out)]) < D
+                           else_clause=nullo(l) & unify(s, out)) < D
     return R
 
 @adapt_iterables_to_conses(lambda x, out: {x})
 def unwrapo(x, out):
     return conde([fresh(lambda a, d: conj(unify([a] + d, x), unwrapo(a, out))), succeed],
-                  else_clause=[unify(x, out)])
+                  else_clause=unify(x, out))
 
 @adapt_iterables_to_conses(all_arguments)
 def unwrapso(x, out):
     return conde([succeed, unify(x, out)],
-                  else_clause=[fresh(lambda a, d: conj(unify([a] + d, x), unwrapso(a, out)))])
+                  else_clause=fresh(lambda a, d: conj(unify([a] + d, x), unwrapso(a, out))))
 
 @adapt_iterables_to_conses(all_arguments)
 def flatteno(s, out):
@@ -154,23 +149,22 @@ def flatteno(s, out):
                     appendo(out_a, out_d, out))
     return conde([nullo(s), nullo(out)],
                  [fresh(F), succeed],
-                 else_clause=[unify([s], out)])
+                 else_clause=unify([s], out))
 
 
 @adapt_iterables_to_conses(all_arguments)
 def flattenrevo(s, out):
-    def F(a, d, out_a, out_d):
-        return conj(unify([a] + d, s), 
-                    flattenrevo(a, out_a), 
-                    flattenrevo(d, out_d), 
-                    appendo(out_a, out_d, out))
     return conde([succeed, unify([s], out)],
                  [nullo(s), nullo(out)],
-                 else_clause=[fresh(F)])
+                 else_clause=fresh(lambda a, d, out_a, out_d: 
+                                    unify([a] + d, s) & 
+                                    flattenrevo(a, out_a) & 
+                                    flattenrevo(d, out_d) & 
+                                    appendo(out_a, out_d, out)))
 
 def anyo(g):
     return conde([g, succeed],
-                  else_clause=[fresh(lambda: anyo(g))]) # by η-inversion  
+                  else_clause=fresh(lambda: anyo(g))) # by η-inversion  
 
 nevero = anyo(fail) # `nevero` ever succeeds because although the question of the first `conde` line within `anyo` fails,
                     # the answer of the second `conde` line, namely `anyo(fail)` is where we started.
@@ -178,19 +172,19 @@ alwayso = anyo(succeed) # `alwayso` always succeeds any number of times, whereas
 
 def succeed_at_least(g, times=1):
     return conde(*[[succeed, succeed] for _ in range(times)],
-                 else_clause=[g])
+                 else_clause=g)
 
 def bit_xoro(α, β, γ):
-    return conde([unify(0, α), unify(0, β), unify(0, γ)],
-                 [unify(1, α), unify(0, β), unify(1, γ)],
-                 [unify(0, α), unify(1, β), unify(1, γ)],
-                 [unify(1, α), unify(1, β), unify(0, γ)],)
+    return conde([unify(0, α) & unify(0, β), unify(0, γ)],
+                 [unify(1, α) & unify(0, β), unify(1, γ)],
+                 [unify(0, α) & unify(1, β), unify(1, γ)],
+                 [unify(1, α) & unify(1, β), unify(0, γ)],)
 
 def bit_ando(α, β, γ):
-    return conde([unify(0, α), unify(0, β), unify(0, γ)],
-                 [unify(1, α), unify(0, β), unify(0, γ)],
-                 [unify(0, α), unify(1, β), unify(0, γ)],
-                 [unify(1, α), unify(1, β), unify(1, γ)],)
+    return conde([unify(0, α) & unify(0, β), unify(0, γ)],
+                 [unify(1, α) & unify(0, β), unify(0, γ)],
+                 [unify(0, α) & unify(1, β), unify(0, γ)],
+                 [unify(1, α) & unify(1, β), unify(1, γ)],)
 
 def half_addero(α, β, γ, δ):
     return conj(bit_xoro(α, β, γ), bit_ando(α, β, δ))
@@ -230,13 +224,13 @@ def rightmost_representative(n):
 
 @adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
 def addero(δ, n, m, r):
-    return condi([unify(0, δ), zeroo(m), unify(n, r)],
-                 [unify(0, δ), poso(m), zeroo(n), unify(m, r)],
-                 [unify(1, δ), zeroo(m), fresh(lambda: addero(0, n, [1], r))],
-                 [unify(1, δ), poso(m), zeroo(n), fresh(lambda: addero(0, [1], m, r))],
-                 [oneo(n), oneo(m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
+    return condi([unify(0, δ) & zeroo(m), unify(n, r)],
+                 [unify(0, δ) & poso(m) & zeroo(n), unify(m, r)],
+                 [unify(1, δ) & zeroo(m), fresh(lambda: addero(0, n, [1], r))],
+                 [unify(1, δ) & poso(m) & zeroo(n), fresh(lambda: addero(0, [1], m, r))],
+                 [oneo(n) & oneo(m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), unify([α, β], r)))],
                  [oneo(n), _addero(δ, [1], m, r)],
-                 [greater_than_oneo(n), oneo(m), _addero(δ, [1], n, r)], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
+                 [greater_than_oneo(n) & oneo(m), _addero(δ, [1], n, r)], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
                  [greater_than_oneo(n), _addero(δ, n, m, r)])
 
 
@@ -246,8 +240,7 @@ def _addero(δ, n, m, r): # alias for `gen_adder` as it appears in The Reasoned 
                     conj(unify((α, x), n),
                          unify((β, y), m), poso(y),
                          unify((γ, z), r), poso(z),
-                         conji(full_addero(δ, α, β, γ, ε),  
-                               addero(ε, x, y, z))))
+                         full_addero(δ, α, β, γ, ε) @ addero(ε, x, y, z)))
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def pluso(n, m, k):
@@ -259,7 +252,7 @@ def minuso(n, m, k):
 
 def not_thingo(x, *, what):
     return conda([unify(what, x), fail],
-                 else_clause=[succeed])
+                 else_clause=succeed)
 
 def onceo(g):
     return condu([g, succeed])
@@ -267,7 +260,7 @@ def onceo(g):
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def bumpo(n, x):
     return conde([unify(n, x), succeed],
-                 else_clause=[fresh(lambda m: conj(minuso(n, [1], m), bumpo(m, x)))])
+                 else_clause=fresh(lambda m: conj(minuso(n, [1], m), bumpo(m, x))))
 
 def gentesto(op, *args):
     return onceo(fresh(lambda *lvars: conj(op(*lvars), *[unify(a, l) for a, l in zip(args, lvars)]), 
@@ -292,14 +285,13 @@ def _addereo(δ, n, m, r): # alias for `gen_adder` as it appears in The Reasoned
 
 @adapt_iterables_to_conses(lambda δ, n, m, r: {n: num.build, m: num.build, r: num.build,})
 def addereo(δ, n, m, r):
-    return condi([unify(0, δ), zeroo(m), unify(n, r)],
-                 [unify(0, δ), poso(m), zeroo(n), unify(m, r)],
-                 [unify(1, δ), zeroo(m), fresh(lambda: addereo(0, n, [1], r))],
-                 [unify(1, δ), poso(m), zeroo(n), fresh(lambda: addereo(0, [1], m, r))],
-                 [oneo(n), oneo(m), fresh(lambda α, β: conj(full_addero(δ, 1, 1, α, β), 
-                                                            unify([α, β], r)))],
+    return condi([unify(0, δ) & zeroo(m), unify(n, r)],
+                 [unify(0, δ) & poso(m) & zeroo(n), unify(m, r)],
+                 [unify(1, δ) & zeroo(m), fresh(lambda: addereo(0, n, [1], r))],
+                 [unify(1, δ) & poso(m) & zeroo(n), fresh(lambda: addereo(0, [1], m, r))],
+                 [oneo(n) & oneo(m), fresh(lambda α, β: full_addero(δ, 1, 1, α, β) & unify([α, β], r))],
                  [oneo(n), _addereo(δ, [1], m, r)],
-                 [greater_than_oneo(n), oneo(m), _addereo(δ, [1], n, r)], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
+                 [greater_than_oneo(n) & oneo(m), _addereo(δ, [1], n, r)], # we delete `greater_than_oneo(r)` respect to The Reasoned Schemer
                  [greater_than_oneo(n), _addereo(δ, n, m, r)])
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
@@ -310,9 +302,9 @@ def pluseo(n, m, k):
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def multiplyo(n, m, p):
     return condi([zeroo(n), zeroo(p)],
-                 [poso(n), zeroo(m), zeroo(p)],
-                 [oneo(n), poso(m), unify(m, p)],
-                 [poso(n), oneo(m), unify(n, p)],
+                 [poso(n), zeroo(m) & zeroo(p)],
+                 [oneo(n), poso(m) & unify(m, p)],
+                 [poso(n), oneo(m) & unify(n, p)],
                  [fresh(lambda x, z: conj(unify((0, x), n), poso(x),
                                           unify((0, z), p), poso(z),
                                           greater_than_oneo(m),
@@ -333,29 +325,28 @@ def multiply_oddo(x, n, m, p):
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def multiply_boundo(q, p, n, m):
     return conde([nullo(q), pairo(p)],
-                 else_clause=[fresh(lambda x, y, z: 
-                                        conj(cdro(q, x), 
-                                             cdro(p, y), 
-                                             condi([nullo(n), cdro(m, z), fresh(lambda: multiply_boundo(x, y, z, []))],
-                                                   else_clause=[cdro(n, z), fresh(lambda: multiply_boundo(x, y, z, m))])))])
+                 else_clause=fresh(lambda x, y, z:
+                                    cdro(q, x) & cdro(p, y) &
+                                    condi([nullo(n), cdro(m, z) & fresh(lambda: multiply_boundo(x, y, z, []))],
+                                          else_clause=cdro(n, z) & fresh(lambda: multiply_boundo(x, y, z, m)))))
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def length_equalo(n, m):
     return conde([zeroo(n), zeroo(m)],
                  [oneo(n), oneo(m)],
-                 else_clause=[fresh(lambda α, β, x, y:
-                                        conj(unify((α, x), n), poso(x),
-                                             unify((β, y), m), poso(y),
-                                             fresh(lambda: length_equalo(x, y))))])  
+                 else_clause=fresh(lambda α, β, x, y:
+                                        conj(unify((α, x), n) & poso(x),
+                                             unify((β, y), m) & poso(y),
+                                             fresh(lambda: length_equalo(x, y)))))  
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def length_lto(n, m):
     return conde([zeroo(n), poso(m)],
                  [oneo(n), greater_than_oneo(m)],
-                 else_clause=[fresh(lambda α, β, x, y:
+                 else_clause=fresh(lambda α, β, x, y:
                                         conj(unify((α, x), n), poso(x),
                                              unify((β, y), m), poso(y),
-                                             fresh(lambda: length_lto(x, y))))])
+                                             fresh(lambda: length_lto(x, y)))))
 
 def _length_leqo(n, m, condo):
     return condo([length_equalo(n, m), succeed],
@@ -382,31 +373,31 @@ def leq(n, m):
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def divmodo(n, m, q, r):
-    return condi([zeroo(q), unify(n, r), lto(r, m)],
-                 [oneo(q), zeroo(r), equalo(n, m), lto(r, m)], 
-                 [lto(m, n), lto(r, m), fresh(lambda mq: 
+    return condi([zeroo(q), unify(n, r) & lto(r, m)],
+                 [oneo(q) & zeroo(r), equalo(n, m) & lto(r, m)], 
+                 [lto(m, n) & lto(r, m), fresh(lambda mq: 
                                                 conj(length_equalo(mq, n),
                                                      multiplyo(m, q, mq),
                                                      pluso(mq, r, n)))])
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def divmod_proo(n, m, q, r):
-    return condi([zeroo(q), lto(n, m), unify(r, n)],
-                 [oneo(q), length_equalo(n, m), pluso(r, m, n), lto(r, m)],
-                 else_clause=[conji(length_lto(m, n), lto(r, m), poso(q),
+    return condi([zeroo(q) & lto(n, m), unify(r, n)],
+                 [oneo(q) & length_equalo(n, m), pluso(r, m, n) & lto(r, m)],
+                 else_clause=conji(length_lto(m, n), lto(r, m), poso(q),
                                     fresh(lambda n_h, n_l, q_h, q_l, qlm, qlmr, rr, r_h:
                                             conji(splito(n, r, n_l, n_h),
                                                   splito(q, r, q_l, q_h),
-                                                  conde([zeroo(n_h), zeroo(q_h), minuso(n_l, r, qlm), multiplyo(q_l, m, qlm)],
-                                                        else_clause=[conji(poso(n_h),
+                                                  conde([zeroo(n_h) & zeroo(q_h), minuso(n_l, r, qlm) & multiplyo(q_l, m, qlm)],
+                                                        else_clause=conji(poso(n_h),
                                                                           multiplyo(q_l, m, qlm),
                                                                           pluso(qlm, r, qlmr),
                                                                           minuso(qlmr, n_l, rr),
                                                                           splito(rr, r, [], r_h),
-                                                                          fresh(lambda: divmod_proo(n_h, m, q_h, r_h)))]))))])
+                                                                          fresh(lambda: divmod_proo(n_h, m, q_h, r_h))))))))
 
 def splito(n, r, l, h):
-    return condi([zeroo(n), zeroo(l), zeroo(h)],
+    return condi([zeroo(n), zeroo(l) & zeroo(h)],
                  [fresh(lambda β, n_hat: 
                             conj(unify((0, β, n_hat), n), 
                                  zeroo(r), 
@@ -437,18 +428,17 @@ def splito(n, r, l, h):
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def logo(n, b, q, r):
-    return condi([oneo(n), poso(b), zeroo(q), zeroo(r)],
-                 [zeroo(q), lto(n, b), pluso(r, [1], n)],
-                 [oneo(q), greater_than_oneo(b), length_equalo(n, b), pluso(r, b, n)],
-                 [oneo(b), poso(q), pluso(r, [1], n)],
-                 [zeroo(b), poso(q), unify(r, n)],
+    return condi([oneo(n) & poso(b), zeroo(q) & zeroo(r)],
+                 [zeroo(q) & lto(n, b), pluso(r, [1], n)],
+                 [oneo(q) & greater_than_oneo(b) & length_equalo(n, b), pluso(r, b, n)],
+                 [oneo(b) & poso(q), pluso(r, [1], n)],
+                 [zeroo(b) & poso(q), unify(r, n)],
                  [twoo(b), fresh(lambda a, ad, dd, s: conj(poso(dd),
                                                            unify((a, ad, dd), n),
                                                            expo(n, [], q, base=2),
                                                            splito(n, dd, r, s)))],
                  [fresh(lambda a, ad, add, ddd: conde([threeo(b), succeed],
-                                                      else_clause=[unify((a, ad, add, ddd), b)])),
-                  length_lto(b, n),
+                                                      else_clause=unify((a, ad, add, ddd), b))) & length_lto(b, n),
                   fresh(lambda bw1, bw, nw, nw1, ql1, q_l, s:
                             conj(expo(b, [], bw1, base=2),
                                  pluso(bw1, [1], bw),
@@ -462,14 +452,14 @@ def logo(n, b, q, r):
                                                  divmodo(nw, bw, ql1, s),
                                                  pluso(q_l, [1], ql1))),
                                  conde([unify(q, q_l), succeed],
-                                       else_clause=[length_lto(q_l, q)]),
+                                       else_clause=length_lto(q_l, q)),
                                  fresh(lambda bql, q_h, s, qdh, qd:
                                             conj(multiply_repeatedo(b, q_l, bql),
                                                  divmodo(nw, bw1, q_h, s),
                                                  pluso(q_l, qdh, q_h),
                                                  pluso(q_l, qd, q),
                                                  conde([unify(qd, qdh), succeed],
-                                                       else_clause=[lto(qd, qdh)]),
+                                                       else_clause=lto(qd, qdh)),
                                                  fresh(lambda bqd, bq1, bq:
                                                             conj(multiply_repeatedo(b, qd, bqd),
                                                                  multiplyo(bql, bqd, bq),
@@ -480,7 +470,7 @@ def logo(n, b, q, r):
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def expo(n, b, q, *, base):
     return condi([oneo(n), zeroo(q)],
-                 [greater_than_oneo(n), oneo(q), fresh(lambda s: splito(n, b, s, [1]))],
+                 [greater_than_oneo(n) & oneo(q), fresh(lambda s: splito(n, b, s, [1]))],
                  [fresh(lambda q_1, b_2:
                             conji(unify((0, q_1), q), poso(q_1),
                                   length_lto(b, n),
@@ -495,7 +485,7 @@ def expo(n, b, q, *, base):
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def multiply_repeatedo(n, q, nq):
-    return conde([poso(n), zeroo(q), oneo(nq)],
+    return conde([poso(n) & zeroo(q), oneo(nq)],
                  [oneo(q), unify(n, nq)],
                  [greater_than_oneo(q), fresh(lambda q_1, nq1:
                                                 conj(pluso(q_1, [1], q),

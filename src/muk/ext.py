@@ -29,15 +29,14 @@ def unify(u, v, occur_check=False):
 def unify_occur_check(u, v):
     return _unify_occur_check(u, v)
 
-def cond(*clauses, else_clause=[fail], λ_if):
+def cond(*clauses, else_clause=fail, λ_if):
 
     def λ(clause, otherwise):
-        question, *answers = clause
-        return λ_if(question, conj(*answers), otherwise)
+        question, answer = clause
+        return λ_if(question, answer, otherwise)
     
-    else_clause = [succeed] + else_clause # to stick to the pattern [question answer ...] of a cond-line
-    r = foldr(λ, clauses, initialize=conj(*else_clause))  
-    return r
+    return foldr(λ, clauses, initialize=else_clause)  
+
 
 conde = partial(cond, λ_if=ife)
 condi = partial(cond, λ_if=ifi)
