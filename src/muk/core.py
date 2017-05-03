@@ -31,7 +31,7 @@ from collections import namedtuple
 from itertools import chain, count
 from contextlib import contextmanager
 from inspect import signature
-from functools import partial, reduce, wraps
+from functools import partial, reduce, wraps, partialmethod
 
 from muk.sexp import *
 
@@ -248,43 +248,73 @@ def reify(v):
 
 # GOAL CTORS {{{
 
-def succeed(s : state):
-    ''' A goal that is satisfied by *any* substitution.'''
-    yield from iter([s])
+class goal(object):
 
-def fail(s : state):
-    ''' A goal that is satisfied by *no* substitution.'''
-    yield from iter([])
+    def __or__(self, g):
+        return _disj(self, g, interleaving=True)
 
-def _unify(u, v, ext_s):
+    def __xor__(self, g):
+        return _disj(self, g, interleaving=False)
+
+    def __matmul__(self, g):
+        return _conj(self, g, interleaving=True)
+
+    def __and__(self, g):
+        return _conj(self, g, interleaving=False)
+
+    def __invert__(self):
+        return complement(self)
+
+class primitive(goal):
+
+    def __init__(self, rule):
+        self.rule = rule
+
+    def __call__(self, s : state):
+        yield from iter(self.rule(s))
+
+succeed = primitive(rule=lambda s: [s]) # a goal that is satisfied by *any* substitution
+fail = primitive(rule=lambda s: [])     # a goal that is satisfied by *no* substitution
+
+class _unify(goal):
     '''
     Attempts to perform :py:func:`unification <muk.core.unification>` to make
     ``u`` and ``v`` unifiable given a set of associations for logic variables.
     '''
 
-    def U(s : state):
-        try: sub = unification(u, v, s.sub, ext_s)
-        except UnificationError: yield from fail(s)
-        else: yield from succeed(state(sub, s.next_index))
+    def __init__(self, u, v, ext_s):
+        self.u = u
+        self.v = v
+        self.ext_s = ext_s
 
-    return U
 
-def _unify_pure(u, v, occur_check):
-    return _unify(u, v, partial(ext_s, occur_check=occur_check))
+    def __call__(self, s : state):
+        try: 
+            sub = unification(self.u, self.v, s.sub, self.ext_s)
+        except UnificationError: 
+            yield from fail(s)
+        else: 
+            yield from succeed(state(sub, s.next_index))
 
-def _unify_occur_check(u, v):
 
-    U = _unify_pure(u, v, occur_check=True)
+class _unify_pure(_unify):
+    
+    def __init__(self, u, v, occur_check):
+        super(_unify_pure, self).__init__(u, v, partial(ext_s, occur_check=occur_check))
 
-    def U_oc(s : state):
+class _unify_occur_check(_unify_pure):
+
+    def __init__(self, u, v):
+        super(_unify_occur_check, self).__init__(u, v, occur_check=True)
+
+    def __call__(self, s : state):
         try:
-            yield from U(s)
+            yield from super(_unify_occur_check, self).__call__(s)
         except OccurCheck:
             yield from fail(s)
 
-    return U_oc
 
-def fresh(f, arity=None):
+class fresh(goal):
     '''
     Introduce new logic variables according to the needs of receiver ``f``.
 
@@ -303,23 +333,23 @@ def fresh(f, arity=None):
 
     '''
 
-    if arity:
-        params = [(i, n) for i in range(arity) for n in [chr(ord('a') + i)]]
-    else:
-        f_sig = signature(f)
-        arity = len(f_sig.parameters)
-        params = [(i, v.name) for i, (k, v) in enumerate(f_sig.parameters.items())] 
+    def __init__(self, f, arity=None):
+        self.f = f
+        if arity:
+            self.params = [(i, n) for i in range(arity) for n in [chr(ord('a') + i)]]
+        else:
+            f_sig = signature(f)
+            arity = len(f_sig.parameters)
+            self.params = [(i, v.name) for i, (k, v) in enumerate(f_sig.parameters.items())] 
 
-    def F(s : state):
-        logic_vars = [var(s.next_index+i, n) for (i, n) in params]
-        setattr(F, 'logic_vars', logic_vars) # set the attr in any case, even if `logic_vars == []` because of η-inversion  
-        g = f(*logic_vars)
-        α = g(state(s.sub, s.next_index + arity))
+    def __call__(self, s : state):
+        logic_vars = [var(s.next_index+i, n) for (i, n) in self.params]
+        setattr(self, 'logic_vars', logic_vars) # set the attr in any case, even if `logic_vars == []` because of η-inversion  
+        g = self.f(*logic_vars)
+        α = g(state(s.sub, s.next_index + len(logic_vars)))
         yield from α
 
-    return F
-
-def _disj(g1, g2, *, interleaving):
+class _disj(goal):
     '''
     A goal that is satisfiable if *either* goal ``g1`` *or* goal ``g2`` is satisfiable.
 
@@ -336,14 +366,19 @@ def _disj(g1, g2, *, interleaving):
     enumerated using ``mplus`` according to ``interleaving`` arg.
     
     '''
-    
-    def D(s : state):
-        α, β = g1(s), g2(s)
-        yield from mplus(iter([α, β]), interleaving)
-        
-    return D
 
-def _conj(g1, g2, *, interleaving):
+    def __init__(self, g1, g2, *, interleaving):
+        self.g1 = g1
+        self.g2 = g2
+        self.interleaving = interleaving
+    
+    def __call__(self, s : state):
+        α, β = self.g1(s), self.g2(s)
+        yield from mplus(iter([α, β]), self.interleaving)
+        
+
+
+class _conj(goal):
     '''
     A goal that is satisfiable if *both* goal ``g1`` *and* goal ``g2`` is satisfiable.
 
@@ -362,38 +397,50 @@ def _conj(g1, g2, *, interleaving):
     
     '''
 
-    def C(s : state):
-        α = g1(s)
-        yield from bind(α, g2, mplus=partial(mplus, interleaving=interleaving))
+    def __init__(self, g1, g2, *, interleaving):
+        self.g1 = g1
+        self.g2 = g2
+        self.interleaving = interleaving
 
-    return C
+    def __call__(self, s : state):
+        α = self.g1(s)
+        yield from bind(α, self.g2, mplus=partial(mplus, interleaving=self.interleaving))
 
-def if_pure(question, answer, otherwise, *, interleaving):
+
+class if_pure(goal):
+
+    def __init__(self, question, answer, otherwise, *, interleaving):
+        self.question = question
+        self.answer = answer
+        self.otherwise = otherwise
+        self.interleaving = interleaving
     
-    def I(s : state):
-        C = _conj(question, answer, interleaving=False) 
-        α, β = C(s), otherwise(s)
-        yield from mplus(iter([α, β]), interleaving)
-
-    return I
+    def __call__(self, s : state):
+        C = self.question & self.answer
+        α, β = C(s), self.otherwise(s)
+        yield from mplus(iter([α, β]), self.interleaving)
 
 ife = partial(if_pure, interleaving=False)
 ifi = partial(if_pure, interleaving=True)
 
-def if_softcut(question, answer, otherwise, *, doer):
+class if_softcut(goal):
 
-    def I(s : state):
-        α = question(s) 
+    def __init__(self, question, answer, otherwise, *, doer):
+        self.question = question
+        self.answer = answer
+        self.otherwise = otherwise
+        self.doer = doer
+
+    def __call__(self, s : state):
+        α = self.question(s) 
         try:
             r = next(α) # r : state
         except StopIteration: 
-            β = otherwise(s) 
+            β = self.otherwise(s) 
             yield from β
         else:
-            γ = doer(r, α, answer)
+            γ = self.doer(r, α, self.answer)
             yield from γ
-
-    return I
 
 ifa = partial(if_softcut, doer=lambda r, α, answer: 
         bind(chain([r], α), answer, mplus=partial(mplus, interleaving=False)))
@@ -418,32 +465,41 @@ def delimited(d):
 
     yield D
 
-def project(*logic_vars, into):
+class project(goal):
 
-    def P(s : state):
-        walked_vars = [walk_star(v, s.sub) for v in logic_vars]
-        g = into(*walked_vars)
+    def __init__(self, *logic_vars, into):
+        self.logic_vars = logic_vars
+        self.into = into
+
+    def __call__(self, s : state):
+        walked_vars = [walk_star(v, s.sub) for v in self.logic_vars]
+        g = self.into(*walked_vars)
         α = g(s) 
         yield from α
 
-    return P
 
-def sub(*logic_vars, of):
+class sub(goal):
 
-    def λ(s : state):  
-        lvars = set(logic_vars) if logic_vars else s.sub.keys()
+    def __init__(self, *logic_vars, of):
+        self.logic_vars = logic_vars
+        self.of = of
+
+    def λ(self, s : state):  
+        lvars = set(self.logic_vars) if self.logic_vars else s.sub.keys()
         return state({v:{v:s.sub[v]} for v in lvars if v in s.sub}, s.next_index)
         
-    def S(s : state):
-        α = of(s) 
-        yield from map(λ, α)
+    def __call__(self, s : state):
+        α = self.of(s) 
+        yield from map(self.λ, α)
 
-    return S
 
-def complement(g):
+class complement(goal):
 
-    def C(s : state):
-        α = g(s)
+    def __init__(self, g):
+        self.g = g
+
+    def __call__(self, s : state):
+        α = self.g(s)
         try:
             r = next(α) # r : state 
         except StopIteration:
@@ -451,7 +507,6 @@ def complement(g):
         else:
             yield from fail(s)    
 
-    return C
 
 # }}}
 
