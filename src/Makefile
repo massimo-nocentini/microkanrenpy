@@ -19,4 +19,4 @@ reasoned_schemer:
 	
 
 
-suite: sexp muk reasoned_schemer mclock difference_structures_test
+suite: sexp muk reasoned_schemer mclock difference_structures
