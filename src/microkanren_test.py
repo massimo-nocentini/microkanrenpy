@@ -132,12 +132,12 @@ class microkanren_tests(unittest.TestCase):
     def test_bounded(self):
 
         def questiono(d):
-            with delimited(d) as D: 
+            with delimiter(d) as D: 
                 def Q(q):
-                    return D(conde([unify('a', q), succeed],
-                                   [unify('b', q), succeed],
-                                   [unify('c', q), succeed],
-                                   else_clause=[fresh(lambda: Q(q))]))
+                    return conde([unify('a', q), succeed],
+                                 [unify('b', q), succeed],
+                                 [unify('c', q), succeed],
+                                 else_clause=fresh(lambda: Q(q))) < D
                 return Q
 
         self.assertEqual(run(fresh(questiono(d=1))), ['a', 'b', 'c'])

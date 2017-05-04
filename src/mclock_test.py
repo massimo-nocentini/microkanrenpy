@@ -12,24 +12,26 @@ from mclock import *
 
 class mcculloch_test(unittest.TestCase):
 
+    def test_appendo(self):
+        self.assertEqual(run(fresh(lambda α: appendo([1,2,3], [4, 5,6], α))), [[1,2,3,4,5,6]])
+
     def test_fst_rule(self):
         self.assertEqual(run(mccullocho([2,3,4,5], [3,4,5])), [Tautology()])   
         self.assertEqual(run(fresh(lambda α, β: mccullocho([4]+β, α))), [])   
         self.assertEqual(run(fresh(lambda α: mccullocho([2,3,4,5], α))), [[3,4,5]])   
         self.assertEqual(run(fresh(lambda α: mccullocho(α, [3,4,5]))), [[2,3,4,5]])   
 
+
     def test_snd_rule(self):
         self.assertEqual(run(mccullocho([3,2,5], [5,2,5])), [Tautology()])   
         self.assertEqual(run(fresh(lambda α: mccullocho([3,3,2,5], α)), n=1), [[5,2,5,2,5,2,5]])   
-        self.assertEqual(run(fresh(lambda α, β: conj(mccullocho(β, [5,2,5,2,5,2,5]), 
-                                                     appendo(α, [5], β)))), 
-                         [[3, 3, 2], [2, 5, 2, 5, 2, 5, 2], [3, 2, 5, 2],])   
+        self.assertEqual(run(fresh(lambda β: mccullocho(β, [5,2,5,2,5,2,5]))),
+                         [[3, 3, 2, 5], [2, 5, 2, 5, 2, 5, 2, 5], [3, 2, 5, 2, 5]])
 
     def test_third_rule(self):
         self.assertEqual(run(fresh(lambda α: mcculloch_o([4,2,7,6,9,5], α)), n=1), [[5,9,6,7]])
 
     def test_a_curious_number_machine_chapter(self):
-
         self.assertEqual(run(fresh(lambda α: mccullocho(α, α)), n=1), [[3,2,3]]) # 1
         self.assertEqual(run(fresh(lambda α, β: conj(associateo(α, β), mccullocho(α, β))), n=1), [[3, 3, 2, 3, 3]]) # 2
         with let([3, 3, 2, 3, 3]) as N: self.assertEqual(run(fresh(lambda α: mccullocho(N, α)), n=1), [N+[2]+N]) # 2.1
@@ -281,3 +283,8 @@ class mcculloch_test(unittest.TestCase):
                          [[5, 4, 6, 4, 2, 5, 4, 6, 4, 2],
                           [4, 5, 6, 4, 2, 4, 5, 6, 4, 2],
                           [5, 4, 4, 4, 6, 4, 2, 5, 4, 4, 4, 6, 4, 2]]) # the keys!!!
+
+
+
+
+

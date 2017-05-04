@@ -43,6 +43,7 @@ class ImproperListError(ValueError):
 def list_to_cons(l, post=identity):
 
     if isinstance(l, (str, cons)): return l # we consider a `str` obj not an iterable obj but as an atom
+    elif hasattr(l, 'as_cons'): return l.as_cons(list_to_cons)
 
     λ = type(l) 
     try:

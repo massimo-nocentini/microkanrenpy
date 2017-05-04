@@ -34,6 +34,7 @@ from inspect import signature
 from functools import partial, reduce, wraps
 
 from muk.sexp import *
+from muk.utils import *
 
 
 # STATES {{{
@@ -50,6 +51,83 @@ def states_stream(g, initial_state=emptystate()):
 
 # }}}
 
+# DIFFERENCE STRUCTURES {{{
+
+class extend_list:
+
+    def __init__(self, prefix, var):
+        self.prefix = prefix
+        self.var = var
+
+    def as_cons(self, translate):
+        return translate(tuple(self.prefix + [self.var]))
+
+    def walk_star(self, W):
+        prefix = foldr(lambda c, acc: [W(c)]+acc, self.prefix, [])
+        walked_var = W(self.var)
+        return prefix + walked_var if isinstance(walked_var, list) else extend_list(prefix, walked_var)
+
+    def unification(self, other, sub, ext_s, U, E):
+        try: 
+            UEL = other._unification_extend_list
+        except AttributeError:
+            try:
+                l = len(self.prefix)
+
+                if len(other) < l: raise E
+
+                other_prefix = other[:l]
+                other_suffix = other[l:]
+            except TypeError: 
+                raise E
+            else:
+                sub_prefix = U(self.prefix, other_prefix, sub, ext_s)
+                return U(self.var, other_suffix, sub_prefix, ext_s)
+        else: 
+            return UEL(self, sub, ext_s, U)
+
+    def _unification_extend_list(self, other, sub, ext_s, U):
+
+        l = len(self.prefix)
+        if len(other.prefix) < l:
+            return other._unification_extend_list(self, sub, ext_s, U)
+        elif l < len(other.prefix):
+            other_prefix = other.prefix[:l]
+            shorter_extend_list = extend_list(prefix=other.prefix[l:], var=other.var)
+            sub_prefix = U(self.prefix, other_prefix, sub, ext_s)
+            return U(self.var, shorter_extend_list, sub_prefix, ext_s)
+        else:
+            sub_prefix = U(other.prefix, self.prefix, sub, ext_s)
+            return U(other.var, self.var, sub_prefix, ext_s)
+
+    def reify_s(self, sub, R):
+        sub_prefix = foldr(lambda c, sub: R(c, sub), self.prefix, sub)
+        return R(self.var, sub_prefix) 
+
+    def occur_check(self, u, O, E):
+        for c in self.prefix: 
+            O(u, c)
+        return O(u, self.var)
+
+    def __eq__(self, other):
+        try: eq = other.__eq__extend_list
+        except AttributeError: return False
+        else: return eq(self)
+
+    def __eq__extend_list(self, other):
+        return self.prefix == other.prefix and self.var == other.var
+
+    def __repr__(self):
+        return '{} + {}'.format(repr(self.prefix), repr(self.var))
+
+    def __radd__(self, other):
+        if isinstance(other, list):
+            return extend_list(other+self.prefix, self.var)
+
+        raise NotImplemented
+
+# }}}
+
 # VARS {{{
 
 
@@ -62,10 +140,9 @@ class var:
         self.name = name
 
     def __eq__(self, other):
-        try:
-            return other.__eq__var(self)
-        except AttributeError:
-            return False
+        try: eq = other.__eq__var
+        except AttributeError: return False
+        else: return eq(self)
 
     def __eq__var(self, other):
         return self.index == other.index and self.name == other.name
@@ -80,16 +157,7 @@ class var:
     def __radd__(self, other):
         
         if isinstance(other, list): 
-            # according to *chicken scheme*, function `append` is defined only
-            # on proper lists, unless the very last one which is allowed to be
-            # an improper list. Therefore, we discard the case of `other` to be
-            # a `tuple`, which means `other` is an improper list, so we append
-            # `self` to the end and, finally, make the entire obj a `tuple`
-            # because `self` is a logic variable that can be unified with *any*
-            # value, not just [] to be proper lists.
-            return tuple(other + [self])
-        #if isinstance(other, str): 
-            #return tuple(list(other) + [self])
+            return extend_list(prefix=other, var=self)
 
         raise NotImplemented
 
@@ -100,12 +168,9 @@ class var:
         return ext_s(self, rvar(len(sub)), sub)
 
     def unification(self, other, sub, ext_s, U, E): 
-        try:
-            UV = other._unification_var # attribute lookup to do double dispatch
-        except AttributeError:
-            return ext_s(self, other, sub)
-        else:
-            return UV(self, sub, ext_s, U)
+        try: UV = other._unification_var
+        except AttributeError: return ext_s(self, other, sub)
+        else: return UV(self, sub, ext_s, U)
 
     def _unification_var(self, other_var, sub, ext_s, U):
         return sub if self == other_var else ext_s(other_var, self, sub)
@@ -152,27 +217,21 @@ def unification(u, v, sub, ext_s):
 
     u, v = walk(u, sub), walk(v, sub)
 
-    if hasattr(u, 'unification'): 
-        try: return u.unification(v, sub, ext_s, unification, UnificationError)
-        except UnificationError: pass
+    try: 
+        return u.unification(v, sub, ext_s, unification, UnificationError)
+    except (AttributeError, UnificationError): pass
 
-    if hasattr(v, 'unification'): 
-        try: return v.unification(u, sub, ext_s, unification, UnificationError)
-        except UnificationError: pass
+    try: 
+        return v.unification(u, sub, ext_s, unification, UnificationError)
+    except (AttributeError, UnificationError): pass
 
     if  (type(u) is tuple and type(v) is tuple) or \
         (type(u) is list and type(v) is list):
-        # this branch permits either `u` or `v` to be `cons` cells too:
-        # can be source of trouble or should be a kind of generalization
-        u, v = iter(u), iter(v)
-        subr = reduce(lambda subr, pair: unification(*pair, subr, ext_s), zip(u, v), sub)
-        try: next(u)
-        except StopIteration:
-            try: next(v)
-            except StopIteration:
-                # because both iterables are empty, so there's no
-                # counterexample against their unification
-                return subr 
+
+        if len(u) != len(v): 
+            raise UnificationError
+        else:
+            return reduce(lambda subr, pair: unification(*pair, subr, ext_s), zip(u, v), sub)
     elif u == v:
         return sub
 
