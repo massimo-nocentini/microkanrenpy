@@ -10,9 +10,9 @@
 Introduction
 ------------
 
-Welcome to documentation of *ηkanrenpy*, a *pythonic* implementation of a
+Welcome to documentation of *μkanrenpy*, a *pythonic* implementation of a
 *relational interpreter* and an effort to port the `original code written in
-Scheme <ηkanren_scheme_>`_ by Jason Hemann and Daniel P. Friedman. We report
+Scheme <microkanren_scheme_>`_ by Jason Hemann and Daniel P. Friedman. We report
 their words to describe what this work is about:
 
     This paper presents μKanren, a minimalist language in the miniKanren family of
@@ -54,7 +54,7 @@ My name is Massimo Nocentini, I'm:
 .. REFERENCES {{{
 
 
-.. _ηkanren_scheme: https://github.com/jasonhemann/microKanren
+.. _microkanren_scheme: https://github.com/jasonhemann/microKanren
 .. _sphinx: http://www.sphinx-doc.org/en/stable/
 .. _unifi: http://www.unifi.it/
 

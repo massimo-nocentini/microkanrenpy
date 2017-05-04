@@ -5,7 +5,7 @@ Intro
 
 I love *Lisp*, *Python* too. The work I'm going to describe has born *for fun*,
 for my education, to bang my head against a taugh, beautiful, not so simple to
-grasp yet elegant piece of software which is *ηkanren* [HF13]_, in the
+grasp yet elegant piece of software which is *μkanren* [HF13]_, in the
 *miniKanren* [RS05]_ family of logic languages.
 
 To be honest, this documentations has many targets:
@@ -141,7 +141,7 @@ You want people to help out
 ---------------------------
 
 *You only get contributions after you have put in a lot of work.*
-    We work our ηkanren with:
+    We work our μkanren with:
         
         * the little book [RS05]_ or https://mitpress.mit.edu/books/reasoned-schemer,
           reproducing **all relations** and answering **all questions**: definitions are
@@ -155,7 +155,7 @@ You want people to help out
 
 
 *You only get contributions after you have users (aka, to whet your appetite).*
-    Although I've played with ηkanren mostly by writing down definitions in the
+    Although I've played with μkanren mostly by writing down definitions in the
     context of sexp, namely ``cons`` cells manipulations, I believe of interest
     the definition of a generic machine to be configured with *arbitrary inference
     rules*: this allows us to implement a relational interpreter for some *process
@@ -218,7 +218,7 @@ According to Will, we just review the following existing projects:
  
 `pykanren <https://github.com/jtauber/pykanren>`_
     which implements the very basic definitions of the core system of both
-    miniKanren and ηkanren: variables, unification only for `list` objects,
+    miniKanren and μkanren: variables, unification only for `list` objects,
     reification and a complete enumeration strategy in the style of [RS05]_
     without *interleaving* of satisfying substitutions. Tests are present to
     catch the essentials, no application to particular problems.
@@ -282,9 +282,9 @@ Other languages and links
 ~~~~~~~~~~~~~~~~~~~~~~~~~
 I would like to list some resources that I've discovered in the meanwhile:
 
-`ηkanren in Haskell <https://www.msully.net/blog/2015/02/26/microkanren-%CE%BCkanren-in-haskell/>`_
+`μkanren in Haskell <https://www.msully.net/blog/2015/02/26/microkanren-%CE%BCkanren-in-haskell/>`_
     a blog post by *Michael J. Sullivan*, also a `recorded talk <https://skillsmatter.com/skillscasts/6523-hello-declarative-world>`_
-`ηkanren in Ruby <https://github.com/tomstuart/kanren>`_
+`μkanren in Ruby <https://github.com/tomstuart/kanren>`_
     a Ruby implementation by *Tom Stuart*
 `Hakaru <http://indiana.edu/~ppaml/HakaruTutorial.html>`_
     an embedded probabilistic programming language in Haskell
