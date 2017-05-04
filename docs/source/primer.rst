@@ -303,10 +303,10 @@ so it follows the recursive definition, as usual:
     >>> def append(r, s, out):
     ...     def A(r, out): 
     ...         return conde([nullo(r), unify(s, out)],
-    ...                      else_clause=[fresh(lambda a, d, res:
+    ...                      else_clause=fresh(lambda a, d, res:
     ...                                            unify([a]+d, r) &
     ...                                            unify([a]+res, out) &
-    ...                                            fresh(lambda: A(d, res)))])
+    ...                                            fresh(lambda: A(d, res))))
     ...     return A(r, out)
 
 Some examples follow:
