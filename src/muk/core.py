@@ -63,9 +63,15 @@ class extend_list:
         return translate(tuple(self.prefix + [self.var]))
 
     def walk_star(self, W):
-        prefix = foldr(lambda c, acc: [W(c)]+acc, self.prefix, [])
-        walked_var = W(self.var)
-        return prefix + walked_var if isinstance(walked_var, list) else extend_list(prefix, walked_var)
+        prefix = W(self.prefix) # foldr(lambda c, acc: [W(c)]+acc, self.prefix, [])
+        walked = W(self.var)
+        
+        if isinstance(walked, extend_list):
+            return extend_list(prefix + walked.prefix, walked.var)
+        if isinstance(walked, list):
+            return prefix + walked  
+        else:
+            return extend_list(prefix, walked)
 
     def unification(self, other, sub, ext_s, U, E):
         try: 
@@ -100,12 +106,24 @@ class extend_list:
             sub_prefix = U(other.prefix, self.prefix, sub, ext_s)
             return U(other.var, self.var, sub_prefix, ext_s)
 
+    def _unification_difference_list(self, other, sub, ext_s, U):
+        return other.whole._unification_prefix_extend_list(self, sub, ext_s, U)
+
+    def _unification_prefix_extend_list(self, other, sub, ext_s, U):
+        return U(self.prefix, other, sub, ext_s)
+
+    def _unification_exclude(self, other, exclude, sub, ext_s, U):
+        if exclude == self.var:
+            return U(self.prefix, other, sub, ext_s)
+
+        raise NotImplemented
+
     def reify_s(self, sub, R):
         sub_prefix = foldr(lambda c, sub: R(c, sub), self.prefix, sub)
         return R(self.var, sub_prefix) 
 
     def occur_check(self, u, O, E):
-        for c in self.prefix: 
+        for c in self.prefix:
             O(u, c)
         return O(u, self.var)
 
@@ -125,6 +143,65 @@ class extend_list:
             return extend_list(other+self.prefix, self.var)
 
         raise NotImplemented
+
+    def __sub__(self, other):
+        if isinstance(other, var):
+            return difference_list(whole=self, suffix=other)
+
+        raise NotImplemented
+
+
+
+class difference_list:
+    
+    def __init__(self, whole, suffix):
+        self.whole = whole
+        self.suffix = suffix
+
+    def walk_star(self, W):
+        whole = W(self.whole)
+        suffix = W(self.suffix)
+        return [] if whole == suffix else difference_list(whole, suffix)
+
+    def unification(self, other, sub, ext_s, U, E):
+        try: 
+            UDL = other._unification_difference_list
+        except AttributeError:
+            if isinstance(other, list):
+                try: UP = self.whole._unification_exclude
+                except AttributeError: raise E
+                else: return UP(other, self.suffix, sub, ext_s, U)
+            else:
+                raise E
+        else: 
+            return UDL(self, sub, ext_s, U)
+
+    def _unification_difference_list(self, other, sub, ext_s, U):
+        sub_whole = U(other.whole, self.whole, sub, ext_s)
+        return U(other.suffix, self.suffix, sub_whole, ext_s)
+
+    def reify_s(self, sub, R):
+        sub_whole = R(self.whole, sub)
+        return R(self.suffix, sub_whole)
+
+    def occur_check(self, u, O, E):
+        raise NotImplemented
+
+        for c in self.prefix: 
+            O(u, c)
+        return O(u, self.var)
+
+    def __eq__(self, other):
+        try: eq = other.__eq__difference_list
+        except AttributeError: return False
+        else: return eq(self)
+
+    def __eq__difference_list(self, other):
+        return self.whole == other.whole and self.suffix == other.suffix
+
+    def __repr__(self):
+        return '({}) - {}'.format(repr(self.whole), repr(self.suffix))
+
 
 # }}}
 
@@ -158,6 +235,13 @@ class var:
         
         if isinstance(other, list): 
             return extend_list(prefix=other, var=self)
+
+        raise NotImplemented
+
+    def __sub__(self, other):
+        
+        if isinstance(other, (list, var)): 
+            return difference_list(whole=self, suffix=other)
 
         raise NotImplemented
 
@@ -251,8 +335,8 @@ def walk(u, sub):
 
 def walk_star(v, sub):
     v = walk(v, sub)
-    if isinstance(v, list): return [walk_star(u, sub) for u in v]  
-    elif hasattr(v, 'walk_star'): return v.walk_star(lambda u: walk_star(u, sub))
+    if hasattr(v, 'walk_star'): return v.walk_star(lambda u: walk_star(u, sub))
+    elif isinstance(v, (list, tuple)): return [walk_star(u, sub) for u in v]  
     else: return v
 
 class OccurCheck(ValueError):

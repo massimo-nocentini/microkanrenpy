@@ -185,3 +185,5 @@ class rel(goal):
 def lvars(vars_names, splitter=' '):
     return [var(b, n.strip()) for b, n in enumerate(vars_names.split(splitter))]
 
+def rectify(α_α, β):
+    return unify(α_α, β-[])

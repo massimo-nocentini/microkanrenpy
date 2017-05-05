@@ -1,11 +1,12 @@
 
 PYTHON = python3.6
 
-mclock:
-	$(PYTHON) -m unittest -v mclock_test.py
 
 difference_structures:
 	$(PYTHON) -m unittest -v difference_structures_test.py
+
+mclock:
+	$(PYTHON) -m unittest -v mclock_test.py
 
 muk:
 	$(PYTHON) -m unittest -v microkanren_test.py
