@@ -12,6 +12,8 @@ from muk.utils import *
 def snooze(f, formal_vars):
     return fresh(lambda: f(*formal_vars))
 
+# DISJ, CONJ, CONJI {{{
+
 def disj(*goals, interleaving=True):
     D = partial(_disj, interleaving=interleaving)
     return foldr(D, goals, initialize=fail)
@@ -22,29 +24,31 @@ def conj(*goals, interleaving=False):
 
 conji = partial(conj, interleaving=True)
 
-class _unify_pure(_unify):
-    
-    def __init__(self, u, v, occur_check):
-        super(_unify_pure, self).__init__(u, v, partial(ext_s, occur_check=occur_check))
+# }}}
 
-class _unify_occur_check(_unify_pure):
+# UNIFY, UNIFY_OCCUR_CHECK {{{
+
+class unify(_unify):
+    
+    def __init__(self, u, v, occur_check=False):
+        super(unify, self).__init__(u, v, partial(ext_s, occur_check=occur_check))
+
+class unify_occur_check(unify):
 
     def __init__(self, u, v):
-        super(_unify_occur_check, self).__init__(u, v, occur_check=True)
+        super(unify_occur_check, self).__init__(u, v, occur_check=True)
 
     def __call__(self, s : state):
         try:
-            yield from super(_unify_occur_check, self).__call__(s)
+            yield from super(unify_occur_check, self).__call__(s)
         except OccurCheck:
             yield from fail(s)
 
-@adapt_iterables_to_conses(lambda u, v, occur_check: {u, v})
-def unify(u, v, occur_check=False):
-    return _unify_pure(u, v, occur_check)
+equalo = unify
 
-@adapt_iterables_to_conses(all_arguments)
-def unify_occur_check(u, v):
-    return _unify_occur_check(u, v)
+# }}}
+
+# COND {{{
 
 def cond(*clauses, else_clause=fail, λ_if):
 
@@ -98,8 +102,9 @@ condi = partial(cond, λ_if=ifi)
 conda = partial(cond, λ_if=ifa)
 condu = partial(cond, λ_if=ifu)
 
-equalo = unify
+ # }}}
 
+# DELIMITED {{{
 
 @contextmanager
 def delimiter(d):
@@ -128,6 +133,10 @@ class delimited(goal):
         else:
             yield from fail(s)
 
+# }}}
+
+# PROJECT, REL {{{
+
 class project(goal):
 
     def __init__(self, *logic_vars, into):
@@ -155,14 +164,26 @@ class sub(goal):
         α = self.of(s) 
         yield from map(self.λ, α)
 
-def rel(r):
-    def R(res):
+class rel(goal):
+
+    def __init__(self, r, res, unify=unify):
+        self.r = r
+        self.res = res
+        self.unify = unify
+
+    def __call__(self, s : state):
+
         def recv(*args): 
-            return conj(r(*args), unify(list(args), res))
-        r_sig = signature(r)
-        return fresh(recv, arity=len(r_sig.parameters))
-    return R
+            return self.r(*args) & self.unify(list(args), self.res)
+
+        g = fresh(recv, arity=len(signature(self.r).parameters))
+        α = g(s)
+        yield from α
+
+# }}}
 
 def lvars(vars_names, splitter=' '):
     return [var(b, n.strip()) for b, n in enumerate(vars_names.split(splitter))]
 
+def rectify(α_α, β):
+    return unify(α_α, β-[])

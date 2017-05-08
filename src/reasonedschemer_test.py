@@ -3,11 +3,20 @@ import unittest, sys
 
 from muk.core import *
 from muk.ext import *
+from muk.ext import unify as _unify, unify_occur_check as _unify_occur_check
 from muk.sexp import *
 from muk.utils import *
 from reasonedschemer import *
 from reasonedschemer import _addero
 
+
+@adapt_iterables_to_conses(lambda u, v, occur_check: {u, v})
+def unify(u, v, occur_check=False):
+    return _unify(u, v, occur_check)
+
+@adapt_iterables_to_conses(all_arguments)
+def unify_occur_check(u, v):
+    return _unify_occur_check(u, v)
 
 def tea_cupo(x):
     return conde([unify('tea', x), succeed],
@@ -831,21 +840,21 @@ class reasonedschemer_test(unittest.TestCase):
                           [1,0,1], 
                           [0,1,1], 
                           [1,1,0]]) # 7.8
-        self.assertEqual(run(fresh(rel(bit_xoro))),
+        self.assertEqual(run(fresh(lambda res: rel(bit_xoro, res))),
                          [[0,0,0], 
                           [1,0,1], 
                           [0,1,1], 
                           [1,1,0]]) # 7.8.1
         self.assertEqual(run(fresh(lambda s, x, y: conj(bit_ando(x, y, 1), unify([x, y], s)))), [[1,1]]) # 7.11
         self.assertEqual(run(fresh(lambda r: half_addero(1, 1, r, 1))), [0]) # 7.12
-        self.assertEqual(run(fresh(rel(half_addero))), 
+        self.assertEqual(run(fresh(lambda res: rel(half_addero, res))), 
                          [[0,0,0,0],
                           [1,0,1,0],
                           [0,1,1,0],
                           [1,1,0,1]]) # 7.13
         self.assertEqual(run(fresh(lambda s, r, c: conj(full_addero(0, 1, 1, r, c), unify([r,c], s)))), [[0,1]]) # 7.15
         self.assertEqual(run(fresh(lambda s, r, c: conj(full_addero(1, 1, 1, r, c), unify([r,c], s)))), [[1,1]]) # 7.16
-        self.assertEqual(run(fresh(rel(full_addero))), 
+        self.assertEqual(run(fresh(lambda res: rel(full_addero, res))), 
                          [
                          [0,0,0,0,0],
                          [1,0,0,1,0],
@@ -1230,7 +1239,7 @@ class reasonedschemer_test(unittest.TestCase):
         with self.assertRaises(RecursionError): run(fresh(lambda n: length_lto(n, n)), n=1) # 8.37
 
     def test_length_leqo(self):
-        self.assertEqual(run(fresh(rel(lengthe_leqo)), n=8), 
+        self.assertEqual(run(fresh(lambda res: rel(lengthe_leqo, res, unify)), n=8), 
                          [[[], []], 
                           [[1], [1]], 
                           [[rvar(0), 1], [rvar(1), 1]], 
@@ -1252,7 +1261,7 @@ class reasonedschemer_test(unittest.TestCase):
                           [[0, 0, 0, 1], [0, 0, 0, 0, 1]], 
                           [[1, rvar(0), rvar(1), 1], [0, 1, rvar(0), rvar(1), 1]], 
                           [[0, 1, rvar(0), 1], [0, 0, 1, rvar(0), 1]]]) # 8.43
-        self.assertEqual(run(fresh(rel(lengthi_leqo)), n=15), 
+        self.assertEqual(run(fresh(lambda res: rel(lengthi_leqo, res, unify=unify)), n=15), 
                          [[[], []], 
                           [[], (rvar(0), rvar(1))], 
                           [[1], [1]], 
@@ -1279,7 +1288,7 @@ class reasonedschemer_test(unittest.TestCase):
 
 
     def test_divmodo(self):
-        self.assertEqual(run(fresh(rel(divmodo)), n=15),
+        self.assertEqual(run(fresh(lambda res: rel(divmodo, res, unify=unify)), n=15),
                          [[[], (rvar(0), rvar(1)), [], []],
                           [(rvar(0), rvar(1)), (rvar(0), rvar(1)), [1], []], # instead of [[1], [1], [1], []],
                           [[0, 1], [1, 1], [], [0, 1]],
@@ -1299,7 +1308,6 @@ class reasonedschemer_test(unittest.TestCase):
         with self.assertRaises(RecursionError):
             run(fresh(lambda t, y, z: conj(divmodo((1, 0, y), [0, 1], z, []), unify([y, z], t))), n=3) # 8.81.1
         self.assertEqual(run(fresh(lambda t, y, z: conj(divmod_proo((1, 0, y), [0, 1], z, []), unify([y, z], t))), n=3), []) # 8.81.2
-        #with self.assertRaises(RecursionError):
         with recursion_limit(100000):
             self.assertEqual(run(fresh(lambda dm, q, r: conj(divmodo(83, 6, q, r), unify([q, r], dm)))), [[int_to_list(13), int_to_list(5)]])
             self.assertEqual(run(fresh(lambda dm, q, r: conj(divmod_proo(83, 6, q, r), unify([q, r], dm))), n=1), [[int_to_list(13), int_to_list(5)]])

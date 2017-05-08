@@ -2,6 +2,15 @@
 from muk.sexp import *
 from muk.core import *
 from muk.ext import *
+from muk.ext import unify as _unify, unify_occur_check as _unify_occur_check
+
+@adapt_iterables_to_conses(lambda u, v, occur_check: {u, v})
+def unify(u, v, occur_check=False):
+    return _unify(u, v, occur_check)
+
+@adapt_iterables_to_conses(all_arguments)
+def unify_occur_check(u, v):
+    return _unify_occur_check(u, v)
 
 @adapt_iterables_to_conses(all_arguments)
 def nullo(l):

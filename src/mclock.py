@@ -1,30 +1,25 @@
 
-from muk.sexp import *
 from muk.core import *
 from muk.ext import *
 
 def machine(*, rules):
-    @adapt_iterables_to_conses(all_arguments)
     def M(α, β):
         return condi(*[[r(α, β, machine=M), succeed] for r in rules])
     return M
 
-@adapt_iterables_to_conses(all_arguments)
 def nullo(l):
     return unify([], l)
 
-@adapt_iterables_to_conses(all_arguments)
 def appendo(r, s, out):
     
     def A(r, out):
         return conde([nullo(r), unify(s, out)],
                      else_clause=fresh(lambda a, d, res: 
-                                            unify([a]+d, r) & 
-                                            unify([a]+res, out) & 
+                                            unify([a]+d, r) @
+                                            unify([a]+res, out) @
                                             fresh(lambda: A(d, res))))
     return A(r, out)
 
-@adapt_iterables_to_conses(all_arguments)
 def reverseo(a, l):
     return conde([nullo(a), nullo(l)],
                  else_clause=fresh(lambda car, cdr, res: 
@@ -32,15 +27,12 @@ def reverseo(a, l):
                                         appendo(res, [car], l) @
                                         fresh(lambda: reverseo(cdr, res))))
 
-@adapt_iterables_to_conses(all_arguments)
 def associateo(γ, γ2γ):
     return appendo(γ, [2]+γ, γ2γ)
 
-@adapt_iterables_to_conses(all_arguments)
 def symmetrico(α):
     return reverseo(α, α)
 
-@adapt_iterables_to_conses(all_arguments)
 def repeato(γ, γγ):
     return appendo(γ, γ, γγ)
 
@@ -71,7 +63,6 @@ def mcculloch_lawo(γ, αγ, *, machine=mccullocho):
                            complement(nullo(γ)) @
                            machine(γ, αγ))
 
-@adapt_iterables_to_conses(lambda α, l: {α})
 def lengtho(α, l):
 
     def L(α, *, acc):
@@ -88,7 +79,6 @@ mcculloch_o = machine(rules=[ mcculloch_second_ruleo, mcculloch_third_ruleo, mcc
 mcculloch__o = machine(rules=[ mcculloch_second_ruleo, mcculloch_fourth_ruleo, 
                                 mcculloch_third_ruleo, mcculloch_first_ruleo, ])
 
-@adapt_iterables_to_conses(all_arguments)
 def opnumbero(α):
      return disj(nullo(α), fresh(lambda a, β: 
                                     appendo(β, [a], α) @
