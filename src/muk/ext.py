@@ -9,9 +9,6 @@ from muk.core import _conj, _disj, _unify
 from muk.utils import *
 
 
-def snooze(f, formal_vars):
-    return fresh(lambda: f(*formal_vars))
-
 # DISJ, CONJ, CONJI {{{
 
 def disj(*goals, interleaving=True):
