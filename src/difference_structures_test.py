@@ -64,8 +64,6 @@ class difference_structures_test(unittest.TestCase):
         self.assertEqual(run(fresh(lambda out, X, Y, α, β:  appendo(([1,2,3]+α)-α, ([4,5,6]+β)-β, X-Y) & 
                                                             unify([X, Y], out))), 
                          [[[1, 2, 3, 4, 5, 6] + rvar(0), rvar(0)]])
-        self.assertEqual(run(fresh(lambda αβ, α, β: appendo(([i for i in range(1000)]+α)-α, ([-1]+β)-β, αβ))), 
-                        [])
 
 
 
