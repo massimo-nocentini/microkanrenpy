@@ -178,15 +178,24 @@ recursive relation, possibly satisfied by a countably infinite number of values.
 
 ``conde``
 ~~~~~~~~~
-The following simple example resembles facts declaration in Prolog:
+The following simple example resembles facts declaration in Prolog about the father and
+grandfather toy example:
 
 .. doctest::
 
-    >>> run(fresh(lambda q: conde([unify(q, 'orange'), succeed],
-    ...                           [unify(q, 'lemon'), fail],
-    ...                           [unify(q, 'pear'), succeed],
-    ...                           [unify(q, 'apple'), succeed])))
-    ['orange', 'pear', 'apple']
+    >>> def father(p, s):
+    ...     return conde([unify(p, 'paul'), unify(s, 'jason')],
+    ...                  [unify(p, 'john'), unify(s, 'henry')],
+    ...                  [unify(p, 'jason'), unify(s, 'tom')],
+    ...                  [unify(p, 'peter'), unify(s, 'brian')],
+    ...                  [unify(p, 'tom'), unify(s, 'peter')])
+    ...
+    >>> def grand_father(g, s):
+    ...     return fresh(lambda p: father(g, p) & father(p, s))
+    ...
+    >>> run(fresh(lambda rel, p, s: grand_father(p, s) & unify([p, s], rel)))
+    [['paul', 'tom'], ['jason', 'peter'], ['tom', 'brian']]
+
 
 ``η-inversion``
 ~~~~~~~~~~~~~~~  
@@ -331,5 +340,35 @@ Some examples follow:
      [['cake', 'with', 'ice', 'd', 't'], []]]
         
 
+Interleaving
+~~~~~~~~~~~~
 
+In the following example we use ``conde`` to stay on a cond line when it
+supplies multiple satisfying states, here infinite by the way:
 
+.. doctest::
+
+    >>> def facts(x):
+    ...     return conde([unify(x, 'hello'), succeed],
+    ...                  [unify(x, 'pluto'), succeed],
+    ...                  [unify(x, 5), fives(x)],
+    ...                  [unify(x, 'topolino'), succeed],
+    ...                  else_clause=unify(x, 'paperone'))
+    ...
+    >>> run(fresh(lambda x: facts(x)), n=10)
+    ['hello', 'pluto', 5, 5, 5, 5, 5, 5, 5, 5]
+
+On the other hand, ``condi`` allows us to explore the solutions space by
+interleaving:
+
+.. doctest::
+
+    >>> def facts(x):
+    ...     return condi([unify(x, 'hello'), succeed],
+    ...                  [unify(x, 'pluto'), succeed],
+    ...                  [unify(x, 5), fives(x)],
+    ...                  [nats(x), succeed],
+    ...                  else_clause=unify(x, 'paperone'))
+    ...
+    >>> run(fresh(lambda x: facts(x)), n=15)
+    ['hello', 'pluto', 5, 0, 5, 'paperone', 5, 1, 5, 2, 5, 3, 5, 4, 5]
