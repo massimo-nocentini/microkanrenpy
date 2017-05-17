@@ -372,3 +372,87 @@ interleaving:
     ...
     >>> run(fresh(lambda x: facts(x)), n=15)
     ['hello', 'pluto', 5, 0, 5, 'paperone', 5, 1, 5, 2, 5, 3, 5, 4, 5]
+
+Let us now define a relation that succeeds by unifying the given 
+variable with some plugged in object, infinitely many times:
+
+.. doctest::
+
+    >>> def repeat(r):
+    ...     def R(x):
+    ...         return unify(x, r) | fresh(lambda: R(x))
+    ...     return R
+    ...
+
+consequently, use it to define four streams:
+
+.. doctest::
+
+    >>> ones = repeat(1)
+    >>> twos = repeat(2)
+    >>> threes = repeat(3)
+    >>> fours = repeat(4)
+
+Now ask for the first 20 associations that satisfy their ``condi`` combination:
+
+.. doctest::
+
+    >>> run(fresh(lambda q: condi([succeed, ones(q)],
+    ...                           [succeed, twos(q)],
+    ...                           [succeed, threes(q)],
+    ...                           [succeed, fours(q)],)), n=20)
+    ...
+    [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
+
+in parallel, swapping questions with answers doens't change the result:
+
+.. doctest::
+
+    >>> run(fresh(lambda q: condi([ones(q), succeed],
+    ...                           [twos(q), succeed],
+    ...                           [threes(q), succeed],
+    ...                           [fours(q), succeed],)), n=20)
+    ...
+    [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
+
+On the other hand, combining streams with ``disj`` yields a different output
+because this disjunction operator associates on the right:
+
+.. doctest::
+
+    >>> run(fresh(lambda q: disj(ones(q), twos(q), threes(q), fours(q))), n=20)
+    [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
+
+Finally, combining streams with the binary operator ``|`` yields a yet different
+result because this disjunction operator associates on the left:
+
+.. doctest::
+
+    >>> run(fresh(lambda q: ones(q) | twos(q) | threes(q) | fours(q)), n=20)
+    [1, 4, 3, 4, 2, 4, 3, 4, 1, 4, 3, 4, 2, 4, 3, 4, 1, 4, 3, 4]
+
+Difference structures
+~~~~~~~~~~~~~~~~~~~~~
+
+
+The following implementation of ``appendo`` uses *difference lists*:
+
+.. doctest::
+
+    >>> def appendo(X, Y, XY):
+    ...     return fresh(lambda α, β, γ: unify(X, α-β) & 
+    ...                                  unify(Y, β-γ) & 
+    ...                                  unify(XY, α-γ))
+    ...
+
+and can be used as follows:
+
+.. doctest::
+
+    >>> run(fresh(lambda αβ, α, β: appendo(([1,2,3]+α)-α, ([4,5,6]+β)-β, αβ)))
+    [([1, 2, 3, 4, 5, 6] + ▢₀) - ▢₀]
+    >>> run(fresh(lambda out, X, Y, α, β:  
+    ...         appendo(([1,2,3]+α)-α, ([4,5,6]+β)-β, X-Y) & 
+    ...         unify([X, Y], out)))
+    [[[1, 2, 3, 4, 5, 6] + ▢₀, ▢₀]]
+
