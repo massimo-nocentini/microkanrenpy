@@ -425,6 +425,7 @@ because this disjunction operator associates on the right:
 
 Finally, it is possible to request a *fair enumeration* by *dovetail* strategy,
 setting the keyword argument ``dovetail=True``:
+
 .. doctest::
 
     >>> run(fresh(lambda q: disj(ones(q), twos(q), threes(q), fours(q), 
