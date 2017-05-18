@@ -11,9 +11,14 @@ from muk.utils import *
 
 # DISJ, CONJ, CONJI {{{
 
-def disj(*goals, interleaving=True):
-    D = partial(_disj, interleaving=interleaving)
-    return foldr(D, goals, initialize=fail)
+def disj(*goals, interleaving=True, dovetail=False):
+    if dovetail:
+        def D(s : state):
+            return mplus((α for g in goals for α in [g(s)]), interleaving=True)
+        return D
+    else:
+        D = partial(_disj, interleaving=interleaving)
+        return foldr(D, goals, initialize=fail)
 
 def conj(*goals, interleaving=False):
     C = partial(_conj, interleaving=interleaving)

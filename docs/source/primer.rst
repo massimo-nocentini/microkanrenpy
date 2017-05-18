@@ -423,8 +423,17 @@ because this disjunction operator associates on the right:
     >>> run(fresh(lambda q: disj(ones(q), twos(q), threes(q), fours(q))), n=20)
     [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
 
-Finally, combining streams with the binary operator ``|`` yields a yet different
-result because this disjunction operator associates on the left:
+Finally, it is possible to request a *fair enumeration* by *dovetail* strategy,
+setting the keyword argument ``dovetail=True``:
+.. doctest::
+
+    >>> run(fresh(lambda q: disj(ones(q), twos(q), threes(q), fours(q), 
+    ...                          dovetail=True)), n=20)
+    [1, 2, 1, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3]
+
+As the last but one example, combining streams with the binary operator ``|``
+yields a yet different result because this disjunction operator associates on
+the left:
 
 .. doctest::
 
