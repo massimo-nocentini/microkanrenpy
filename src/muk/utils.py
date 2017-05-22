@@ -3,6 +3,9 @@ import sys
 
 from itertools import tee
 from contextlib import contextmanager
+from collections import OrderedDict
+
+numerical_subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
 
 def identity(a):
     return a
@@ -44,3 +47,19 @@ def recursion_limit(n):
 def let(*args):
     yield (args[0] if len(args) == 1 else args)
 
+def subscript_notation(obj, subscript):
+    return '{}{}'.format(str(obj), ''.join(numerical_subscripts[c] for c in str(subscript)))
+
+class groups_with_positions_notation:
+
+    def __init__(self, iterable):
+        M = OrderedDict()
+        for i, o in enumerate(iterable):
+            if o not in M: M[o] = [] 
+            M[o].append(subscript_notation(o, i))
+        
+        self.M = M
+        self.representation = '\n'.join([', '.join(v) for k, v in M.items()])
+
+    def __repr__(self):
+        return self.representation

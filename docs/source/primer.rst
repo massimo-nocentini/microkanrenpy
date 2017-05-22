@@ -16,6 +16,7 @@ First of all we start importing objects and definitions of the logic system:
 
     >>> from muk.core import *
     >>> from muk.ext import *
+    >>> from muk.utils import *
 
 
 We use the interface function :py:func:`run <muk.core.run>` to ask for
@@ -343,38 +344,9 @@ Some examples follow:
 Interleaving
 ~~~~~~~~~~~~
 
-In the following example we use ``conde`` to stay on a cond line when it
-supplies multiple satisfying states, here infinite by the way:
-
-.. doctest::
-
-    >>> def facts(x):
-    ...     return conde([unify(x, 'hello'), succeed],
-    ...                  [unify(x, 'pluto'), succeed],
-    ...                  [unify(x, 5), fives(x)],
-    ...                  [unify(x, 'topolino'), succeed],
-    ...                  else_clause=unify(x, 'paperone'))
-    ...
-    >>> run(fresh(lambda x: facts(x)), n=10)
-    ['hello', 'pluto', 5, 5, 5, 5, 5, 5, 5, 5]
-
-On the other hand, ``condi`` allows us to explore the solutions space by
-interleaving:
-
-.. doctest::
-
-    >>> def facts(x):
-    ...     return condi([unify(x, 'hello'), succeed],
-    ...                  [unify(x, 'pluto'), succeed],
-    ...                  [unify(x, 5), fives(x)],
-    ...                  [nats(x), succeed],
-    ...                  else_clause=unify(x, 'paperone'))
-    ...
-    >>> run(fresh(lambda x: facts(x)), n=15)
-    ['hello', 'pluto', 5, 0, 5, 'paperone', 5, 1, 5, 2, 5, 3, 5, 4, 5]
-
-Let us now define a relation that succeeds by unifying the given 
-variable with some plugged in object, infinitely many times:
+Let us now define an operator ``repeat`` which makes relations that succeed by
+unifying the curried variable with some plugged in object, infinitely many
+times:
 
 .. doctest::
 
@@ -384,7 +356,7 @@ variable with some plugged in object, infinitely many times:
     ...     return R
     ...
 
-consequently, use it to define four streams:
+consequently, use it to define four streams of numbers:
 
 .. doctest::
 
@@ -393,53 +365,124 @@ consequently, use it to define four streams:
     >>> threes = repeat(3)
     >>> fours = repeat(4)
 
-Now ask for the first 20 associations that satisfy their ``condi`` combination:
+
+In the following example we use ``conde``, which yields solutions of a cond
+line staying there when that line supplies multiple satisfying states, here
+infinite when it meets ``fives``, by the way:
+
+.. doctest::
+
+    >>> def facts(x):
+    ...     return conde([unify(x, 'hello'), succeed],
+    ...                  [unify(x, 'pluto'), succeed],
+    ...                  [fives(x), succeed],
+    ...                  [unify(x, 'topolino'), succeed],
+    ...                  else_clause=unify(x, 'paperone'))
+    ...
+    >>> run(fresh(lambda x: facts(x)), n=10)
+    ['hello', 'pluto', 5, 5, 5, 5, 5, 5, 5, 5]
+    >>> groups_with_positions_notation(_)
+    hello₀
+    pluto₁
+    5₂, 5₃, 5₄, 5₅, 5₆, 5₇, 5₈, 5₉
+
+
+On the other hand, ``condi`` allows us to explore the solutions space by interleaving:
+
+.. doctest::
+
+    >>> def facts(x):
+    ...     return condi([unify(x, 'hello'), succeed],
+    ...                  [unify(x, 'pluto'), succeed],
+    ...                  [fives(x), succeed],
+    ...                  [ones(x), succeed],
+    ...                  else_clause=unify(x, 'paperone'))
+    ...
+    >>> run(fresh(lambda x: facts(x)), n=15)
+    ['hello', 'pluto', 5, 1, 5, 'paperone', 1, 5, 1, 5, 1, 5, 1, 5, 1]
+    >>> groups_with_positions_notation(_)
+    hello₀
+    pluto₁
+    5₂, 5₄, 5₇, 5₉, 5₁₁, 5₁₃
+    1₃, 1₆, 1₈, 1₁₀, 1₁₂, 1₁₄
+    paperone₅
+
+Now, use only streams of numbers defined before and ask for the first 20
+associations that satisfy their ``condi`` combination, providing the keyword argument ``dovetail=False``
+which *associates streams on the right*:
 
 .. doctest::
 
     >>> run(fresh(lambda q: condi([succeed, ones(q)],
     ...                           [succeed, twos(q)],
     ...                           [succeed, threes(q)],
-    ...                           [succeed, fours(q)],)), n=20)
+    ...                           [succeed, fours(q)], 
+    ...                           dovetail=False)), n=20)
     ...
     [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
+    >>> groups_with_positions_notation(_)
+    1₀, 1₂, 1₄, 1₆, 1₈, 1₁₀, 1₁₂, 1₁₄, 1₁₆, 1₁₈
+    2₁, 2₅, 2₉, 2₁₃, 2₁₇
+    3₃, 3₁₁, 3₁₉
+    4₇, 4₁₅
 
-in parallel, swapping questions with answers doens't change the result:
+on the contrary, using ``dovetail=True`` allows us to get a more balanced
+interleaving (this is the default behaviour):
 
 .. doctest::
 
-    >>> run(fresh(lambda q: condi([ones(q), succeed],
-    ...                           [twos(q), succeed],
-    ...                           [threes(q), succeed],
-    ...                           [fours(q), succeed],)), n=20)
+    >>> run(fresh(lambda q: condi([succeed, ones(q)],
+    ...                           [succeed, twos(q)],
+    ...                           [succeed, threes(q)],
+    ...                           [succeed, fours(q)])), n=20)
     ...
-    [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
+    [1, 2, 1, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3]
+    >>> groups_with_positions_notation(_)
+    1₀, 1₂, 1₅, 1₉, 1₁₃, 1₁₇
+    2₁, 2₄, 2₈, 2₁₂, 2₁₆
+    3₃, 3₇, 3₁₁, 3₁₅, 3₁₉
+    4₆, 4₁₀, 4₁₄, 4₁₈
 
-On the other hand, combining streams with ``disj`` yields a different output
-because this disjunction operator associates on the right:
-
-.. doctest::
-
-    >>> run(fresh(lambda q: disj(ones(q), twos(q), threes(q), fours(q))), n=20)
-    [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
-
-Finally, it is possible to request a *fair enumeration* by *dovetail* strategy,
-setting the keyword argument ``dovetail=True``:
+Previous expression is equivalent to combining streams with ``disj`` getting
+the same behavior of the last but one using the same keyword argument:
 
 .. doctest::
 
     >>> run(fresh(lambda q: disj(ones(q), twos(q), threes(q), fours(q), 
-    ...                          dovetail=True)), n=20)
+    ...                          dovetail=False)), n=20)
+    [1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]
+    >>> groups_with_positions_notation(_)
+    1₀, 1₂, 1₄, 1₆, 1₈, 1₁₀, 1₁₂, 1₁₄, 1₁₆, 1₁₈
+    2₁, 2₅, 2₉, 2₁₃, 2₁₇
+    3₃, 3₁₁, 3₁₉
+    4₇, 4₁₅
+
+Finally, it is possible to request a *fair enumeration* by *dovetail* strategy,
+setting the keyword argument ``dovetail=True``, which is the default behavior:
+
+.. doctest::
+
+    >>> run(fresh(lambda q: disj(ones(q), twos(q), threes(q), fours(q))), n=20)
     [1, 2, 1, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3]
+    >>> groups_with_positions_notation(_)
+    1₀, 1₂, 1₅, 1₉, 1₁₃, 1₁₇
+    2₁, 2₄, 2₈, 2₁₂, 2₁₆
+    3₃, 3₇, 3₁₁, 3₁₅, 3₁₉
+    4₆, 4₁₀, 4₁₄, 4₁₈
 
 As the last but one example, combining streams with the binary operator ``|``
-yields a yet different result because this disjunction operator associates on
-the left:
+yields a yet different result because the *disjunction binary operator
+associates on the left*:
 
 .. doctest::
 
     >>> run(fresh(lambda q: ones(q) | twos(q) | threes(q) | fours(q)), n=20)
     [1, 4, 3, 4, 2, 4, 3, 4, 1, 4, 3, 4, 2, 4, 3, 4, 1, 4, 3, 4]
+    >>> groups_with_positions_notation(_)
+    1₀, 1₈, 1₁₆
+    4₁, 4₃, 4₅, 4₇, 4₉, 4₁₁, 4₁₃, 4₁₅, 4₁₇, 4₁₉
+    3₂, 3₆, 3₁₀, 3₁₄, 3₁₈
+    2₄, 2₁₂
 
 Difference structures
 ~~~~~~~~~~~~~~~~~~~~~

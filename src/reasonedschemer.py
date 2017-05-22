@@ -376,18 +376,13 @@ def lto(n, m):
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def leq(n, m):
-    return disj(unify(n, m), lto(n, m))
-    return condi([unify(n, m), succeed],
-                 [lto(n, m), succeed])
+    return equalo(n, m) | lto(n, m)
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def divmodo(n, m, q, r):
     return condi([zeroo(q), unify(n, r) & lto(r, m)],
                  [oneo(q) & zeroo(r), equalo(n, m) & lto(r, m)], 
-                 [lto(m, n) & lto(r, m), fresh(lambda mq: 
-                                                conj(length_equalo(mq, n),
-                                                     multiplyo(m, q, mq),
-                                                     pluso(mq, r, n)))])
+                 [lto(m, n) & lto(r, m), fresh(lambda mq: length_equalo(mq, n) & multiplyo(m, q, mq) & pluso(mq, r, n))])
 
 @adapt_iterables_to_conses(all_arguments, ctor=num.build)
 def divmod_proo(n, m, q, r):

@@ -11,14 +11,21 @@ from muk.utils import *
 
 # DISJ, CONJ, CONJI {{{
 
-def disj(*goals, interleaving=True, dovetail=False):
-    if dovetail:
-        def D(s : state):
-            return mplus((α for g in goals for α in [g(s)]), interleaving=True)
-        return D
-    else:
-        D = partial(_disj, interleaving=interleaving)
-        return foldr(D, goals, initialize=fail)
+class disj(goal):
+    
+    def __init__(self, *goals, interleaving=True, dovetail=True):
+        self.goals = goals
+        self.interleaving = interleaving
+        self.dovetail = dovetail
+
+    def __call__(self, s : state):
+        if self.dovetail: # dovetail entails interleaving
+            yield from mplus((α for g in self.goals for α in [g(s)]), interleaving=True)
+        else:
+            D = partial(_disj, interleaving=self.interleaving)
+            g = foldr(D, self.goals, initialize=fail)
+            α = g(s)
+            yield from α
 
 def conj(*goals, interleaving=False):
     C = partial(_conj, interleaving=interleaving)
@@ -51,6 +58,14 @@ equalo = unify
 # }}}
 
 # COND {{{
+
+def _cond(*clauses, else_clause=fail, interleaving=None, dovetail=True):
+    body = clauses + ([succeed, else_clause], )
+    def λ(clause):
+        question, answer = clause
+        return question & answer
+    D = partial(disj, interleaving=interleaving, dovetail=dovetail if interleaving else False)
+    return D(*map(λ, body))
 
 def cond(*clauses, else_clause=fail, λ_if):
 
@@ -99,8 +114,10 @@ ifa = partial(if_softcut, doer=lambda r, α, answer:
         bind(chain([r], α), answer, mplus=partial(mplus, interleaving=False)))
 ifu = partial(if_softcut, doer=lambda r, α, answer: answer(r))
 
-conde = partial(cond, λ_if=ife)
-condi = partial(cond, λ_if=ifi)
+conde = partial(_cond, interleaving=False)
+condi = partial(_cond, interleaving=True)
+conde_unfair = partial(cond, λ_if=ife)
+condi_unfair = partial(cond, λ_if=ifi)
 conda = partial(cond, λ_if=ifa)
 condu = partial(cond, λ_if=ifu)
 
@@ -189,3 +206,6 @@ def lvars(vars_names, splitter=' '):
 
 def rectify(α_α, β):
     return unify(α_α, β-[])
+
+
+

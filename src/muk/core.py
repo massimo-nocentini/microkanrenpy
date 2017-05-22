@@ -210,8 +210,6 @@ class difference_list:
 
 class var:
 
-    _subscripts = {'0':'₀', '1':'₁','2':'₂','3':'₃','4':'₄','5':'₅','6':'₆','7':'₇','8':'₈','9':'₉'}
-
     def __init__(self, index, name):
         self.index = index
         self.name = name
@@ -229,7 +227,7 @@ class var:
         return hash(t)
 
     def __repr__(self):
-        return '{}{}'.format(self.name, ''.join(self._subscripts[c] for c in str(self.index)))
+        return subscript_notation(self.name, self.index)
 
     def __radd__(self, other):
         

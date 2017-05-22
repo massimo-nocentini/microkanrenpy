@@ -919,7 +919,29 @@ class reasonedschemer_test(unittest.TestCase):
                           [(1, 1, 0, rvar(0), rvar(1)), [1], (0, 0, 1, rvar(0), rvar(1))],
                           [[1], [1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1]]]
         self.assertEqual(run(fresh(lambda s, x, y, r: conj(addero(0, x, y, r), 
-                                                           unify([x, y, r], s))), n=22), answer_7_101) # 7.101
+                                                           unify([x, y, r], s))), n=22), 
+                            [[rvar(0), [], rvar(0)],
+                             [[], (rvar(0), rvar(1)), (rvar(0), rvar(1))],
+                             [[1], [1], [0, 1]],
+                             [[1], (0, rvar(0), rvar(1)), (1, rvar(0), rvar(1))],
+                             [(0, rvar(0), rvar(1)), [1], (1, rvar(0), rvar(1))],
+                             [[1], [1, 1], [0, 0, 1]],
+                             [[0, 1], [0, 1], [0, 0, 1]],
+                             [[1, 1], [1], [0, 0, 1]],
+                             [[1], (1, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))],
+                             [[1, 1], [0, 1], [1, 0, 1]],
+                             [(1, 0, rvar(0), rvar(1)), [1], (0, 1, rvar(0), rvar(1))],
+                             [[1], [1, 1, 1], [0, 0, 0, 1]],
+                             [[0, 1], (0, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))],
+                             [[1, 1, 1], [1], [0, 0, 0, 1]],
+                             [[1], (1, 1, 0, rvar(0), rvar(1)), (0, 0, 1, rvar(0), rvar(1))],
+                             [[0, 1], [1, 1], [1, 0, 1]],
+                             [(1, 1, 0, rvar(0), rvar(1)), [1], (0, 0, 1, rvar(0), rvar(1))],
+                             [[1], [1, 1, 1, 1], [0, 0, 0, 0, 1]],
+                             [[1, 1], (0, 0, rvar(0), rvar(1)), (1, 1, rvar(0), rvar(1))],
+                             [[1, 1, 1, 1], [1], [0, 0, 0, 0, 1]],
+                             [[1], (1, 1, 1, 0, rvar(0), rvar(1)), (0, 0, 0, 1, rvar(0), rvar(1))],
+                             [(0, 0, rvar(0), rvar(1)), [0, 1], (0, 1, rvar(0), rvar(1))]]) # 7.101
 
         self.assertEqual(run(fresh(lambda s: _addero(1, [0, 1, 1], [1, 1], s))), [[0, 1, 0, 1]]) # 7.120
         self.assertEqual(run(fresh(lambda s, x, y: conj(addero(0, x, y, [1, 0, 1]), unify([x, y], s)))),
@@ -960,7 +982,29 @@ class reasonedschemer_test(unittest.TestCase):
                           [(1, 1, 0, rvar(0), rvar(1)), [1], (0, 0, 1, rvar(0), rvar(1))],
                           [[1], [1, 1, 1, 1, 1, 1], [0, 0, 0, 0, 0, 0, 1]]]
         self.assertEqual(run(fresh(lambda s, x, y, r: conj(addereo(0, x, y, r), 
-                                                           unify([x, y, r], s))), n=22), answer_10_61) # 10.61
+                                                           unify([x, y, r], s))), n=22), 
+                            [[rvar(0), [], rvar(0)],
+                             [[], (rvar(0), rvar(1)), (rvar(0), rvar(1))],
+                             [[1], [1], [0, 1]],
+                             [[1], (0, rvar(0), rvar(1)), (1, rvar(0), rvar(1))],
+                             [(0, rvar(0), rvar(1)), [1], (1, rvar(0), rvar(1))],
+                             [[1], [1, 1], [0, 0, 1]],
+                             [[0, 1], [0, 1], [0, 0, 1]],
+                             [[1, 1], [1], [0, 0, 1]],
+                             [[1], (1, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))],
+                             [[0, 1], (0, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))],
+                             [(1, 0, rvar(0), rvar(1)), [1], (0, 1, rvar(0), rvar(1))],
+                             [[1], [1, 1, 1], [0, 0, 0, 1]],
+                             [(0, 0, rvar(0), rvar(1)), [0, 1], (0, 1, rvar(0), rvar(1))],
+                             [[1, 1, 1], [1], [0, 0, 0, 1]],
+                             [[1], (1, 1, 0, rvar(0), rvar(1)), (0, 0, 1, rvar(0), rvar(1))],
+                             [[0, 1], [0, 1, 1], [0, 0, 0, 1]],
+                             [(1, 1, 0, rvar(0), rvar(1)), [1], (0, 0, 1, rvar(0), rvar(1))],
+                             [[1], [1, 1, 1, 1], [0, 0, 0, 0, 1]],
+                             [[0, 0, 1], [0, 0, 1], [0, 0, 0, 1]],
+                             [[1, 1, 1, 1], [1], [0, 0, 0, 0, 1]],
+                             [[1], (1, 1, 1, 0, rvar(0), rvar(1)), (0, 0, 0, 1, rvar(0), rvar(1))],
+                             [[0, 1, 1], [0, 1], [0, 0, 0, 1]]]) # 10.61
         #self.assertNotIn([[0, 1], (0, 0, rvar(0), rvar(1)), (0, 1, rvar(0), rvar(1))], answer_7_101)
         #self.assertNotIn([(0, 0, rvar(0), rvar(1)), [0, 1], (0, 1, rvar(0), rvar(1))], answer_7_101)
         #self.assertNotIn([[0, 1], [0, 1, 1], [0, 0, 0, 1]], answer_7_101)
@@ -1161,8 +1205,7 @@ class reasonedschemer_test(unittest.TestCase):
             run(fresh(lambda q: gentesto(pluseo, [0, 1], [1, 1], [1, 0, 1])), n=1)
 
     def test_multiplyo(self):
-        self.assertEqual(run(fresh(lambda t, x, y, r: conj(multiplyo(x, y, r), unify([x, y, r], t))), n=34),
-                         [[[], rvar(0), []],
+        answer_8_1 = [[[], rvar(0), []],
                           [(rvar(0), rvar(1)), [], []],
                           [[1], (rvar(0), rvar(1)), (rvar(0), rvar(1))],
                           [(rvar(0), rvar(1)), [1], (rvar(0), rvar(1))], # instead of [(rvar(0), rvar(1), rvar(2)), [1], (rvar(0), rvar(1), rvar(2))], againt The Reasoned Schemer
@@ -1195,7 +1238,42 @@ class reasonedschemer_test(unittest.TestCase):
                           [(0, 0, 1, rvar(0), rvar(1)), [0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))],
                           [[1, 1], [1, 0, 1, 1], [1, 1, 1, 0, 0, 1]],
                           [(0, 1, rvar(0), rvar(1)), [0, 0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))],
-                          [(1, rvar(0), rvar(1)), [0, 0, 0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))]]) # 8.1
+                          [(1, rvar(0), rvar(1)), [0, 0, 0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))]]
+        self.assertEqual(run(fresh(lambda t, x, y, r: conj(multiplyo(x, y, r), unify([x, y, r], t))), n=34),
+                            [[[], rvar(0), []],
+                             [(rvar(0), rvar(1)), [], []],
+                             [[1], (rvar(0), rvar(1)), (rvar(0), rvar(1))],
+                             [(rvar(0), rvar(1)), [1], (rvar(0), rvar(1))],
+                             [[0, 1], (rvar(0), rvar(1), rvar(2)), (0, rvar(0), rvar(1), rvar(2))],
+                             [(1, rvar(0), rvar(1)), [0, 1], (0, 1, rvar(0), rvar(1))],
+                             [[0, 0, 1], (rvar(0), rvar(1), rvar(2)), (0, 0, rvar(0), rvar(1), rvar(2))],
+                             [[1, 1], [1, 1], [1, 0, 0, 1]],
+                             [(1, rvar(0), rvar(1)), [0, 0, 1], (0, 0, 1, rvar(0), rvar(1))],
+                             [(0, 1, rvar(0), rvar(1)), [0, 1], (0, 0, 1, rvar(0), rvar(1))],
+                             [[1, 1], [1, 0, 1], [1, 1, 1, 1]],
+                             [(1, rvar(0), rvar(1)), [0, 0, 0, 1], (0, 0, 0, 1, rvar(0), rvar(1))],
+                             [[0, 0, 0, 1], (rvar(0), rvar(1), rvar(2)), (0, 0, 0, rvar(0), rvar(1), rvar(2))],
+                             [[1, 1], [1, 1, 1], [1, 0, 1, 0, 1]],
+                             [[1, 1], [0, 1, 1], [0, 1, 0, 0, 1]],
+                             [[0, 1, 1], [1, 1], [0, 1, 0, 0, 1]],
+                             [[1, 0, 1], [1, 1], [1, 1, 1, 1]],
+                             [(1, rvar(0), rvar(1)), [0, 0, 0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))],
+                             [(0, 1, rvar(0), rvar(1)), [0, 0, 1], (0, 0, 0, 1, rvar(0), rvar(1))],
+                             [[1, 1], [1, 0, 0, 1], [1, 1, 0, 1, 1]],
+                             [[1, 0, 1], [0, 1, 1], [0, 1, 1, 1, 1]],
+                             [(0, 0, 1, rvar(0), rvar(1)), [0, 1], (0, 0, 0, 1, rvar(0), rvar(1))],
+                             [[1, 1], [1, 1, 0, 1], [1, 0, 0, 0, 0, 1]],
+                             [[1, 1], [0, 0, 1, 1], [0, 0, 1, 0, 0, 1]],
+                             [[0, 1, 1], [1, 0, 1], [0, 1, 1, 1, 1]],
+                             [[1, 1], [1, 0, 1, 1], [1, 1, 1, 0, 0, 1]],
+                             [[1, 1, 1], [0, 1, 1], [0, 1, 0, 1, 0, 1]],
+                             [(0, 1, rvar(0), rvar(1)), [0, 0, 0, 1], (0, 0, 0, 0, 1, rvar(0), rvar(1))],
+                             [[1, 1], [1, 1, 1, 1], [1, 0, 1, 1, 0, 1]],
+                             [(1, rvar(0), rvar(1)), [0, 0, 0, 0, 0, 1], (0, 0, 0, 0, 0, 1, rvar(0), rvar(1))],
+                             [[0, 0, 0, 0, 1], (rvar(0), rvar(1), rvar(2)), (0, 0, 0, 0, rvar(0), rvar(1), rvar(2))],
+                             [[1, 0, 1], [1, 0, 1], [1, 0, 0, 1, 1]],
+                             [[1, 1], [0, 1, 0, 1], [0, 1, 1, 1, 1]],
+                             [[0, 1, 1], [1, 1, 1], [0, 1, 0, 1, 0, 1]]]) # 8.1
         self.assertEqual(run(fresh(lambda t, n, m: conj(multiplyo(n, m, [1]), unify([n, m], t))), n=1), [[[1], [1]]]) # 8.20
         self.assertEqual(run(fresh(lambda t, n, m: conj(multiplyo(n, m, [1]), unify([n, m], t))), n=2), [[[1], [1]], [[1], [1]]]) # 8.23, this test should never terminate according to The Reasoned Schemer
         self.assertEqual(run(fresh(lambda t, n, m: conj(multiplyo(n, m, [1]), unify([n, m], t))), n=3), [[[1], [1]], [[1], [1]]]) # 8.23.1
@@ -1288,7 +1366,8 @@ class reasonedschemer_test(unittest.TestCase):
 
 
     def test_divmodo(self):
-        self.assertEqual(run(fresh(lambda res: rel(divmodo, res, unify=unify)), n=15),
+        #self.assertEqual(run(fresh(lambda res: rel(divmodo, res, unify)), n=15),
+        self.assertEqual(run(fresh(lambda out, n, m, q, r: divmodo(n, m, q, r) & unify([n, m, q, r], out)), n=15),
                          [[[], (rvar(0), rvar(1)), [], []],
                           [(rvar(0), rvar(1)), (rvar(0), rvar(1)), [1], []], # instead of [[1], [1], [1], []],
                           [[0, 1], [1, 1], [], [0, 1]],
