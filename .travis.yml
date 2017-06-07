@@ -5,7 +5,7 @@ python:
     - "3.6"
 # command to install dependencies
 install: 
-    - pip install sphinx # necessary for Python version not present in the default test container
+    - pip install sphinx sympy # necessary for Python version not present in the default test container
 # command to run tests
 script: 
     - make suite -C src PYTHON=python # pass plain `python` to be instantiate according to virtual env
