@@ -18,6 +18,12 @@ First of all we start importing objects and definitions of the logic system:
     >>> from muk.ext import *
     >>> from muk.utils import *
 
+Moreover, our definitions lies on the following imports:
+
+.. doctest::
+
+    >>> from collections import defaultdict, Counter
+    >>> from functools import lru_cache
 
 We use the interface function :py:func:`run <muk.core.run>` to ask for
 substitutions that satisfy the relation under study; moreover, nouns *relation*, 
@@ -198,8 +204,8 @@ grandfather toy example:
     [['paul', 'tom'], ['jason', 'peter'], ['tom', 'brian']]
 
 
-``η-inversion``
-~~~~~~~~~~~~~~~  
+η-inversion
+~~~~~~~~~~~
 
 Let us define a relation that yields countably many 5 objects; in order to do
 that, the usual solution is to write a recursive definition. However, we
@@ -340,6 +346,107 @@ Some examples follow:
      [['cake', 'with', 'ice', 'd'], ['t']], 
      [['cake', 'with', 'ice', 'd', 't'], []]]
         
+
+Combinatorics
+~~~~~~~~~~~~~
+
+It is possible to generate the set of *Dyck paths* as it follows:
+
+.. doctest::
+
+    >>> def dycko(α):
+    ...     return conde([nullo(α), succeed],
+    ...                  else_clause=fresh(lambda β, γ: 
+    ...                                     append(['(']+β, [')']+γ, α) @ (dycko(β) @ dycko(γ))))
+    ...
+    >>> paths = run(fresh(lambda α: dycko(α)), n=80)
+    >>> D = defaultdict(list)
+    >>> for α in map(lambda α: ''.join(α), paths):
+    ...     D[len(α)//2].append(α)
+    ...
+    >>> dict(D) #doctest: +NORMALIZE_WHITESPACE
+    {0: [''], 
+     1: ['()'], 
+     2: ['()()', '(())'], 
+     3: ['()()()', '(())()', '()(())', '(()())', '((()))'], 
+     4: ['(())()()', '()()()()', '(())(())', '()(())()', '(()()())', '(()())()', '()()(())', '(()(()))', '((()))()', '()(()())', '((())())', '()((()))', '((()()))', '(((())))'], 
+     5: ['(())()()()', '(())(())()', '(()()()())', '(()()())()', '(()())()()', '(())()(())', '()(())()()', '(()()(()))', '((()))()()', '(())(()())', '()()()()()', '(()(()))()', '(()())(())', '((())()())', '((()))(())', '()(())(())', '(())((()))', '()()(())()', '((())())()', '()(()()())', '(()(())())', '()(()())()'], 
+     6: ['(()()()()())', '(()()()())()', '(())(())()()', '(()()()(()))', '(()()())()()', '(())()()()()', '(()()(()))()', '(()())()()()', '((())()()())', '((()))()()()', '(())(())(())', '(()(()))()()', '(()())(())()', '(())()(())()', '((())()())()', '(()()())(())', '((()))(())()', '(())(()()())', '()(())()()()', '(()(())()())', '(()())()(())'], 
+     7: ['(()()()()()())', '(()()()()())()', '(()()()()(()))', '(()()()())()()', '(()()()(()))()', '((())()()()())', '(()()(()))()()'], 
+     8: ['(()()()()()()())', '(()()()()()())()', '(()()()()()(()))', '(()()()()())()()', '(()()()()(()))()'], 
+     9: ['(()()()()()()()())', '(()()()()()()())()']}
+    
+Fibonacci numbers as tailing problem:
+
+.. doctest::
+
+    >>> def fibo(α):
+    ...     return conde([nullo(α), succeed],
+    ...                  else_clause=fresh(lambda β: condi([unify(['v']+β, α), fibo(β)],
+    ...                                                    [unify(['hh']+β, α), fibo(β)])))
+    ...
+    >>> strips = run(fresh(lambda α: fibo(α)), n=80)
+    >>> D = defaultdict(list)
+    >>> for α in map(lambda α: ''.join(α), strips):
+    ...     D[len(α)].append(α)
+    ...
+    >>> dict(D) #doctest: +NORMALIZE_WHITESPACE
+    {0: [''], 
+     1: ['v'], 
+     2: ['hh', 'vv'], 
+     3: ['hhv', 'vhh', 'vvv'], 
+     4: ['hhhh', 'hhvv', 'vhhv', 'vvhh', 'vvvv'], 
+     5: ['hhhhv', 'hhvhh', 'vhhhh', 'hhvvv', 'vhhvv', 'vvhhv', 'vvvhh', 'vvvvv'], 
+     6: ['hhhhhh', 'hhhhvv', 'hhvhhv', 'vhhhhv', 'hhvvhh', 'vhhvhh', 'vvhhhh', 'hhvvvv', 'vhhvvv', 'vvhhvv', 'vvvhhv', 'vvvvhh', 'vvvvvv'], 
+     7: ['hhhhhhv', 'hhhhvhh', 'hhvhhhh', 'vhhhhhh', 'hhhhvvv', 'hhvhhvv', 'vhhhhvv', 'hhvvhhv', 'vhhvhhv', 'vvhhhhv', 'hhvvvhh', 'vhhvvhh', 'vvhhvhh', 'vvvhhhh', 'hhvvvvv', 'vhhvvvv', 'vvhhvvv', 'vvvhhvv', 'vvvvhhv'], 
+     8: ['hhhhhhhh', 'hhhhhhvv', 'hhhhvhhv', 'hhvhhhhv', 'vhhhhhhv', 'hhhhvvhh', 'hhvhhvhh', 'vhhhhvhh', 'hhvvhhhh', 'vhhvhhhh', 'vvhhhhhh', 'hhhhvvvv', 'hhvhhvvv', 'vhhhhvvv', 'hhvvhhvv', 'vhhvhhvv', 'vvhhhhvv'], 
+     9: ['hhhhhhhhv', 'hhhhhhvhh', 'hhhhvhhhh', 'hhvhhhhhh', 'vhhhhhhhh', 'hhhhhhvvv', 'hhhhvhhvv', 'hhvhhhhvv', 'vhhhhhhvv'], 
+     10: ['hhhhhhhhhh', 'hhhhhhhhvv']}
+    >>> run(fibo(['v', 'h', 'v']))
+    []
+
+Unfoldings within the Pascal triangle:
+
+.. doctest::
+
+    >>> from sympy import IndexedBase, symbols, latex
+    >>> P = IndexedBase('P')
+    >>> n, m = symbols('n m')
+    >>> depth = 5
+    >>> def pascalo(r, c, α):
+    ...     if r == n-depth: return nullo(α)
+    ...     return fresh(lambda β, γ: (pascalo(r-1, c-1, β) @ 
+    ...                                pascalo(r-1, c, γ) @ 
+    ...                                append([P[r-1, c-1]]+β, [P[r-1, c]]+γ, α)))
+    ...
+    >>> unfolded = run(fresh(lambda α: pascalo(n, m, α)))
+    >>> sum(unfolded[0]) # doctest: +NORMALIZE_WHITESPACE
+    P[n - 5, m] + P[n - 5, m - 5] + 5*P[n - 5, m - 4] + 10*P[n - 5, m - 3] + 10*P[n - 5, m - 2] + 5*P[n - 5, m - 1] + 
+    P[n - 4, m] + P[n - 4, m - 4] + 4*P[n - 4, m - 3] + 6*P[n - 4, m - 2] + 4*P[n - 4, m - 1] + 
+    P[n - 3, m] + P[n - 3, m - 3] + 3*P[n - 3, m - 2] + 3*P[n - 3, m - 1] + 
+    P[n - 2, m] + P[n - 2, m - 2] + 2*P[n - 2, m - 1] + 
+    P[n - 1, m] + P[n - 1, m - 1]
+
+Fibonacci rabbits, again:
+
+.. doctest::
+   
+    >>> f = IndexedBase('f')
+    >>> def rabbitso(depth, r, α):
+    ...     if not depth: 
+    ...         return nullo(α)
+    ...     return fresh(lambda β, γ: (rabbitso(depth-1, r-1, β) @ 
+    ...                                rabbitso(depth-1, r-2, γ) @ 
+    ...                                append([f[r-1]]+β, [f[r-2]]+γ, α)))
+    ...
+    >>> unfoldings = [run(fresh(lambda α: rabbitso(d, n, α))) for d in range(1, 6)]
+    >>> list(map(lambda unfold: sum(unfold[0]), unfoldings)) # doctest: +NORMALIZE_WHITESPACE
+     [f[n - 2] + f[n - 1], 
+      f[n - 4] + 2*f[n - 3] + 2*f[n - 2] + f[n - 1], 
+      f[n - 6] + 3*f[n - 5] + 4*f[n - 4] + 3*f[n - 3] + 2*f[n - 2] + f[n - 1], 
+      f[n - 8] + 4*f[n - 7] + 7*f[n - 6] + 7*f[n - 5] + 5*f[n - 4] + 3*f[n - 3] + 2*f[n - 2] + f[n - 1], 
+      f[n - 10] + 5*f[n - 9] + 11*f[n - 8] + 14*f[n - 7] + 12*f[n - 6] + 8*f[n - 5] + 5*f[n - 4] + 3*f[n - 3] + 2*f[n - 2] + f[n - 1]]
+
 
 Interleaving
 ~~~~~~~~~~~~
