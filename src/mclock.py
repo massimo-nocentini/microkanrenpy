@@ -4,7 +4,7 @@ from muk.ext import *
 
 def machine(*, rules):
     def M(α, β):
-        return condi(*[[r(α, β, machine=M), succeed] for r in rules])
+        return condi(*[[r(α, β, machine=M), succeed] for r in rules], dovetail=True)
     return M
 
 def nullo(l):

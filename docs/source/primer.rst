@@ -203,6 +203,19 @@ grandfather toy example:
     >>> run(fresh(lambda rel, p, s: grand_father(p, s) & unify([p, s], rel)))
     [['paul', 'tom'], ['jason', 'peter'], ['tom', 'brian']]
 
+Introducing guided search:
+
+.. doctest::
+
+    >>> def recuro(e):
+    ...     return fresh(lambda a, b: conde([unify(e, ['x']), succeed],
+    ...                                     [unify(e, ['b']+a), recuro(a)],
+    ...                                     [unify(e, ['a']+b), recuro(b)]))
+    ...
+    >>> run(fresh(recuro), n=5)
+    [['x'], ['b', 'x'], ['b', 'b', 'x'], ['b', 'b', 'b', 'x'], ['b', 'b', 'b', 'b', 'x']]
+
+    
 
 η-inversion
 ~~~~~~~~~~~
