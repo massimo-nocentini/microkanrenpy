@@ -1,5 +1,5 @@
 
-import collections
+import collections, operator
 from functools import wraps, partial, reduce
 from contextlib import contextmanager
 from itertools import chain
@@ -59,13 +59,40 @@ equalo = unify
 
 # COND {{{
 
-def _cond(*clauses, else_clause=fail, interleaving=None, dovetail=True):
-    body = clauses + ([succeed, else_clause], )
+def λ_deterministic(clause):
+    question, answer = clause
+    return {'goal': question & answer}
+
+def λ_stochastic(clause):
+    rv, question, answer = clause
+    obs, p = next(rv)
+    return {'weight': obs*p, 'goal': question & answer}
+
+def _cond(*clauses, 
+          else_clause=fail, 
+          interleaving=None, 
+          dovetail=True, 
+          λ=λ_deterministic, 
+          rank=identity):
+    body = clauses + ( ([succeed, else_clause], ) if else_clause else () )
+    D = partial(disj, 
+                interleaving=interleaving, 
+                dovetail=dovetail if interleaving else False)
+    return D(*map(operator.itemgetter('goal'), rank(map(λ, body))))
+
+def conds(*clauses, **kwds):
+    kwds['else_clause'] = None
+    kwds['λ'] = λ_stochastic
+    kwds['rank'] = partial(sorted, key=operator.itemgetter('weight'), reverse=True)
+    C = partial(_cond, **kwds)
+    return C(*clauses)
+
+def stochastic_rank(*clauses, link):
     def λ(clause):
-        question, answer = clause
-        return question & answer
-    D = partial(disj, interleaving=interleaving, dovetail=dovetail if interleaving else False)
-    return D(*map(λ, body))
+        rv, g = clause
+        obs, p = next(rv)
+        return {'weight': obs*p, 'goal': g}
+    return link(*map(operator.itemgetter('goal'), rank(map(λ, clauses))))
 
 def cond(*clauses, else_clause=fail, λ_if):
 

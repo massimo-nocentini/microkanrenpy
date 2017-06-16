@@ -1,10 +1,16 @@
 
 from muk.core import *
 from muk.ext import *
+import random, math
 
 def machine(*, rules):
     def M(α, β):
         return condi(*[[r(α, β, machine=M), succeed] for r in rules], dovetail=True)
+    return M
+
+def smachine(*, rules):
+    def M(α, β):
+        return conds(*[[rv, r(α, β, machine=M), succeed] for rv, r in rules], dovetail=True)
     return M
 
 def nullo(l):
@@ -21,11 +27,44 @@ def appendo(r, s, out):
     return A(r, out)
 
 def reverseo(a, l):
+    '''
+    The following implementation resembles the following Haskell equations:
+
+    reverse :: [a] -> [a]
+    reverse [] = []
+    reverse (x:xs) = reverse xs ++ [x]
+
+    where `++` denotes the `append` function.
+    '''
     return conde([nullo(a), nullo(l)],
                  else_clause=fresh(lambda car, cdr, res: 
-                                        unify([car]+cdr, a) @
-                                        appendo(res, [car], l) @
-                                        fresh(lambda: reverseo(cdr, res))))
+                    unify([car]+cdr, a) @ 
+                    appendo(res, [car], l) @ 
+                    fresh(lambda: reverseo(cdr, res))))
+
+def reverseo_(a, l):
+    '''
+    The following implementation resembles the following Haskell equations:
+
+    reverse :: [a] -> [a]
+    reverse xs = rev xs []
+        where   rev [] ys = ys
+                rev (x:xs) ys = rev xs (x:ys) 
+    '''
+    def R(xs, ys):
+        return conde([nullo(xs), unify(ys, l)],
+                     else_clause=fresh(lambda car, cdr, cons:
+                         unify([car]+cdr, xs) @ unify([car]+ys, cons) @ fresh(lambda: R(cdr, cons)) ))
+
+    return fresh(lambda ys: R(a, ys) @ nullo(ys))
+
+def sreverseo(a, l):
+    return conde([nullo(a), nullo(l)],
+                 else_clause=fresh(lambda car, cdr, res: 
+                                        stochastic_rank([geometric(p=1/2), unify([car]+cdr, a)], 
+                                                        [geometric(p=1/3), appendo(res, [car], l)], 
+                                                        [geometric(p=1/10), fresh(lambda: sreverseo(cdr, res))],
+                                                        link=conji)))
 
 def associateo(γ, γ2γ):
     return appendo(γ, [2]+γ, γ2γ)
@@ -100,4 +139,65 @@ def craig_second_lawo(Mγ, M_of_Mγ, *, machine=mcculloch__o):
 mcculloch___o = machine(rules=[ mcculloch_fourth_ruleo, mcculloch_third_ruleo, 
                                 mcculloch_sixth_ruleo, mcculloch_fifth_ruleo ])
 
+def bernoulli(p):
+
+    def pdf(k):
+        return p**k * (1-p)**(1-k)
+
+    while True:
+        obs = 1 if random.random() <= p else 0
+        yield obs, pdf(obs)
+
+def binomial(n, p):
+
+    def B(n, p):
+        return math.factorial(n)//(math.factorial(p)*math.factorial(n-p))
+    
+    def pdf(k):
+        return B(n, k) * p**k * (1-p)**(n-k)
+
+    coins = [bernoulli(p)] * n
+    while True:
+        flips = map(operator.itemgetter(0), map(next, coins))
+        obs = sum(flips)
+        yield obs, pdf(obs)
+
+def geometric(p):
+    
+    def pdf(k):
+        return (1-p)**(k-1) * p
+
+    Biter = iter(bernoulli(p))
+    def G():
+        i=0
+        while True: 
+            i+=1
+            head, p = next(Biter)
+            if head: break
+        return i
+
+    while True:
+        obs = G()
+        yield obs, pdf(obs)
+
+def poisson(rate):
+
+    def pdf(k):
+        return math.exp(-rate) * rate**k / math.factorial(k)
+
+    while True:
+        u = random.random()
+        t = -math.log(1-u)/rate
+        obs = math.floor(t)
+        yield obs, pdf(obs)
+
+α = geometric(p=.5)
+β = geometric(p=.5)
+γ = geometric(p=.8)
+η = geometric(p=.1)
+
+smcculloch___o = smachine(rules=[ [γ, mcculloch_fourth_ruleo], 
+                                  [α, mcculloch_third_ruleo], 
+                                  [β, mcculloch_sixth_ruleo], 
+                                  [η, mcculloch_fifth_ruleo] ])
 
