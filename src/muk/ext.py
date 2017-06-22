@@ -2,7 +2,7 @@
 import collections, operator
 from functools import wraps, partial, reduce
 from contextlib import contextmanager
-from itertools import chain
+from itertools import chain, repeat
 
 from muk.core import *
 from muk.core import _conj, _disj, _unify
@@ -80,10 +80,12 @@ def _cond(*clauses,
                 dovetail=dovetail if interleaving else False)
     return D(*map(operator.itemgetter('goal'), rank(map(λ, body))))
 
+rank = partial(sorted, key=operator.itemgetter('weight'), reverse=True)
+
 def conds(*clauses, **kwds):
     kwds['else_clause'] = None
     kwds['λ'] = λ_stochastic
-    kwds['rank'] = partial(sorted, key=operator.itemgetter('weight'), reverse=True)
+    kwds['rank'] = rank
     C = partial(_cond, **kwds)
     return C(*clauses)
 
@@ -138,7 +140,7 @@ class if_softcut(goal):
             yield from γ
 
 ifa = partial(if_softcut, doer=lambda r, α, answer: 
-        bind(chain([r], α), answer, mplus=partial(mplus, interleaving=False)))
+        bind(chain([r], α), repeat(answer), mplus=partial(mplus, interleaving=False)))
 ifu = partial(if_softcut, doer=lambda r, α, answer: answer(r))
 
 conde = partial(_cond, interleaving=False)

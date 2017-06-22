@@ -8,6 +8,11 @@ def machine(*, rules):
         return condi(*[[r(α, β, machine=M), succeed] for r in rules], dovetail=True)
     return M
 
+def _machine(*, rules):
+    def M(α, β):
+        return disj(*[r(α, β, machine=M) for r in rules], dovetail=True)
+    return M
+    
 def smachine(*, rules):
     def M(α, β):
         return conds(*[[rv, r(α, β, machine=M), succeed] for rv, r in rules], dovetail=True)
@@ -21,8 +26,8 @@ def appendo(r, s, out):
     def A(r, out):
         return conde([nullo(r), unify(s, out)],
                      else_clause=fresh(lambda a, d, res: 
-                                            unify([a]+d, r) @
-                                            unify([a]+res, out) @
+                                            unify([a]+d, r) &
+                                            unify([a]+res, out) &
                                             fresh(lambda: A(d, res))))
     return A(r, out)
 
@@ -34,15 +39,16 @@ def reverseo(a, l):
     reverse [] = []
     reverse (x:xs) = reverse xs ++ [x]
 
-    where `++` denotes the `append` function.
+    where `++` denotes the `append` function, therefore it computes in $O(n^{2})$ 
+    because `++` computes in linear time respect to the size of its first list argument.
     '''
     return conde([nullo(a), nullo(l)],
                  else_clause=fresh(lambda car, cdr, res: 
-                    unify([car]+cdr, a) @ 
-                    appendo(res, [car], l) @ 
+                    unify([car]+cdr, a) &
+                    appendo(res, [car], l) &
                     fresh(lambda: reverseo(cdr, res))))
 
-def reverseo_(a, l):
+def linear_reverseo(a, l):
     '''
     The following implementation resembles the following Haskell equations:
 
@@ -51,12 +57,11 @@ def reverseo_(a, l):
         where   rev [] ys = ys
                 rev (x:xs) ys = rev xs (x:ys) 
     '''
-    def R(xs, ys):
-        return conde([nullo(xs), unify(ys, l)],
-                     else_clause=fresh(lambda car, cdr, cons:
-                         unify([car]+cdr, xs) @ unify([car]+ys, cons) @ fresh(lambda: R(cdr, cons)) ))
-
-    return fresh(lambda ys: R(a, ys) @ nullo(ys))
+    def ro(xs, ys):
+        return condi([nullo(xs), unify(ys, l)],
+                     else_clause=fresh(lambda car, cdr: 
+                        unify([car]+cdr, xs) @ fresh(lambda: ro(cdr, [car]+ys))))
+    return fresh(lambda ys: nullo(ys) & ro(a, ys))
 
 def sreverseo(a, l):
     return conde([nullo(a), nullo(l)],
@@ -69,7 +74,7 @@ def sreverseo(a, l):
 def associateo(γ, γ2γ):
     return appendo(γ, [2]+γ, γ2γ)
 
-def symmetrico(α):
+def symmetrico(α, reverseo=reverseo):
     return reverseo(α, α)
 
 def repeato(γ, γγ):
@@ -81,7 +86,7 @@ def mcculloch_first_ruleo(α, β, *, machine):
 def mcculloch_second_ruleo(α, δ2δ, *, machine):
     return fresh(lambda η, δ: unify([3]+η, α) & associateo(δ, δ2δ) & machine(η, δ))
 
-def mcculloch_third_ruleo(α, δ_reversed, *, machine):
+def mcculloch_third_ruleo(α, δ_reversed, *, machine, reverseo=reverseo):
     return fresh(lambda η, δ: unify([4]+η, α) & reverseo(δ, δ_reversed) & machine(η, δ))
 
 def mcculloch_fourth_ruleo(α, δδ, *, machine):

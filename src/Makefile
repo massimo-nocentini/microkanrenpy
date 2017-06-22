@@ -17,7 +17,4 @@ sexp:
 reasoned_schemer:
 	$(PYTHON) -m unittest -v reasonedschemer_test.py
 
-	
-
-
 suite: sexp muk reasoned_schemer mclock difference_structures

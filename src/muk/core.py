@@ -27,8 +27,9 @@
     >>> from muk.ext import *
 '''
 
+import random, heapq
 from collections import namedtuple
-from itertools import count
+from itertools import count, repeat
 from contextlib import contextmanager
 from inspect import signature
 from functools import partial, reduce, wraps
@@ -368,7 +369,7 @@ def ext_s(u, v, sub):
         if u == v: 
             raise ValueError('Illegal identity association between {} and {}, according to 9.12 of The Reasoned Schemer'.format(u, v))
             
-    if u in sub: # check to ensure consistency of previously unified values
+    if False and u in sub: # check to ensure consistency of previously unified values
         if sub[u] != v: raise UnificationError
         else: return sub
 
@@ -527,7 +528,7 @@ class _conj(goal):
 
     def __call__(self, s : state):
         α = self.g1(s)
-        yield from bind(α, self.g2, mplus=partial(mplus, interleaving=self.interleaving))
+        yield from bind(α, repeat(self.g2), mplus=partial(mplus, interleaving=self.interleaving))
 
 class complement(goal):
 
@@ -649,6 +650,26 @@ def mplus(streams, interleaving):
         except StopIteration: return
         else: S = [α]
 
+        fringe = []
+        diagonal = 1
+
+        '''
+        class HQ:
+            def push(self, s):
+                heapq.heappush(fringe, (1/diagonal, random.random(), s))
+            def pop(self):
+                d, tie_breaker, s = heapq.heappop(fringe)
+                return s
+
+        class L:
+            def push(self, s):
+                fringe.append(s)
+            def pop(self):
+                return fringe.pop() 
+
+        strategy = L()
+        '''
+
         while S:
 
             for j in reversed(range(len(S))):
@@ -656,10 +677,23 @@ def mplus(streams, interleaving):
                 try: s = next(β)
                 except StopIteration: del S[j]
                 else: yield s
+                #else: strategy.push(s)
             
+            '''
+            if fringe: 
+                #yield from iter(fringe)
+                #random.shuffle(fringe)
+                s = strategy.pop()
+                yield s
+            '''
+
             try: α = next(streams)
             except StopIteration: pass
             else: S.append(α)
+
+            diagonal += 1
+
+            #random.shuffle(S) # the following shuffling should be used if `fringe` is a vanilla list
     else:
 
         for α in streams: yield from α
@@ -667,7 +701,7 @@ def mplus(streams, interleaving):
 
                 
 
-def bind(α, g, *, mplus):
+def bind(α, goals, *, mplus):
     '''
     A stream combinator, it applies goal ``g`` to each ``state`` in stream ``α``.
 
@@ -732,7 +766,7 @@ def bind(α, g, *, mplus):
     :param callable mplus: states space enumeration strategy
     :return: an ``iter`` object over satisfying ``state`` objects
     '''
-    yield from mplus(map(g, α))
+    yield from mplus(g(s) for g, s in zip(goals, α))
 
 # }}}
 
