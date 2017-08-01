@@ -291,16 +291,15 @@ class mcculloch_test(unittest.TestCase):
         with recursion_limit(100000):
             self.assertEqual(run(fresh(lambda l: linear_reverseo(list(range(1000)), l))), [list(reversed(range(1000)))])
     
-        with recursion_limit(10000):
-            self.assertEqual(run(fresh(lambda α: mcculloch___o(α, α)), n=5), 
-                             [[5, 4, 6, 4, 2, 5, 4, 6, 4, 2],
-                              [4, 5, 6, 4, 2, 4, 5, 6, 4, 2],
-                              [5, 4, 4, 4, 6, 4, 2, 5, 4, 4, 4, 6, 4, 2],
-                              [4, 6, 5, 4, 2, 4, 6, 5, 4, 2, 2],
-                              [5, 4, 6, 4, 4, 4, 2, 5, 4, 6, 4, 4, 4, 2]]) # the keys!!!
+        self.assertEqual(run(fresh(lambda α: mcculloch___o(α, α)), n=5), 
+                         [[5, 4, 6, 4, 2, 5, 4, 6, 4, 2],
+                          [4, 5, 6, 4, 2, 4, 5, 6, 4, 2],
+                          [5, 4, 4, 4, 6, 4, 2, 5, 4, 4, 4, 6, 4, 2],
+                          [4, 6, 5, 4, 2, 4, 6, 5, 4, 2, 2],
+                          [5, 4, 6, 4, 4, 4, 2, 5, 4, 6, 4, 4, 4, 2]]) # the keys!!!
 
-    @unittest.skip('Unsatisfiable goals but running forever')
-    def test_stochastic_keys():
+    @unittest.skip('Stochastic keys generation')
+    def test_stochastic_keys(self):
         with recursion_limit(10000):
             self.assertEqual(run(fresh(lambda α: smcculloch___o(α, α)), n=10), []) # the keys!!!
 

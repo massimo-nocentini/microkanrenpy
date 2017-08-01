@@ -70,7 +70,7 @@ class extend_list:
         if isinstance(walked, extend_list):
             return extend_list(prefix + walked.prefix, walked.var)
         if isinstance(walked, list):
-            return prefix + walked  
+            return prefix + walked
         else:
             return extend_list(prefix, walked)
 
@@ -298,7 +298,9 @@ def unification(u, v, sub, ext_s):
     unify with ``v``.
     '''
 
-    u, v = walk(u, sub), walk(v, sub)
+    #u, v = walk(u, sub), walk(v, sub)
+    u, merged = walk_merging(u, v, sub)
+    v = sub[v] if merged else walk(v, sub)
 
     try: 
         return u.unification(v, sub, ext_s, unification, UnificationError)
@@ -324,17 +326,51 @@ def unification(u, v, sub, ext_s):
 
 # SUBSTITUTION {{{
 
-def walk(u, sub):
+def walk_merging(u, other, sub):
 
+    v = u
+    changed = False
+    merging = False
     try: 
-        while True: u = sub[u]
+        while True: 
+            v = sub[v]
+            changed = True
+            if v == other: 
+                merging = True
     except (TypeError, # to defend against unhashable objs 
             KeyError): # to defend from "ground" objs and stop iter when `u` is a *fresh* var
-        return u 
+        pass
+
+    merged = False
+    if changed:
+        sub[u] = v
+        if merging and v != other:
+            sub[other] = v
+            merged = True
+
+    return v, merged
+
+def walk(u, sub):
+
+    v = u
+    changed = False
+
+    try: 
+        while True: 
+            v = sub[v]
+            changed = True
+    except (TypeError, # to defend against unhashable objs 
+            KeyError): # to defend from "ground" objs and stop iter when `u` is a *fresh* var
+        pass
+
+    if changed:
+        sub[u] = v
+
+    return v
 
 def walk_star(v, sub):
     v = walk(v, sub)
-    if hasattr(v, 'walk_star'): return v.walk_star(lambda u: walk_star(u, sub))
+    if hasattr(v, 'walk_star'): return v.walk_star(partial(walk_star, sub=sub))
     elif isinstance(v, (list, tuple)): return [walk_star(u, sub) for u in v]  
     else: return v
 
