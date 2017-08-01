@@ -301,7 +301,12 @@ class mcculloch_test(unittest.TestCase):
     @unittest.skip('Stochastic keys generation')
     def test_stochastic_keys(self):
         with recursion_limit(10000):
-            self.assertEqual(run(fresh(lambda α: smcculloch___o(α, α)), n=10), []) # the keys!!!
+
+            def P(α, β, a, b, c, d, e, f, g, h, j, k): 
+                prefix = [a, b, c, d, e, f, g, h, j, k]
+                return smcculloch___o(prefix+β, prefix+β) @ unify(prefix+β, α)
+
+            self.assertEqual(run(fresh(P), n=10), []) # the keys!!!
 
         '''
         [[5, 4, 6, 4, 2, 5, 4, 6, 4, 2],

@@ -398,6 +398,9 @@ def occur_check(ext_s):
 @occur_check
 def ext_s(u, v, sub):
 
+    if u in sub:
+        return sub
+        
     if False:
         if not isinstance(u, var): 
             raise ValueError("Non `var` obj {} as key in substitution {}".format(u, sub))
@@ -506,8 +509,17 @@ class fresh(goal):
         logic_vars = [var(s.next_index+i, n) for (i, n) in self.params]
         setattr(self, 'logic_vars', logic_vars) # set the attr in any case, even if `logic_vars == []` because of η-inversion  
         g = self.f(*logic_vars)
-        α = g(state(s.sub, s.next_index + len(logic_vars)))
+        new_s = state(s.sub, s.next_index + len(logic_vars))
+        α = g(new_s)
         yield from α
+
+        ''' 
+        for v in logic_vars:
+            try:
+                del new_s.sub[v]
+            except KeyError:
+                pass
+        '''
 
 class _disj(goal):
     '''

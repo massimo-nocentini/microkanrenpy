@@ -185,6 +185,15 @@ def geometric(p):
         obs = G()
         yield obs, pdf(obs)
 
+def constant(v, p):
+
+    def pdf(k):
+        return p if k == v else 0
+
+    while True:
+        obs = v
+        yield obs, pdf(obs) 
+
 def poisson(rate):
 
     def pdf(k):
@@ -200,6 +209,7 @@ def poisson(rate):
 β = geometric(p=.5)
 γ = geometric(p=.8)
 η = geometric(p=.1)
+ω = constant(v=2, p=.5)
 
 smcculloch___o = smachine(rules=[ [γ, mcculloch_fourth_ruleo], 
                                   [α, mcculloch_third_ruleo], 
