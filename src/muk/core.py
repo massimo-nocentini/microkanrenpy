@@ -398,17 +398,7 @@ def occur_check(ext_s):
 @occur_check
 def ext_s(u, v, sub):
 
-    if u in sub:
-        return sub
-        
-    if False:
-        if not isinstance(u, var): 
-            raise ValueError("Non `var` obj {} as key in substitution {}".format(u, sub))
-
-        if u == v: 
-            raise ValueError('Illegal identity association between {} and {}, according to 9.12 of The Reasoned Schemer'.format(u, v))
-            
-    if False and u in sub: # check to ensure consistency of previously unified values
+    if u in sub: # check to ensure consistency of previously unified values
         if sub[u] != v: raise UnificationError
         else: return sub
 

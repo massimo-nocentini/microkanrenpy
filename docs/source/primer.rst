@@ -433,11 +433,11 @@ Unfoldings within the Pascal triangle:
     ...
     >>> unfoldings = [run(fresh(lambda α: pascalo(d, n, m, α))) for d in range(1, 6)]
     >>> list(map(lambda unfold: sum(unfold[0]), unfoldings)) # doctest: +NORMALIZE_WHITESPACE
-    [P[n - 1, m] + P[n - 1, m - 1], 
-     P[n - 2, m] + P[n - 2, m - 2] + 2*P[n - 2, m - 1], 
-     P[n - 3, m] + P[n - 3, m - 3] + 3*P[n - 3, m - 2] + 3*P[n - 3, m - 1], 
-     P[n - 4, m] + P[n - 4, m - 4] + 4*P[n - 4, m - 3] + 6*P[n - 4, m - 2] + 4*P[n - 4, m - 1], 
-     P[n - 5, m] + P[n - 5, m - 5] + 5*P[n - 5, m - 4] + 10*P[n - 5, m - 3] + 10*P[n - 5, m - 2] + 5*P[n - 5, m - 1]]
+    [P[n - 1, m - 1] + P[n - 1, m], 
+     2*P[n - 2, m - 1] + P[n - 2, m - 2] + P[n - 2, m], 
+     3*P[n - 3, m - 1] + 3*P[n - 3, m - 2] + P[n - 3, m - 3] + P[n - 3, m], 
+     4*P[n - 4, m - 1] + 6*P[n - 4, m - 2] + 4*P[n - 4, m - 3] + P[n - 4, m - 4] + P[n - 4, m], 
+     5*P[n - 5, m - 1] + 10*P[n - 5, m - 2] + 10*P[n - 5, m - 3] + 5*P[n - 5, m - 4] + P[n - 5, m - 5] + P[n - 5, m]]
 
 Fibonacci rabbits, again:
 
@@ -452,11 +452,11 @@ Fibonacci rabbits, again:
     ...
     >>> unfoldings = [run(fresh(lambda α: rabbitso(d, n, α))) for d in range(1, 6)]
     >>> list(map(lambda unfold: sum(unfold[0]), unfoldings)) # doctest: +NORMALIZE_WHITESPACE
-    [f[n - 2] + f[n - 1], 
-     f[n - 4] + 2*f[n - 3] + f[n - 2], 
-     f[n - 6] + 3*f[n - 5] + 3*f[n - 4] + f[n - 3], 
-     f[n - 8] + 4*f[n - 7] + 6*f[n - 6] + 4*f[n - 5] + f[n - 4], 
-     f[n - 10] + 5*f[n - 9] + 10*f[n - 8] + 10*f[n - 7] + 5*f[n - 6] + f[n - 5]]
+    [f[n - 1] + f[n - 2], 
+     f[n - 2] + 2*f[n - 3] + f[n - 4], 
+     f[n - 3] + 3*f[n - 4] + 3*f[n - 5] + f[n - 6], 
+     f[n - 4] + 4*f[n - 5] + 6*f[n - 6] + 4*f[n - 7] + f[n - 8], 
+     f[n - 10] + f[n - 5] + 5*f[n - 6] + 10*f[n - 7] + 10*f[n - 8] + 5*f[n - 9]]
 
 
 Interleaving
