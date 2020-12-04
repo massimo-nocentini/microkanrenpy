@@ -1,0 +1,952 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>muk.core &#8212; microkanrenpy 1.0 documentation</title>
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="../../" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <h1>Source code for muk.core</h1><div class="highlight"><pre>
+<span></span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="sd">    Laws</span>
+<span class="sd">    ====</span>
+
+<span class="sd">    *law of fresh*</span>
+<span class="sd">        if x is fresh, then unify(v, x) succeeds and associates x with v    </span>
+
+<span class="sd">    *law of unify*</span>
+<span class="sd">        unify(v, w) is the same as unify(w, v)</span>
+
+<span class="sd">    *law of conde*</span>
+<span class="sd">        to get more values from conde, pretend that the successful conde line</span>
+<span class="sd">        has failed, refreshing all variables that got an association from that</span>
+<span class="sd">        line</span>
+
+<span class="sd">    Commandments</span>
+<span class="sd">    ============</span>
+
+<span class="sd">    *second*</span>
+<span class="sd">        to transform a function whose value is not a Boolean into a function</span>
+<span class="sd">        whose value is a goal, add an extra argument to hold its value, replace</span>
+<span class="sd">        `cond` with `conde`, and unnest each question and answer. </span>
+
+<span class="sd">    &gt;&gt;&gt; from muk.core import *</span>
+<span class="sd">    &gt;&gt;&gt; from muk.ext import *</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="kn">import</span> <span class="nn">random</span><span class="o">,</span> <span class="nn">heapq</span>
+<span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">namedtuple</span>
+<span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">count</span><span class="p">,</span> <span class="n">repeat</span>
+<span class="kn">from</span> <span class="nn">contextlib</span> <span class="kn">import</span> <span class="n">contextmanager</span>
+<span class="kn">from</span> <span class="nn">inspect</span> <span class="kn">import</span> <span class="n">signature</span>
+<span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">partial</span><span class="p">,</span> <span class="n">reduce</span><span class="p">,</span> <span class="n">wraps</span>
+
+<span class="kn">from</span> <span class="nn">muk.sexp</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">muk.utils</span> <span class="kn">import</span> <span class="o">*</span>
+
+
+<span class="c1"># STATES {{{</span>
+
+<span class="n">state</span> <span class="o">=</span> <span class="n">namedtuple</span><span class="p">(</span><span class="s1">&#39;state&#39;</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;sub&#39;</span><span class="p">,</span> <span class="s1">&#39;next_index&#39;</span><span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">emptystate</span><span class="p">():</span>
+    <span class="k">return</span> <span class="n">state</span><span class="p">(</span><span class="n">sub</span><span class="o">=</span><span class="p">{},</span> <span class="n">next_index</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="nd">@contextmanager</span>
+<span class="k">def</span> <span class="nf">states_stream</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">initial_state</span><span class="o">=</span><span class="n">emptystate</span><span class="p">()):</span>
+    <span class="n">α</span> <span class="o">=</span> <span class="n">g</span><span class="p">(</span><span class="n">initial_state</span><span class="p">)</span>
+    <span class="k">yield</span> <span class="n">α</span>
+
+<span class="c1"># }}}</span>
+
+<span class="c1"># DIFFERENCE STRUCTURES {{{</span>
+
+<span class="k">class</span> <span class="nc">extend_list</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">prefix</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">=</span> <span class="n">prefix</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">=</span> <span class="n">var</span>
+
+    <span class="k">def</span> <span class="nf">as_cons</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">translate</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">translate</span><span class="p">(</span><span class="nb">tuple</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">+</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">]))</span>
+
+    <span class="k">def</span> <span class="nf">walk_star</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+        <span class="n">prefix</span> <span class="o">=</span> <span class="n">W</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="c1"># foldr(lambda c, acc: [W(c)]+acc, self.prefix, [])</span>
+        <span class="n">walked</span> <span class="o">=</span> <span class="n">W</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">walked</span><span class="p">,</span> <span class="n">extend_list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">extend_list</span><span class="p">(</span><span class="n">prefix</span> <span class="o">+</span> <span class="n">walked</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">walked</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">walked</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">prefix</span> <span class="o">+</span> <span class="n">walked</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">extend_list</span><span class="p">(</span><span class="n">prefix</span><span class="p">,</span> <span class="n">walked</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unification</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span> 
+            <span class="n">UEL</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_unification_extend_list</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span>
+
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span> <span class="k">raise</span> <span class="n">E</span>
+
+                <span class="n">other_prefix</span> <span class="o">=</span> <span class="n">other</span><span class="p">[:</span><span class="n">l</span><span class="p">]</span>
+                <span class="n">other_suffix</span> <span class="o">=</span> <span class="n">other</span><span class="p">[</span><span class="n">l</span><span class="p">:]</span>
+            <span class="k">except</span> <span class="ne">TypeError</span><span class="p">:</span> 
+                <span class="k">raise</span> <span class="n">E</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sub_prefix</span> <span class="o">=</span> <span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">other_prefix</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+                <span class="k">return</span> <span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="n">other_suffix</span><span class="p">,</span> <span class="n">sub_prefix</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="n">UEL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unification_extend_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
+
+        <span class="n">l</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">prefix</span><span class="p">)</span> <span class="o">&lt;</span> <span class="n">l</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">_unification_extend_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+        <span class="k">elif</span> <span class="n">l</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">prefix</span><span class="p">):</span>
+            <span class="n">other_prefix</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">prefix</span><span class="p">[:</span><span class="n">l</span><span class="p">]</span>
+            <span class="n">shorter_extend_list</span> <span class="o">=</span> <span class="n">extend_list</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">prefix</span><span class="p">[</span><span class="n">l</span><span class="p">:],</span> <span class="n">var</span><span class="o">=</span><span class="n">other</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+            <span class="n">sub_prefix</span> <span class="o">=</span> <span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">other_prefix</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="n">shorter_extend_list</span><span class="p">,</span> <span class="n">sub_prefix</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">sub_prefix</span> <span class="o">=</span> <span class="n">U</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">U</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="n">sub_prefix</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unification_difference_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">other</span><span class="o">.</span><span class="n">whole</span><span class="o">.</span><span class="n">_unification_prefix_extend_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unification_prefix_extend_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unification_exclude</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">exclude</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">exclude</span> <span class="o">==</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">U</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="nf">reify_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+        <span class="n">sub_prefix</span> <span class="o">=</span> <span class="n">foldr</span><span class="p">(</span><span class="k">lambda</span> <span class="n">c</span><span class="p">,</span> <span class="n">sub</span><span class="p">:</span> <span class="n">R</span><span class="p">(</span><span class="n">c</span><span class="p">,</span> <span class="n">sub</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">R</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">,</span> <span class="n">sub_prefix</span><span class="p">)</span> 
+
+    <span class="k">def</span> <span class="nf">occur_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">O</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span>
+            <span class="n">O</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">O</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span> <span class="n">eq</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">__eq__extend_list</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">eq</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__extend_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">prefix</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">var</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;</span><span class="si">{}</span><span class="s1"> + </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">))</span>
+
+    <span class="k">def</span> <span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">extend_list</span><span class="p">(</span><span class="n">other</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">var</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">difference_list</span><span class="p">(</span><span class="n">whole</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
+
+
+
+<span class="k">class</span> <span class="nc">difference_list</span><span class="p">:</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">whole</span><span class="p">,</span> <span class="n">suffix</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">whole</span> <span class="o">=</span> <span class="n">whole</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span> <span class="o">=</span> <span class="n">suffix</span>
+
+    <span class="k">def</span> <span class="nf">walk_star</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+        <span class="n">whole</span> <span class="o">=</span> <span class="n">W</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whole</span><span class="p">)</span>
+        <span class="n">suffix</span> <span class="o">=</span> <span class="n">W</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">[]</span> <span class="k">if</span> <span class="n">whole</span> <span class="o">==</span> <span class="n">suffix</span> <span class="k">else</span> <span class="n">difference_list</span><span class="p">(</span><span class="n">whole</span><span class="p">,</span> <span class="n">suffix</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unification</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span> 
+            <span class="n">UDL</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_unification_difference_list</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span> <span class="n">UP</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole</span><span class="o">.</span><span class="n">_unification_exclude</span>
+                <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> <span class="k">raise</span> <span class="n">E</span>
+                <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">UP</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="n">E</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">return</span> <span class="n">UDL</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unification_difference_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
+        <span class="n">sub_whole</span> <span class="o">=</span> <span class="n">U</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">whole</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">U</span><span class="p">(</span><span class="n">other</span><span class="o">.</span><span class="n">suffix</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">,</span> <span class="n">sub_whole</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">reify_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+        <span class="n">sub_whole</span> <span class="o">=</span> <span class="n">R</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whole</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">R</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">,</span> <span class="n">sub_whole</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">occur_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">O</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span>
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
+
+        <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">prefix</span><span class="p">:</span> 
+            <span class="n">O</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">c</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">O</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">var</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span> <span class="n">eq</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">__eq__difference_list</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">eq</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__difference_list</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">whole</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">whole</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">suffix</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="s1">&#39;(</span><span class="si">{}</span><span class="s1">) - </span><span class="si">{}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">whole</span><span class="p">),</span> <span class="nb">repr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">suffix</span><span class="p">))</span>
+
+
+<span class="c1"># }}}</span>
+
+<span class="c1"># VARS {{{</span>
+
+
+<span class="k">class</span> <span class="nc">var</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span> <span class="n">eq</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">__eq__var</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">eq</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">__eq__var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">index</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">other</span><span class="o">.</span><span class="n">name</span>
+
+    <span class="k">def</span> <span class="fm">__hash__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+        <span class="k">return</span> <span class="nb">hash</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">subscript_notation</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span> 
+            <span class="k">return</span> <span class="n">extend_list</span><span class="p">(</span><span class="n">prefix</span><span class="o">=</span><span class="n">other</span><span class="p">,</span> <span class="n">var</span><span class="o">=</span><span class="bp">self</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="fm">__sub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="n">var</span><span class="p">)):</span> 
+            <span class="k">return</span> <span class="n">difference_list</span><span class="p">(</span><span class="n">whole</span><span class="o">=</span><span class="bp">self</span><span class="p">,</span> <span class="n">suffix</span><span class="o">=</span><span class="n">other</span><span class="p">)</span>
+
+        <span class="k">raise</span> <span class="bp">NotImplemented</span>
+
+    <span class="k">def</span> <span class="nf">walk_star</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">W</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span>
+
+    <span class="k">def</span> <span class="nf">reify_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">ext_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rvar</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">sub</span><span class="p">)),</span> <span class="n">sub</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">unification</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span> 
+        <span class="k">try</span><span class="p">:</span> <span class="n">UV</span> <span class="o">=</span> <span class="n">other</span><span class="o">.</span><span class="n">_unification_var</span>
+        <span class="k">except</span> <span class="ne">AttributeError</span><span class="p">:</span> <span class="k">return</span> <span class="n">ext_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">UV</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">_unification_var</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other_var</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">sub</span> <span class="k">if</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">other_var</span> <span class="k">else</span> <span class="n">ext_s</span><span class="p">(</span><span class="n">other_var</span><span class="p">,</span> <span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">name</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s1">&#39;_unification_&#39;</span><span class="p">):</span> 
+            <span class="k">raise</span> <span class="ne">AttributeError</span>
+
+        <span class="k">return</span> <span class="k">lambda</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">U</span><span class="p">:</span> <span class="n">ext_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">occur_check</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">O</span><span class="p">,</span> <span class="n">E</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span> <span class="o">==</span> <span class="n">u</span><span class="p">:</span> <span class="k">raise</span> <span class="n">E</span>
+
+
+<span class="k">class</span> <span class="nc">rvar</span><span class="p">(</span><span class="n">var</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">,</span> <span class="n">reifed_name</span><span class="o">=</span><span class="s1">&#39;▢&#39;</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">index</span><span class="p">,</span> <span class="n">name</span><span class="o">=</span><span class="n">reifed_name</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">reify_s</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">R</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">sub</span>
+
+<span class="c1"># }}}</span>
+
+<span class="c1"># UNIFICATION {{{</span>
+
+<span class="k">class</span> <span class="nc">Tautology</span><span class="p">:</span>
+
+    <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">other</span><span class="p">,</span> <span class="n">Tautology</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__repr__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">.</span><span class="vm">__name__</span>
+
+<span class="k">class</span> <span class="nc">UnificationError</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+<div class="viewcode-block" id="unification"><a class="viewcode-back" href="../../under_the_hood.html#muk.core.unification">[docs]</a><span class="k">def</span> <span class="nf">unification</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Attempts to augment substitution ``sub`` with associations that makes ``u``</span>
+<span class="sd">    unify with ``v``.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="c1">#u, v = walk(u, sub), walk(v, sub)</span>
+    <span class="n">u</span><span class="p">,</span> <span class="n">merged</span> <span class="o">=</span> <span class="n">walk_merging</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="n">v</span><span class="p">]</span> <span class="k">if</span> <span class="n">merged</span> <span class="k">else</span> <span class="n">walk</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+
+    <span class="k">try</span><span class="p">:</span> 
+        <span class="k">return</span> <span class="n">u</span><span class="o">.</span><span class="n">unification</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">unification</span><span class="p">,</span> <span class="n">UnificationError</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="n">UnificationError</span><span class="p">):</span> <span class="k">pass</span>
+
+    <span class="k">try</span><span class="p">:</span> 
+        <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">unification</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">,</span> <span class="n">unification</span><span class="p">,</span> <span class="n">UnificationError</span><span class="p">)</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">AttributeError</span><span class="p">,</span> <span class="n">UnificationError</span><span class="p">):</span> <span class="k">pass</span>
+
+    <span class="k">if</span>  <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span><span class="p">)</span> <span class="ow">or</span> \
+        <span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span> <span class="ow">and</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">list</span><span class="p">):</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">u</span><span class="p">)</span> <span class="o">!=</span> <span class="nb">len</span><span class="p">(</span><span class="n">v</span><span class="p">):</span> 
+            <span class="k">raise</span> <span class="n">UnificationError</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">subr</span><span class="p">,</span> <span class="n">pair</span><span class="p">:</span> <span class="n">unification</span><span class="p">(</span><span class="o">*</span><span class="n">pair</span><span class="p">,</span> <span class="n">subr</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">),</span> <span class="nb">zip</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">),</span> <span class="n">sub</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">u</span> <span class="o">==</span> <span class="n">v</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">sub</span>
+
+    <span class="k">raise</span> <span class="n">UnificationError</span><span class="p">()</span></div>
+
+<span class="c1"># }}}</span>
+
+<span class="c1"># SUBSTITUTION {{{</span>
+
+<span class="k">def</span> <span class="nf">walk_merging</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">other</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+
+    <span class="n">v</span> <span class="o">=</span> <span class="n">u</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="n">merging</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">try</span><span class="p">:</span> 
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span> 
+            <span class="n">v</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+            <span class="n">changed</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="k">if</span> <span class="n">v</span> <span class="o">==</span> <span class="n">other</span><span class="p">:</span> 
+                <span class="n">merging</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="c1"># to defend against unhashable objs </span>
+            <span class="ne">KeyError</span><span class="p">):</span> <span class="c1"># to defend from &quot;ground&quot; objs and stop iter when `u` is a *fresh* var</span>
+        <span class="k">pass</span>
+
+    <span class="n">merged</span> <span class="o">=</span> <span class="kc">False</span>
+    <span class="k">if</span> <span class="n">changed</span><span class="p">:</span>
+        <span class="n">sub</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">if</span> <span class="n">merging</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">!=</span> <span class="n">other</span><span class="p">:</span>
+            <span class="n">sub</span><span class="p">[</span><span class="n">other</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+            <span class="n">merged</span> <span class="o">=</span> <span class="kc">True</span>
+
+    <span class="k">return</span> <span class="n">v</span><span class="p">,</span> <span class="n">merged</span>
+
+<span class="k">def</span> <span class="nf">walk</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+
+    <span class="n">v</span> <span class="o">=</span> <span class="n">u</span>
+    <span class="n">changed</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">try</span><span class="p">:</span> 
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span> 
+            <span class="n">v</span> <span class="o">=</span> <span class="n">sub</span><span class="p">[</span><span class="n">v</span><span class="p">]</span>
+            <span class="n">changed</span> <span class="o">=</span> <span class="kc">True</span>
+    <span class="k">except</span> <span class="p">(</span><span class="ne">TypeError</span><span class="p">,</span> <span class="c1"># to defend against unhashable objs </span>
+            <span class="ne">KeyError</span><span class="p">):</span> <span class="c1"># to defend from &quot;ground&quot; objs and stop iter when `u` is a *fresh* var</span>
+        <span class="k">pass</span>
+
+    <span class="k">if</span> <span class="n">changed</span><span class="p">:</span>
+        <span class="n">sub</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+
+    <span class="k">return</span> <span class="n">v</span>
+
+<span class="k">def</span> <span class="nf">walk_star</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">walk</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;walk_star&#39;</span><span class="p">):</span> <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">walk_star</span><span class="p">(</span><span class="n">partial</span><span class="p">(</span><span class="n">walk_star</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="n">sub</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">)):</span> <span class="k">return</span> <span class="p">[</span><span class="n">walk_star</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span> <span class="k">for</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">v</span><span class="p">]</span>  
+    <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">v</span>
+
+<span class="k">class</span> <span class="nc">OccurCheck</span><span class="p">(</span><span class="ne">ValueError</span><span class="p">):</span>
+    <span class="k">pass</span>
+
+<span class="k">def</span> <span class="nf">occur_check</span><span class="p">(</span><span class="n">ext_s</span><span class="p">):</span>
+
+    <span class="nd">@wraps</span><span class="p">(</span><span class="n">ext_s</span><span class="p">)</span>
+    <span class="k">def</span> <span class="nf">E_s</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">,</span> <span class="n">occur_check</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        
+        <span class="k">def</span> <span class="nf">O</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+            <span class="n">v</span> <span class="o">=</span> <span class="n">walk</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;occur_check&#39;</span><span class="p">):</span> 
+                <span class="n">v</span><span class="o">.</span><span class="n">occur_check</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">O</span><span class="p">,</span> <span class="n">OccurCheck</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="ow">is</span> <span class="nb">tuple</span> <span class="ow">or</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span> 
+                <span class="k">for</span> <span class="n">vv</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span> <span class="n">O</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">vv</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">occur_check</span><span class="p">:</span> <span class="n">O</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="n">ext_s</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">E_s</span>
+
+<span class="nd">@occur_check</span>
+<span class="k">def</span> <span class="nf">ext_s</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+
+    <span class="k">if</span> <span class="n">u</span> <span class="ow">in</span> <span class="n">sub</span><span class="p">:</span> <span class="c1"># check to ensure consistency of previously unified values</span>
+        <span class="k">if</span> <span class="n">sub</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">!=</span> <span class="n">v</span><span class="p">:</span> <span class="k">raise</span> <span class="n">UnificationError</span>
+        <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">sub</span>
+
+    <span class="n">e</span> <span class="o">=</span> <span class="n">sub</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+    <span class="n">e</span><span class="p">[</span><span class="n">u</span><span class="p">]</span> <span class="o">=</span> <span class="n">v</span>
+    <span class="k">return</span> <span class="n">e</span>
+
+<span class="k">def</span> <span class="nf">reify_s</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">):</span>
+    <span class="n">v</span> <span class="o">=</span> <span class="n">walk</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="s1">&#39;reify_s&#39;</span><span class="p">):</span> <span class="k">return</span> <span class="n">v</span><span class="o">.</span><span class="n">reify_s</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">reify_s</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span> <span class="k">return</span> <span class="n">reduce</span><span class="p">(</span><span class="k">lambda</span> <span class="n">sub</span><span class="p">,</span> <span class="n">u</span><span class="p">:</span> <span class="n">reify_s</span><span class="p">(</span><span class="n">u</span><span class="p">,</span> <span class="n">sub</span><span class="p">),</span> <span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="n">sub</span>
+
+<span class="k">def</span> <span class="nf">reify</span><span class="p">(</span><span class="n">v</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">walk_star</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">reify_s</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">sub</span><span class="o">=</span><span class="p">{}))</span>
+
+<span class="c1"># }}}</span>
+
+<span class="c1"># GOAL CTORS {{{</span>
+
+<span class="k">class</span> <span class="nc">goal</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_disj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">interleaving</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__xor__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_disj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">interleaving</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__matmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_conj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">interleaving</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">_conj</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">interleaving</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="fm">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">complement</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">primitive</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rule</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">rule</span> <span class="o">=</span> <span class="n">rule</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span> <span class="p">:</span> <span class="n">state</span><span class="p">):</span>
+        <span class="k">yield from</span> <span class="nb">iter</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">rule</span><span class="p">(</span><span class="n">s</span><span class="p">))</span>
+
+<span class="n">succeed</span> <span class="o">=</span> <span class="n">primitive</span><span class="p">(</span><span class="n">rule</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="p">[</span><span class="n">s</span><span class="p">])</span> <span class="c1"># a goal that is satisfied by *any* substitution</span>
+<span class="n">fail</span> <span class="o">=</span> <span class="n">primitive</span><span class="p">(</span><span class="n">rule</span><span class="o">=</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="p">[])</span>     <span class="c1"># a goal that is satisfied by *no* substitution</span>
+
+<div class="viewcode-block" id="_unify"><a class="viewcode-back" href="../../under_the_hood.html#muk.core._unify">[docs]</a><span class="k">class</span> <span class="nc">_unify</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Attempts to perform :py:func:`unification &lt;muk.core.unification&gt;` to make</span>
+<span class="sd">    ``u`` and ``v`` unifiable given a set of associations for logic variables.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">u</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">ext_s</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">u</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">v</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ext_s</span> <span class="o">=</span> <span class="n">ext_s</span>
+
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span> <span class="p">:</span> <span class="n">state</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span> 
+            <span class="n">sub</span> <span class="o">=</span> <span class="n">unification</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">u</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">v</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">sub</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">ext_s</span><span class="p">)</span>
+        <span class="k">except</span> <span class="n">UnificationError</span><span class="p">:</span> 
+            <span class="k">yield from</span> <span class="n">fail</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span> 
+            <span class="k">yield from</span> <span class="n">succeed</span><span class="p">(</span><span class="n">state</span><span class="p">(</span><span class="n">sub</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">next_index</span><span class="p">))</span></div>
+
+<div class="viewcode-block" id="fresh"><a class="viewcode-back" href="../../under_the_hood.html#muk.core.fresh">[docs]</a><span class="k">class</span> <span class="nc">fresh</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Introduce new logic variables according to the needs of receiver ``f``.</span>
+
+<span class="sd">    If ``f`` is a thunk then ``fresh`` is equivalent to the inversion of η-rule </span>
+<span class="sd">    as defined in *higher-order* logic::</span>
+
+<span class="sd">        def η_inverse(t):</span>
+
+<span class="sd">            def I(s : state):</span>
+<span class="sd">                g = t()</span>
+<span class="sd">                yield from g(s)</span>
+
+<span class="sd">            return I</span>
+
+<span class="sd">    having particular application in the definition of *recursive* relations.</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">,</span> <span class="n">arity</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">f</span> <span class="o">=</span> <span class="n">f</span>
+        <span class="k">if</span> <span class="n">arity</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">arity</span><span class="p">)</span> <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="p">[</span><span class="nb">chr</span><span class="p">(</span><span class="nb">ord</span><span class="p">(</span><span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="o">+</span> <span class="n">i</span><span class="p">)]]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">f_sig</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="n">arity</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">f_sig</span><span class="o">.</span><span class="n">parameters</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">params</span> <span class="o">=</span> <span class="p">[(</span><span class="n">i</span><span class="p">,</span> <span class="n">v</span><span class="o">.</span><span class="n">name</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="n">v</span><span class="p">)</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">f_sig</span><span class="o">.</span><span class="n">parameters</span><span class="o">.</span><span class="n">items</span><span class="p">())]</span> 
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span> <span class="p">:</span> <span class="n">state</span><span class="p">):</span>
+        <span class="n">logic_vars</span> <span class="o">=</span> <span class="p">[</span><span class="n">var</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">next_index</span><span class="o">+</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="k">for</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">params</span><span class="p">]</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s1">&#39;logic_vars&#39;</span><span class="p">,</span> <span class="n">logic_vars</span><span class="p">)</span> <span class="c1"># set the attr in any case, even if `logic_vars == []` because of η-inversion  </span>
+        <span class="n">g</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">f</span><span class="p">(</span><span class="o">*</span><span class="n">logic_vars</span><span class="p">)</span>
+        <span class="n">new_s</span> <span class="o">=</span> <span class="n">state</span><span class="p">(</span><span class="n">s</span><span class="o">.</span><span class="n">sub</span><span class="p">,</span> <span class="n">s</span><span class="o">.</span><span class="n">next_index</span> <span class="o">+</span> <span class="nb">len</span><span class="p">(</span><span class="n">logic_vars</span><span class="p">))</span>
+        <span class="n">α</span> <span class="o">=</span> <span class="n">g</span><span class="p">(</span><span class="n">new_s</span><span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">α</span>
+
+        <span class="sd">&#39;&#39;&#39; </span>
+<span class="sd">        for v in logic_vars:</span>
+<span class="sd">            try:</span>
+<span class="sd">                del new_s.sub[v]</span>
+<span class="sd">            except KeyError:</span>
+<span class="sd">                pass</span>
+<span class="sd">        &#39;&#39;&#39;</span></div>
+
+<div class="viewcode-block" id="_disj"><a class="viewcode-back" href="../../under_the_hood.html#muk.core._disj">[docs]</a><span class="k">class</span> <span class="nc">_disj</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A goal that is satisfiable if *either* goal ``g1`` *or* goal ``g2`` is satisfiable.</span>
+
+<span class="sd">    Formally, it produces the following states space:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">         \left( \\begin{array}{c}s \stackrel{g_{1}}{\\mapsto} \\alpha \\\\ s \stackrel{g_{2}}{\\mapsto} \\beta \\end{array}\\right)</span>
+<span class="sd">          = \left( \\begin{array}{ccccc}        </span>
+<span class="sd">                s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \\ldots \\\\</span>
+<span class="sd">                s_{10} &amp; s_{11} &amp; s_{12} &amp; s_{13} &amp; \\ldots \\\\</span>
+<span class="sd">                \\end{array}\\right)</span>
+
+<span class="sd">    enumerated using ``mplus`` according to ``interleaving`` arg.</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">interleaving</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g1</span> <span class="o">=</span> <span class="n">g1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g2</span> <span class="o">=</span> <span class="n">g2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interleaving</span> <span class="o">=</span> <span class="n">interleaving</span>
+    
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span> <span class="p">:</span> <span class="n">state</span><span class="p">):</span>
+        <span class="n">α</span><span class="p">,</span> <span class="n">β</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g1</span><span class="p">(</span><span class="n">s</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">g2</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">mplus</span><span class="p">(</span><span class="nb">iter</span><span class="p">([</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">]),</span> <span class="bp">self</span><span class="o">.</span><span class="n">interleaving</span><span class="p">)</span></div>
+        
+
+
+<div class="viewcode-block" id="_conj"><a class="viewcode-back" href="../../under_the_hood.html#muk.core._conj">[docs]</a><span class="k">class</span> <span class="nc">_conj</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A goal that is satisfiable if *both* goal ``g1`` *and* goal ``g2`` is satisfiable.</span>
+
+<span class="sd">    Formally, it produces the following states space:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        s \stackrel{g_{1}}{\\mapsto} \\alpha = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)</span>
+<span class="sd">          \stackrel{bind(\\alpha, g_{2})}{\\mapsto} \left( \\begin{array}{ccccc}        </span>
+<span class="sd">                                                s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \\ldots \\\\</span>
+<span class="sd">                                                s_{10} &amp; s_{11} &amp; s_{12} &amp; \\ldots &amp;        \\\\</span>
+<span class="sd">                                                s_{20} &amp; s_{21} &amp; \\ldots &amp;        &amp;         \\\\</span>
+<span class="sd">                                                s_{30} &amp; \\ldots &amp;        &amp;        &amp;         \\\\</span>
+<span class="sd">                                                \\ldots &amp;        &amp;        &amp;        &amp;         \\\\</span>
+<span class="sd">                                                \\end{array}\\right)</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g1</span><span class="p">,</span> <span class="n">g2</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">interleaving</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g1</span> <span class="o">=</span> <span class="n">g1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g2</span> <span class="o">=</span> <span class="n">g2</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">interleaving</span> <span class="o">=</span> <span class="n">interleaving</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span> <span class="p">:</span> <span class="n">state</span><span class="p">):</span>
+        <span class="n">α</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g1</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">yield from</span> <span class="n">bind</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">repeat</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">g2</span><span class="p">),</span> <span class="n">mplus</span><span class="o">=</span><span class="n">partial</span><span class="p">(</span><span class="n">mplus</span><span class="p">,</span> <span class="n">interleaving</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">interleaving</span><span class="p">))</span></div>
+
+<span class="k">class</span> <span class="nc">complement</span><span class="p">(</span><span class="n">goal</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">g</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">g</span> <span class="o">=</span> <span class="n">g</span>
+
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">s</span> <span class="p">:</span> <span class="n">state</span><span class="p">):</span>
+        <span class="n">α</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">g</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">α</span><span class="p">)</span> <span class="c1"># r : state </span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">yield from</span> <span class="n">succeed</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield from</span> <span class="n">fail</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>    
+
+
+<span class="c1"># }}}</span>
+
+<span class="c1"># STATE STREAMS {{{</span>
+
+<div class="viewcode-block" id="mplus"><a class="viewcode-back" href="../../under_the_hood.html#muk.core.mplus">[docs]</a><span class="k">def</span> <span class="nf">mplus</span><span class="p">(</span><span class="n">streams</span><span class="p">,</span> <span class="n">interleaving</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    It enumerates the states space ``streams``, using different strategies</span>
+<span class="sd">    according to ``interleaving``.</span>
+
+<span class="sd">    In order to understand states enumeration can be helpful to use a matrix,</span>
+<span class="sd">    where we associate a row to each stream of states α belonging to</span>
+<span class="sd">    ``streams``.  Since ``streams`` is an ``iter`` obj over a *countably*,</span>
+<span class="sd">    possibly infinite, set of *states streams*, the matrix could have infinite</span>
+<span class="sd">    rows.  In parallel, since each states stream α lying on a row is a ``iter``</span>
+<span class="sd">    obj over a *countably*, possibly infinite, set of *satisfying states*, the</span>
+<span class="sd">    matrix could have infinite columns; therefore, the matrix we are building</span>
+<span class="sd">    could be infinite in both dimensions. So, let ``streams`` be represented as follows:</span>
+
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \left( \\begin{array}{ccccc}        </span>
+<span class="sd">        s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \\ldots \\\\</span>
+<span class="sd">        s_{10} &amp; s_{11} &amp; s_{12} &amp; \\ldots &amp;        \\\\</span>
+<span class="sd">        s_{20} &amp; s_{21} &amp; \\ldots &amp;        &amp;         \\\\</span>
+<span class="sd">        s_{30} &amp; \\ldots &amp;        &amp;        &amp;         \\\\</span>
+<span class="sd">        \\ldots &amp;        &amp;        &amp;        &amp;         \\\\</span>
+<span class="sd">        \\end{array}\\right)</span>
+
+<span class="sd">    In order to enumerate this infinite matrix we have the following strategies:</span>
+
+<span class="sd">    *depth-first*</span>
+<span class="sd">        Enumerates a stream α committed to it until it is saturated or continue to yield its</span>
+<span class="sd">        ``state`` objects forever; in other words, it enumerates row by row. For the sake of clarity,</span>
+<span class="sd">        assume the first :math:`k` streams are finite and the :math:`k`-th is the first to be infinite, hence</span>
+<span class="sd">        we are in the following context:</span>
+
+<span class="sd">        .. math::</span>
+
+<span class="sd">            \left( \\begin{array}{ccccc}        </span>
+<span class="sd">            s_{00} &amp; s_{01} &amp; \\ldots &amp; s_{0i_{0}} \\\\</span>
+<span class="sd">            s_{10} &amp; s_{11} &amp; \\ldots &amp; s_{1i_{1}} \\\\</span>
+<span class="sd">            \ldots_{\\triangle} \\\\</span>
+<span class="sd">            s_{k-1, 0} &amp; s_{k-1,1} &amp; \\ldots &amp;  s_{k-1,i_{k-1}} \\\\</span>
+<span class="sd">            s_{k0} &amp; s_{k1} &amp; \\ldots &amp;  \ldots &amp;  \ldots \\\\</span>
+<span class="sd">            s_{k+1, 0} &amp; \\ldots &amp;        &amp;   \\\\</span>
+<span class="sd">            \\ldots &amp;        &amp;        &amp;   \\\\</span>
+<span class="sd">            \\end{array}\\right)</span>
+
+<span class="sd">        so enumeration proceeds as follows: :math:`s_{00}, s_{01},\\ldots,</span>
+<span class="sd">        s_{0i_{0}}, s_{10}, s_{11}, \\ldots, s_{1i_{1}}, \\ldots_{\\triangle}, s_{k-1,0},</span>
+<span class="sd">        s_{k-1, 1},\\ldots, s_{k-1,i_{k-1}}, s_{k0}, s_{k1},\\ldots` yielding from stream :math:`\\alpha_{k}` forever,</span>
+<span class="sd">        *never* reaching :math:`s_{k+1, 0}`.</span>
+
+<span class="sd">    *breadth-first*</span>
+<span class="sd">        Enumerates interleaving *state* objects belonging to adjacent streams,</span>
+<span class="sd">        lying on the same column; in other words, it enumerates column by</span>
+<span class="sd">        column. If ``streams`` is an iterator over an infinite set of streams,</span>
+<span class="sd">        the it enumerates only the very first ``state`` objects, namely</span>
+<span class="sd">        :math:`s_{00}, s_{10}, s_{20}, s_{30},\ldots`. </span>
+<span class="sd">        </span>
+<span class="sd">        The following is a straighforward implementation::</span>
+
+<span class="sd">            from itertools import chain</span>
+
+<span class="sd">            while True:</span>
+<span class="sd">                try: </span>
+<span class="sd">                    α = next(streams)</span>
+<span class="sd">                except StopIteration: </span>
+<span class="sd">                    break</span>
+<span class="sd">                else:</span>
+<span class="sd">                    try:</span>
+<span class="sd">                        s = next(α) # s : state </span>
+<span class="sd">                    except StopIteration:</span>
+<span class="sd">                        continue</span>
+<span class="sd">                    else:</span>
+<span class="sd">                        yield s</span>
+<span class="sd">                        streams = chain(streams, [α])</span>
+
+<span class="sd">    *dovetail*</span>
+<span class="sd">        Enumerates interleaving `state` objects lying on the same *diagonal*,</span>
+<span class="sd">        resulting in a *fair scheduler* in the sense that *every* satisfying</span>
+<span class="sd">        ``state`` object will be reached, eventually. For the sake of clarity,</span>
+<span class="sd">        enumeration proceeds as follows: </span>
+<span class="sd">        </span>
+<span class="sd">        .. math::</span>
+
+<span class="sd">            s_{00}, s_{10}, s_{01}, s_{20}, s_{11}, s_{02}, s_{30}, s_{21},</span>
+<span class="sd">            s_{12}, s_{03}, \\ldots</span>
+
+<span class="sd">        providing a *complete* enumeration strategy.</span>
+
+
+<span class="sd">    :param iter stream: an iterator over a *countable* set of ``state``-streams</span>
+<span class="sd">    :param bool interleaving: enumeration strategy selector: *dovetail* if ``interleaving`` else *depth-first*</span>
+<span class="sd">    :return: an ``iter`` object over satisfying ``state`` objects</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    
+    <span class="k">if</span> <span class="n">interleaving</span><span class="p">:</span>
+
+        <span class="k">try</span><span class="p">:</span> <span class="n">α</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">streams</span><span class="p">)</span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span> <span class="k">return</span>
+        <span class="k">else</span><span class="p">:</span> <span class="n">S</span> <span class="o">=</span> <span class="p">[</span><span class="n">α</span><span class="p">]</span>
+
+        <span class="n">fringe</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">diagonal</span> <span class="o">=</span> <span class="mi">1</span>
+
+        <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">        class HQ:</span>
+<span class="sd">            def push(self, s):</span>
+<span class="sd">                heapq.heappush(fringe, (1/diagonal, random.random(), s))</span>
+<span class="sd">            def pop(self):</span>
+<span class="sd">                d, tie_breaker, s = heapq.heappop(fringe)</span>
+<span class="sd">                return s</span>
+
+<span class="sd">        class L:</span>
+<span class="sd">            def push(self, s):</span>
+<span class="sd">                fringe.append(s)</span>
+<span class="sd">            def pop(self):</span>
+<span class="sd">                return fringe.pop() </span>
+
+<span class="sd">        strategy = L()</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+
+        <span class="k">while</span> <span class="n">S</span><span class="p">:</span>
+
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">reversed</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">S</span><span class="p">))):</span>
+                <span class="n">β</span> <span class="o">=</span> <span class="n">S</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="k">try</span><span class="p">:</span> <span class="n">s</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">β</span><span class="p">)</span>
+                <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span> <span class="k">del</span> <span class="n">S</span><span class="p">[</span><span class="n">j</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span> <span class="k">yield</span> <span class="n">s</span>
+                <span class="c1">#else: strategy.push(s)</span>
+            
+            <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">            if fringe: </span>
+<span class="sd">                #yield from iter(fringe)</span>
+<span class="sd">                #random.shuffle(fringe)</span>
+<span class="sd">                s = strategy.pop()</span>
+<span class="sd">                yield s</span>
+<span class="sd">            &#39;&#39;&#39;</span>
+
+            <span class="k">try</span><span class="p">:</span> <span class="n">α</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">streams</span><span class="p">)</span>
+            <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span> <span class="k">pass</span>
+            <span class="k">else</span><span class="p">:</span> <span class="n">S</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">α</span><span class="p">)</span>
+
+            <span class="n">diagonal</span> <span class="o">+=</span> <span class="mi">1</span>
+
+            <span class="c1">#random.shuffle(S) # the following shuffling should be used if `fringe` is a vanilla list</span>
+    <span class="k">else</span><span class="p">:</span>
+
+        <span class="k">for</span> <span class="n">α</span> <span class="ow">in</span> <span class="n">streams</span><span class="p">:</span> <span class="k">yield from</span> <span class="n">α</span></div>
+
+
+                
+
+<div class="viewcode-block" id="bind"><a class="viewcode-back" href="../../under_the_hood.html#muk.core.bind">[docs]</a><span class="k">def</span> <span class="nf">bind</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">goals</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">mplus</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    A stream combinator, it applies goal ``g`` to each ``state`` in stream ``α``.</span>
+
+<span class="sd">    Such mapping can be *linear* in the sense of vanilla ``map`` application:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \\alpha = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)</span>
+<span class="sd">          \stackrel{map(g, \\alpha)}{\\mapsto} \left( \\begin{array}{ccccc}        </span>
+<span class="sd">                                                s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \\ldots \\\\</span>
+<span class="sd">                                                s_{10} &amp; s_{11} &amp; s_{12} &amp; \\ldots &amp;        \\\\</span>
+<span class="sd">                                                s_{20} &amp; s_{21} &amp; \\ldots &amp;        &amp;         \\\\</span>
+<span class="sd">                                                s_{30} &amp; \\ldots &amp;        &amp;        &amp;         \\\\</span>
+<span class="sd">                                                \\ldots &amp;        &amp;        &amp;        &amp;         \\\\</span>
+<span class="sd">                                                \\end{array}\\right)</span>
+
+<span class="sd">    After the mapping obj is built, it is consumed as argument by ``mplus`` to</span>
+<span class="sd">    enumerate the states space.</span>
+
+<span class="sd">    Moreover, a recursive implementation can be written as found in *The</span>
+<span class="sd">    Reasoned Schemer*, but in some cases it raises ``RecursionError`` due to</span>
+<span class="sd">    Python limitation on stack usage::</span>
+
+<span class="sd">        try:</span>
+<span class="sd">            s = next(α) # s : state </span>
+<span class="sd">        except StopIteration:</span>
+<span class="sd">            yield from fail()</span>
+<span class="sd">        else:</span>
+<span class="sd">            β = g(s)</span>
+<span class="sd">            γ = bind(α, g, mplus)</span>
+<span class="sd">            yield from mplus(iter([β, γ]))</span>
+
+<span class="sd">    which produces the following states space:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        \\alpha = \left( \\begin{array}{c}s_{0}\\\\s_{1}\\\\s_{2}\\\\ s_{3}\\\\ \\ldots\\end{array}\\right)</span>
+<span class="sd">          \stackrel{bind(\\alpha, g)}{\\mapsto} \left( \\begin{array}{l}        </span>
+<span class="sd">                                                s_{00} \, s_{01} \, s_{02} \, s_{03} \, s_{04} \,s_{05} \,\\ldots \\\\</span>
+<span class="sd">                                                \left( \\begin{array}{l}</span>
+<span class="sd">                                                s_{10} \, s_{11} \, s_{12} \, \\ldots \,        \\\\</span>
+<span class="sd">                                                \left( \\begin{array}{l}        </span>
+<span class="sd">                                                s_{20} \, s_{21} \, \\ldots \,        \,         \\\\</span>
+<span class="sd">                                                \left( \\begin{array}{l}        </span>
+<span class="sd">                                                s_{30} \, \\ldots \,        \,        \,         \\\\</span>
+<span class="sd">                                                \\ldots \,        \,        \,        \,         \\\\</span>
+<span class="sd">                                                \\end{array}\\right)</span>
+<span class="sd">                                            \\end{array}\\right)</span>
+<span class="sd">                                        \\end{array}\\right)</span>
+<span class="sd">                                    \\end{array}\\right)</span>
+
+<span class="sd">    assuming we want to enumerate using interleaving:</span>
+
+<span class="sd">    .. math::</span>
+
+<span class="sd">        s_{00}, s_{10}, s_{01}, s_{20}, s_{02}, s_{11}, s_{03}, s_{30}, s_{04}, s_{12}, s_{05}, s_{21}\ldots</span>
+
+<span class="sd">    which, although *complete*, is *unbalanced* in favor of first streams.</span>
+
+<span class="sd">    :param iter α: an iterator over a *countable* set of ``state`` objects</span>
+<span class="sd">    :param goal g: a relation to be satisfied</span>
+<span class="sd">    :param callable mplus: states space enumeration strategy</span>
+<span class="sd">    :return: an ``iter`` object over satisfying ``state`` objects</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">yield from</span> <span class="n">mplus</span><span class="p">(</span><span class="n">g</span><span class="p">(</span><span class="n">s</span><span class="p">)</span> <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">s</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">goals</span><span class="p">,</span> <span class="n">α</span><span class="p">))</span></div>
+
+<span class="c1"># }}}</span>
+
+<span class="c1"># INTERFACE {{{</span>
+
+<div class="viewcode-block" id="run"><a class="viewcode-back" href="../../under_the_hood.html#muk.core.run">[docs]</a><span class="k">def</span> <span class="nf">run</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> 
+        <span class="n">n</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> 
+        <span class="n">var_selector</span><span class="o">=</span><span class="k">lambda</span> <span class="o">*</span><span class="n">args</span><span class="p">:</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span>
+        <span class="n">post</span><span class="o">=</span><span class="k">lambda</span> <span class="n">r</span><span class="p">:</span> <span class="n">cons_to_list</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">cons</span><span class="p">)</span> <span class="k">else</span> <span class="n">r</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    Looks for a list of at most ``n`` associations ``[(u, v) for v in ...]``</span>
+<span class="sd">    such that when var ``u`` takes value ``v`` the relation ``goal`` is</span>
+<span class="sd">    satisfied, where ``u`` is the *main var* respect the whole ``run``</span>
+<span class="sd">    invocation; otherwise, it enumerates the relation if ``n`` is ``False``.</span>
+
+<span class="sd">    :param goal: the relation to be satisfied respect to the main var according to :py:obj:`var_selector`.</span>
+
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+
+    <span class="k">with</span> <span class="n">states_stream</span><span class="p">(</span><span class="n">goal</span><span class="p">)</span> <span class="k">as</span> <span class="n">α</span><span class="p">:</span>
+        <span class="n">domain</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">)</span> <span class="k">if</span> <span class="n">n</span> <span class="k">else</span> <span class="n">count</span><span class="p">()</span>
+        <span class="n">subs</span> <span class="o">=</span> <span class="p">[</span><span class="n">a</span><span class="o">.</span><span class="n">sub</span> <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">a</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">domain</span><span class="p">,</span> <span class="n">α</span><span class="p">)]</span>
+
+    <span class="n">logic_vars</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">goal</span><span class="p">,</span> <span class="s1">&#39;logic_vars&#39;</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span> <span class="c1"># defaults to `None` instead of `[]` to distinguish attr set by `_fresh` </span>
+    <span class="n">m_var</span> <span class="o">=</span> <span class="n">var_selector</span><span class="p">(</span><span class="o">*</span><span class="n">logic_vars</span><span class="p">)</span> <span class="k">if</span> <span class="n">logic_vars</span> <span class="k">else</span> <span class="n">Tautology</span><span class="p">()</span> <span class="c1"># any satisfying sub is a Tautology if there are no logic vars</span>
+
+    <span class="k">def</span> <span class="nf">λ</span><span class="p">(</span><span class="n">sub</span><span class="p">):</span> 
+        <span class="n">w_var</span> <span class="o">=</span> <span class="n">walk_star</span><span class="p">(</span><span class="n">m_var</span><span class="p">,</span> <span class="n">sub</span><span class="p">)</span> <span class="c1"># instantiate every content in the expr associated to `main_var` in `sub` to the most specific value</span>
+        <span class="n">r_var</span> <span class="o">=</span> <span class="n">reify</span><span class="p">(</span><span class="n">w_var</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">post</span><span class="p">(</span><span class="n">r_var</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">λ</span><span class="p">,</span> <span class="n">subs</span><span class="p">))</span></div>
+
+
+<span class="c1"># }}}</span>
+
+
+</pre></div>
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">microkanrenpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="../../write_the_doc.html">Intro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../primer.html">A Primer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reasoned_schemer.html">The Reasoned Schemer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../mclock.html">Monte Carlo Lock puzzle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../under_the_hood.html"><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Massimo Nocentini.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

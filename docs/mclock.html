@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Monte Carlo Lock puzzle &#8212; microkanrenpy 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="muk.core module" href="under_the_hood.html" />
+    <link rel="prev" title="The Reasoned Schemer" href="reasoned_schemer.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="monte-carlo-lock-puzzle">
+<span id="montecarlo-lock"></span><h1>Monte Carlo Lock puzzle<a class="headerlink" href="#monte-carlo-lock-puzzle" title="Permalink to this headline">¶</a></h1>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span>
+<span class="kn">from</span> <span class="nn">muk.core</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">muk.ext</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">import</span> <span class="nn">random</span><span class="o">,</span> <span class="nn">math</span>
+
+<span class="k">def</span> <span class="nf">machine</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">M</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">condi</span><span class="p">(</span><span class="o">*</span><span class="p">[[</span><span class="n">r</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">M</span><span class="p">),</span> <span class="n">succeed</span><span class="p">]</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rules</span><span class="p">],</span> <span class="n">dovetail</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span>
+
+<span class="k">def</span> <span class="nf">_machine</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">M</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">disj</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="n">r</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">M</span><span class="p">)</span> <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rules</span><span class="p">],</span> <span class="n">dovetail</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span>
+    
+<span class="k">def</span> <span class="nf">smachine</span><span class="p">(</span><span class="o">*</span><span class="p">,</span> <span class="n">rules</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">M</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">conds</span><span class="p">(</span><span class="o">*</span><span class="p">[[</span><span class="n">rv</span><span class="p">,</span> <span class="n">r</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">M</span><span class="p">),</span> <span class="n">succeed</span><span class="p">]</span> <span class="k">for</span> <span class="n">rv</span><span class="p">,</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rules</span><span class="p">],</span> <span class="n">dovetail</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">M</span>
+
+<span class="k">def</span> <span class="nf">nullo</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">unify</span><span class="p">([],</span> <span class="n">l</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">appendo</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">A</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">out</span><span class="p">)],</span>
+                     <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">res</span><span class="p">:</span> 
+                                            <span class="n">unify</span><span class="p">([</span><span class="n">a</span><span class="p">]</span><span class="o">+</span><span class="n">d</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="o">&amp;</span>
+                                            <span class="n">unify</span><span class="p">([</span><span class="n">a</span><span class="p">]</span><span class="o">+</span><span class="n">res</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span> <span class="o">&amp;</span>
+                                            <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">A</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">res</span><span class="p">))))</span>
+    <span class="k">return</span> <span class="n">A</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">reverseo</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The following implementation resembles the following Haskell equations:</span>
+
+<span class="sd">    reverse :: [a] -&gt; [a]</span>
+<span class="sd">    reverse [] = []</span>
+<span class="sd">    reverse (x:xs) = reverse xs ++ [x]</span>
+
+<span class="sd">    where `++` denotes the `append` function, therefore it computes in $O(n^{2})$ </span>
+<span class="sd">    because `++` computes in linear time respect to the size of its first list argument.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">nullo</span><span class="p">(</span><span class="n">l</span><span class="p">)],</span>
+                 <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">car</span><span class="p">,</span> <span class="n">cdr</span><span class="p">,</span> <span class="n">res</span><span class="p">:</span> 
+                    <span class="n">unify</span><span class="p">([</span><span class="n">car</span><span class="p">]</span><span class="o">+</span><span class="n">cdr</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span> <span class="o">&amp;</span>
+                    <span class="n">appendo</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="p">[</span><span class="n">car</span><span class="p">],</span> <span class="n">l</span><span class="p">)</span> <span class="o">&amp;</span>
+                    <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">reverseo</span><span class="p">(</span><span class="n">cdr</span><span class="p">,</span> <span class="n">res</span><span class="p">))))</span>
+
+<span class="k">def</span> <span class="nf">linear_reverseo</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+    <span class="sd">&#39;&#39;&#39;</span>
+<span class="sd">    The following implementation resembles the following Haskell equations:</span>
+
+<span class="sd">    reverse :: [a] -&gt; [a]</span>
+<span class="sd">    reverse xs = rev xs []</span>
+<span class="sd">        where   rev [] ys = ys</span>
+<span class="sd">                rev (x:xs) ys = rev xs (x:ys) </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">def</span> <span class="nf">ro</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span> <span class="n">ys</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">condi</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">xs</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">ys</span><span class="p">,</span> <span class="n">l</span><span class="p">)],</span>
+                     <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">car</span><span class="p">,</span> <span class="n">cdr</span><span class="p">:</span> 
+                        <span class="n">unify</span><span class="p">([</span><span class="n">car</span><span class="p">]</span><span class="o">+</span><span class="n">cdr</span><span class="p">,</span> <span class="n">xs</span><span class="p">)</span> <span class="o">@</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">ro</span><span class="p">(</span><span class="n">cdr</span><span class="p">,</span> <span class="p">[</span><span class="n">car</span><span class="p">]</span><span class="o">+</span><span class="n">ys</span><span class="p">))))</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">ys</span><span class="p">:</span> <span class="n">nullo</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">ro</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">ys</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">sreverseo</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">a</span><span class="p">),</span> <span class="n">nullo</span><span class="p">(</span><span class="n">l</span><span class="p">)],</span>
+                 <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">car</span><span class="p">,</span> <span class="n">cdr</span><span class="p">,</span> <span class="n">res</span><span class="p">:</span> 
+                                        <span class="n">stochastic_rank</span><span class="p">([</span><span class="n">geometric</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">2</span><span class="p">),</span> <span class="n">unify</span><span class="p">([</span><span class="n">car</span><span class="p">]</span><span class="o">+</span><span class="n">cdr</span><span class="p">,</span> <span class="n">a</span><span class="p">)],</span> 
+                                                        <span class="p">[</span><span class="n">geometric</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">3</span><span class="p">),</span> <span class="n">appendo</span><span class="p">(</span><span class="n">res</span><span class="p">,</span> <span class="p">[</span><span class="n">car</span><span class="p">],</span> <span class="n">l</span><span class="p">)],</span> 
+                                                        <span class="p">[</span><span class="n">geometric</span><span class="p">(</span><span class="n">p</span><span class="o">=</span><span class="mi">1</span><span class="o">/</span><span class="mi">10</span><span class="p">),</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">sreverseo</span><span class="p">(</span><span class="n">cdr</span><span class="p">,</span> <span class="n">res</span><span class="p">))],</span>
+                                                        <span class="n">link</span><span class="o">=</span><span class="n">conji</span><span class="p">)))</span>
+
+<span class="k">def</span> <span class="nf">associateo</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="n">γ2γ</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">appendo</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">γ</span><span class="p">,</span> <span class="n">γ2γ</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">symmetrico</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">reverseo</span><span class="o">=</span><span class="n">reverseo</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">reverseo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">repeato</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="n">γγ</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">appendo</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="n">γ</span><span class="p">,</span> <span class="n">γγ</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">mcculloch_first_ruleo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">unify</span><span class="p">([</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">mcculloch_second_ruleo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">δ2δ</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">:</span> <span class="n">unify</span><span class="p">([</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="n">η</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">associateo</span><span class="p">(</span><span class="n">δ</span><span class="p">,</span> <span class="n">δ2δ</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">machine</span><span class="p">(</span><span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">mcculloch_third_ruleo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">δ_reversed</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="p">,</span> <span class="n">reverseo</span><span class="o">=</span><span class="n">reverseo</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">:</span> <span class="n">unify</span><span class="p">([</span><span class="mi">4</span><span class="p">]</span><span class="o">+</span><span class="n">η</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">reverseo</span><span class="p">(</span><span class="n">δ</span><span class="p">,</span> <span class="n">δ_reversed</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">machine</span><span class="p">(</span><span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">mcculloch_fourth_ruleo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">δδ</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">:</span> <span class="n">unify</span><span class="p">([</span><span class="mi">5</span><span class="p">]</span><span class="o">+</span><span class="n">η</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">repeato</span><span class="p">(</span><span class="n">δ</span><span class="p">,</span> <span class="n">δδ</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">machine</span><span class="p">(</span><span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">mcculloch_fifth_ruleo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">appendo</span><span class="p">([</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">],</span> <span class="n">α</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">mcculloch_sixth_ruleo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">_2δ</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">:</span> <span class="n">unify</span><span class="p">([</span><span class="mi">6</span><span class="p">]</span><span class="o">+</span><span class="n">η</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span> <span class="o">@</span> <span class="n">unify</span><span class="p">([</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">δ</span><span class="p">,</span> <span class="n">_2δ</span><span class="p">)</span> <span class="o">@</span> <span class="n">machine</span><span class="p">(</span><span class="n">η</span><span class="p">,</span> <span class="n">δ</span><span class="p">))</span>
+
+<span class="n">mccullocho</span> <span class="o">=</span> <span class="n">machine</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[</span> <span class="n">mcculloch_second_ruleo</span><span class="p">,</span> <span class="n">mcculloch_first_ruleo</span><span class="p">,</span> <span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">mcculloch_lawo</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="n">αγ</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">mccullocho</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">:</span> <span class="n">appendo</span><span class="p">([</span><span class="mi">3</span><span class="p">,</span> <span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">α</span><span class="p">,</span> <span class="p">[</span><span class="mi">3</span><span class="p">],</span> <span class="n">γ</span><span class="p">)</span> <span class="o">@</span>
+                           <span class="n">appendo</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">γ</span><span class="p">,</span> <span class="n">αγ</span><span class="p">)</span> <span class="o">@</span>
+                           <span class="n">complement</span><span class="p">(</span><span class="n">nullo</span><span class="p">(</span><span class="n">α</span><span class="p">))</span> <span class="o">@</span>
+                           <span class="n">complement</span><span class="p">(</span><span class="n">nullo</span><span class="p">(</span><span class="n">γ</span><span class="p">))</span> <span class="o">@</span>
+                           <span class="n">machine</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="n">αγ</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">lengtho</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">l</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">L</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">acc</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">α</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">l</span><span class="p">,</span> <span class="n">acc</span><span class="p">)],</span>
+                     <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">β</span><span class="p">:</span> <span class="n">unify</span><span class="p">([</span><span class="n">a</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">L</span><span class="p">(</span><span class="n">β</span><span class="p">,</span> <span class="n">acc</span><span class="o">=</span><span class="n">acc</span><span class="o">+</span><span class="mi">1</span><span class="p">))))</span>
+
+    <span class="k">return</span> <span class="n">L</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">acc</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">leqo</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">project</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">,</span> <span class="n">into</span><span class="o">=</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="kc">True</span><span class="p">,</span> <span class="n">a</span> <span class="o">&lt;=</span> <span class="n">b</span><span class="p">))</span>
+
+
+<span class="n">mcculloch_o</span> <span class="o">=</span> <span class="n">machine</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[</span> <span class="n">mcculloch_second_ruleo</span><span class="p">,</span> <span class="n">mcculloch_third_ruleo</span><span class="p">,</span> <span class="n">mcculloch_first_ruleo</span><span class="p">,</span> <span class="p">])</span>
+<span class="n">mcculloch__o</span> <span class="o">=</span> <span class="n">machine</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[</span> <span class="n">mcculloch_second_ruleo</span><span class="p">,</span> <span class="n">mcculloch_fourth_ruleo</span><span class="p">,</span> 
+                                <span class="n">mcculloch_third_ruleo</span><span class="p">,</span> <span class="n">mcculloch_first_ruleo</span><span class="p">,</span> <span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">opnumbero</span><span class="p">(</span><span class="n">α</span><span class="p">):</span>
+     <span class="k">return</span> <span class="n">disj</span><span class="p">(</span><span class="n">nullo</span><span class="p">(</span><span class="n">α</span><span class="p">),</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">β</span><span class="p">:</span> 
+                                    <span class="n">appendo</span><span class="p">(</span><span class="n">β</span><span class="p">,</span> <span class="p">[</span><span class="n">a</span><span class="p">],</span> <span class="n">α</span><span class="p">)</span> <span class="o">@</span>
+                                    <span class="n">condi</span><span class="p">([</span><span class="n">unify</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+                                          <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+                                          <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="mi">5</span><span class="p">),</span> <span class="n">succeed</span><span class="p">])</span> <span class="o">@</span>
+                                    <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">opnumbero</span><span class="p">(</span><span class="n">β</span><span class="p">))))</span>
+
+
+<span class="k">def</span> <span class="nf">operationo</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="n">χ</span><span class="p">,</span> <span class="n">M_of_χ</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">mcculloch__o</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">M2χ</span><span class="p">:</span> <span class="n">appendo</span><span class="p">(</span><span class="n">M</span><span class="p">,</span> <span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="n">χ</span><span class="p">,</span> <span class="n">M2χ</span><span class="p">)</span> <span class="o">@</span> <span class="n">machine</span><span class="p">(</span><span class="n">M2χ</span><span class="p">,</span> <span class="n">M_of_χ</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">craig_lawo</span><span class="p">(</span><span class="n">Mγ</span><span class="p">,</span> <span class="n">M_of_Mγ</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">mcculloch__o</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">γ</span><span class="p">:</span> <span class="n">mcculloch_lawo</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="n">Mγ</span><span class="p">)</span> <span class="o">@</span> <span class="n">machine</span><span class="p">(</span><span class="n">Mγ</span><span class="p">,</span> <span class="n">M_of_Mγ</span><span class="p">))</span>
+
+<span class="k">def</span> <span class="nf">craig_second_lawo</span><span class="p">(</span><span class="n">Mγ</span><span class="p">,</span> <span class="n">M_of_Mγ</span><span class="p">,</span> <span class="o">*</span><span class="p">,</span> <span class="n">machine</span><span class="o">=</span><span class="n">mcculloch__o</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">γ</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">A</span><span class="p">:</span> <span class="n">mcculloch_lawo</span><span class="p">(</span><span class="n">γ</span><span class="p">,</span> <span class="n">Mγ</span><span class="p">)</span> <span class="o">@</span> <span class="n">appendo</span><span class="p">(</span><span class="n">A</span><span class="p">,</span> <span class="n">M</span><span class="p">,</span> <span class="n">Mγ</span><span class="p">)</span> <span class="o">@</span> <span class="n">machine</span><span class="p">(</span><span class="n">Mγ</span><span class="p">,</span> <span class="n">M_of_Mγ</span><span class="p">))</span>
+
+<span class="n">mcculloch___o</span> <span class="o">=</span> <span class="n">machine</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[</span> <span class="n">mcculloch_fourth_ruleo</span><span class="p">,</span> <span class="n">mcculloch_third_ruleo</span><span class="p">,</span> 
+                                <span class="n">mcculloch_sixth_ruleo</span><span class="p">,</span> <span class="n">mcculloch_fifth_ruleo</span> <span class="p">])</span>
+
+<span class="k">def</span> <span class="nf">bernoulli</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">p</span><span class="o">**</span><span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span> <span class="o">&lt;=</span> <span class="n">p</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="k">yield</span> <span class="n">obs</span><span class="p">,</span> <span class="n">pdf</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">binomial</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">B</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">n</span><span class="p">)</span><span class="o">//</span><span class="p">(</span><span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">p</span><span class="p">)</span><span class="o">*</span><span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">p</span><span class="p">))</span>
+    
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">B</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">k</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span><span class="o">**</span><span class="n">k</span> <span class="o">*</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">n</span><span class="o">-</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="n">coins</span> <span class="o">=</span> <span class="p">[</span><span class="n">bernoulli</span><span class="p">(</span><span class="n">p</span><span class="p">)]</span> <span class="o">*</span> <span class="n">n</span>
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">flips</span> <span class="o">=</span> <span class="nb">map</span><span class="p">(</span><span class="n">operator</span><span class="o">.</span><span class="n">itemgetter</span><span class="p">(</span><span class="mi">0</span><span class="p">),</span> <span class="nb">map</span><span class="p">(</span><span class="nb">next</span><span class="p">,</span> <span class="n">coins</span><span class="p">))</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">flips</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">obs</span><span class="p">,</span> <span class="n">pdf</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">geometric</span><span class="p">(</span><span class="n">p</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">p</span><span class="p">)</span><span class="o">**</span><span class="p">(</span><span class="n">k</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span> <span class="o">*</span> <span class="n">p</span>
+
+    <span class="n">Biter</span> <span class="o">=</span> <span class="nb">iter</span><span class="p">(</span><span class="n">bernoulli</span><span class="p">(</span><span class="n">p</span><span class="p">))</span>
+    <span class="k">def</span> <span class="nf">G</span><span class="p">():</span>
+        <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span> 
+            <span class="n">i</span><span class="o">+=</span><span class="mi">1</span>
+            <span class="n">head</span><span class="p">,</span> <span class="n">p</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">Biter</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">head</span><span class="p">:</span> <span class="k">break</span>
+        <span class="k">return</span> <span class="n">i</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="n">G</span><span class="p">()</span>
+        <span class="k">yield</span> <span class="n">obs</span><span class="p">,</span> <span class="n">pdf</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">constant</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">p</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">p</span> <span class="k">if</span> <span class="n">k</span> <span class="o">==</span> <span class="n">v</span> <span class="k">else</span> <span class="mi">0</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="n">v</span>
+        <span class="k">yield</span> <span class="n">obs</span><span class="p">,</span> <span class="n">pdf</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span> 
+
+<span class="k">def</span> <span class="nf">poisson</span><span class="p">(</span><span class="n">rate</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">pdf</span><span class="p">(</span><span class="n">k</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">math</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="o">-</span><span class="n">rate</span><span class="p">)</span> <span class="o">*</span> <span class="n">rate</span><span class="o">**</span><span class="n">k</span> <span class="o">/</span> <span class="n">math</span><span class="o">.</span><span class="n">factorial</span><span class="p">(</span><span class="n">k</span><span class="p">)</span>
+
+    <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">random</span><span class="o">.</span><span class="n">random</span><span class="p">()</span>
+        <span class="n">t</span> <span class="o">=</span> <span class="o">-</span><span class="n">math</span><span class="o">.</span><span class="n">log</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">u</span><span class="p">)</span><span class="o">/</span><span class="n">rate</span>
+        <span class="n">obs</span> <span class="o">=</span> <span class="n">math</span><span class="o">.</span><span class="n">floor</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+        <span class="k">yield</span> <span class="n">obs</span><span class="p">,</span> <span class="n">pdf</span><span class="p">(</span><span class="n">obs</span><span class="p">)</span>
+
+<span class="n">α</span> <span class="o">=</span> <span class="n">geometric</span><span class="p">(</span><span class="n">p</span><span class="o">=.</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">β</span> <span class="o">=</span> <span class="n">geometric</span><span class="p">(</span><span class="n">p</span><span class="o">=.</span><span class="mi">5</span><span class="p">)</span>
+<span class="n">γ</span> <span class="o">=</span> <span class="n">geometric</span><span class="p">(</span><span class="n">p</span><span class="o">=.</span><span class="mi">8</span><span class="p">)</span>
+<span class="n">η</span> <span class="o">=</span> <span class="n">geometric</span><span class="p">(</span><span class="n">p</span><span class="o">=.</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">ω</span> <span class="o">=</span> <span class="n">constant</span><span class="p">(</span><span class="n">v</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">p</span><span class="o">=.</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="n">smcculloch___o</span> <span class="o">=</span> <span class="n">smachine</span><span class="p">(</span><span class="n">rules</span><span class="o">=</span><span class="p">[</span> <span class="p">[</span><span class="n">γ</span><span class="p">,</span> <span class="n">mcculloch_fourth_ruleo</span><span class="p">],</span> 
+                                  <span class="p">[</span><span class="n">α</span><span class="p">,</span> <span class="n">mcculloch_third_ruleo</span><span class="p">],</span> 
+                                  <span class="p">[</span><span class="n">β</span><span class="p">,</span> <span class="n">mcculloch_sixth_ruleo</span><span class="p">],</span> 
+                                  <span class="p">[</span><span class="n">η</span><span class="p">,</span> <span class="n">mcculloch_fifth_ruleo</span><span class="p">]</span> <span class="p">])</span>
+
+</pre></div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">microkanrenpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="write_the_doc.html">Intro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="primer.html">A Primer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reasoned_schemer.html">The Reasoned Schemer</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Monte Carlo Lock puzzle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="under_the_hood.html"><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="reasoned_schemer.html" title="previous chapter">The Reasoned Schemer</a></li>
+      <li>Next: <a href="under_the_hood.html" title="next chapter"><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Massimo Nocentini.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/mclock.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

@@ -1,0 +1,391 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>muk.core module &#8212; microkanrenpy 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Monte Carlo Lock puzzle" href="mclock.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="module-muk.core">
+<span id="muk-core-module"></span><h1><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module<a class="headerlink" href="#module-muk.core" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="laws">
+<h2>Laws<a class="headerlink" href="#laws" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt><em>law of fresh</em></dt><dd><p>if x is fresh, then unify(v, x) succeeds and associates x with v</p>
+</dd>
+<dt><em>law of unify</em></dt><dd><p>unify(v, w) is the same as unify(w, v)</p>
+</dd>
+<dt><em>law of conde</em></dt><dd><p>to get more values from conde, pretend that the successful conde line
+has failed, refreshing all variables that got an association from that
+line</p>
+</dd>
+</dl>
+</div>
+<div class="section" id="commandments">
+<h2>Commandments<a class="headerlink" href="#commandments" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt><em>second</em></dt><dd><p>to transform a function whose value is not a Boolean into a function
+whose value is a goal, add an extra argument to hold its value, replace
+<cite>cond</cite> with <cite>conde</cite>, and unnest each question and answer.</p>
+</dd>
+</dl>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">muk.core</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">muk.ext</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="primitive-goals-and-ctors">
+<h2>Primitive goals and ctors<a class="headerlink" href="#primitive-goals-and-ctors" title="Permalink to this headline">¶</a></h2>
+<dl class="py attribute">
+<dt id="muk.core.succeed">
+<code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">succeed</code><a class="headerlink" href="#muk.core.succeed" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt id="muk.core.fail">
+<code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">fail</code><a class="headerlink" href="#muk.core.fail" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="muk.core._disj">
+<em class="property">class </em><code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">_disj</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">g1</span></em>, <em class="sig-param"><span class="n">g2</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">interleaving</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#_disj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core._disj" title="Permalink to this definition">¶</a></dt>
+<dd><p>A goal that is satisfiable if <em>either</em> goal <code class="docutils literal notranslate"><span class="pre">g1</span></code> <em>or</em> goal <code class="docutils literal notranslate"><span class="pre">g2</span></code> is satisfiable.</p>
+<p>Formally, it produces the following states space:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\left( \begin{array}{c}s \stackrel{g_{1}}{\mapsto} \alpha \\ s \stackrel{g_{2}}{\mapsto} \beta \end{array}\right)
+ = \left( \begin{array}{ccccc}        
+       s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \ldots \\
+       s_{10} &amp; s_{11} &amp; s_{12} &amp; s_{13} &amp; \ldots \\
+       \end{array}\right)\end{split}\]</div>
+<p>enumerated using <code class="docutils literal notranslate"><span class="pre">mplus</span></code> according to <code class="docutils literal notranslate"><span class="pre">interleaving</span></code> arg.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="muk.core._conj">
+<em class="property">class </em><code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">_conj</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">g1</span></em>, <em class="sig-param"><span class="n">g2</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">interleaving</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#_conj"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core._conj" title="Permalink to this definition">¶</a></dt>
+<dd><p>A goal that is satisfiable if <em>both</em> goal <code class="docutils literal notranslate"><span class="pre">g1</span></code> <em>and</em> goal <code class="docutils literal notranslate"><span class="pre">g2</span></code> is satisfiable.</p>
+<p>Formally, it produces the following states space:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}s \stackrel{g_{1}}{\mapsto} \alpha = \left( \begin{array}{c}s_{0}\\s_{1}\\s_{2}\\ s_{3}\\ \ldots\end{array}\right)
+  \stackrel{bind(\alpha, g_{2})}{\mapsto} \left( \begin{array}{ccccc}        
+                                        s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \ldots \\
+                                        s_{10} &amp; s_{11} &amp; s_{12} &amp; \ldots &amp;        \\
+                                        s_{20} &amp; s_{21} &amp; \ldots &amp;        &amp;         \\
+                                        s_{30} &amp; \ldots &amp;        &amp;        &amp;         \\
+                                        \ldots &amp;        &amp;        &amp;        &amp;         \\
+                                        \end{array}\right)\end{split}\]</div>
+</dd></dl>
+
+<dl class="py class">
+<dt id="muk.core.fresh">
+<em class="property">class </em><code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">fresh</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">f</span></em>, <em class="sig-param"><span class="n">arity</span><span class="o">=</span><span class="default_value">None</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#fresh"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core.fresh" title="Permalink to this definition">¶</a></dt>
+<dd><p>Introduce new logic variables according to the needs of receiver <code class="docutils literal notranslate"><span class="pre">f</span></code>.</p>
+<p>If <code class="docutils literal notranslate"><span class="pre">f</span></code> is a thunk then <code class="docutils literal notranslate"><span class="pre">fresh</span></code> is equivalent to the inversion of η-rule 
+as defined in <em>higher-order</em> logic:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">def</span> <span class="nf">η_inverse</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="nf">I</span><span class="p">(</span><span class="n">s</span> <span class="p">:</span> <span class="n">state</span><span class="p">):</span>
+        <span class="n">g</span> <span class="o">=</span> <span class="n">t</span><span class="p">()</span>
+        <span class="k">yield from</span> <span class="n">g</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">I</span>
+</pre></div>
+</div>
+<p>having particular application in the definition of <em>recursive</em> relations.</p>
+</dd></dl>
+
+<dl class="py class">
+<dt id="muk.core._unify">
+<em class="property">class </em><code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">_unify</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">u</span></em>, <em class="sig-param"><span class="n">v</span></em>, <em class="sig-param"><span class="n">ext_s</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#_unify"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core._unify" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempts to perform <a class="reference internal" href="#muk.core.unification" title="muk.core.unification"><code class="xref py py-func docutils literal notranslate"><span class="pre">unification</span></code></a> to make
+<code class="docutils literal notranslate"><span class="pre">u</span></code> and <code class="docutils literal notranslate"><span class="pre">v</span></code> unifiable given a set of associations for logic variables.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="muk.core.unification">
+<code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">unification</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">u</span></em>, <em class="sig-param"><span class="n">v</span></em>, <em class="sig-param"><span class="n">sub</span></em>, <em class="sig-param"><span class="n">ext_s</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#unification"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core.unification" title="Permalink to this definition">¶</a></dt>
+<dd><p>Attempts to augment substitution <code class="docutils literal notranslate"><span class="pre">sub</span></code> with associations that makes <code class="docutils literal notranslate"><span class="pre">u</span></code>
+unify with <code class="docutils literal notranslate"><span class="pre">v</span></code>.</p>
+</dd></dl>
+
+</div>
+<div class="section" id="states-streams-and-enumerations">
+<h2>States streams and enumerations<a class="headerlink" href="#states-streams-and-enumerations" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="muk.core.mplus">
+<code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">mplus</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">streams</span></em>, <em class="sig-param"><span class="n">interleaving</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#mplus"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core.mplus" title="Permalink to this definition">¶</a></dt>
+<dd><p>It enumerates the states space <code class="docutils literal notranslate"><span class="pre">streams</span></code>, using different strategies
+according to <code class="docutils literal notranslate"><span class="pre">interleaving</span></code>.</p>
+<p>In order to understand states enumeration can be helpful to use a matrix,
+where we associate a row to each stream of states α belonging to
+<code class="docutils literal notranslate"><span class="pre">streams</span></code>.  Since <code class="docutils literal notranslate"><span class="pre">streams</span></code> is an <code class="docutils literal notranslate"><span class="pre">iter</span></code> obj over a <em>countably</em>,
+possibly infinite, set of <em>states streams</em>, the matrix could have infinite
+rows.  In parallel, since each states stream α lying on a row is a <code class="docutils literal notranslate"><span class="pre">iter</span></code>
+obj over a <em>countably</em>, possibly infinite, set of <em>satisfying states</em>, the
+matrix could have infinite columns; therefore, the matrix we are building
+could be infinite in both dimensions. So, let <code class="docutils literal notranslate"><span class="pre">streams</span></code> be represented as follows:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\left( \begin{array}{ccccc}        
+s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \ldots \\
+s_{10} &amp; s_{11} &amp; s_{12} &amp; \ldots &amp;        \\
+s_{20} &amp; s_{21} &amp; \ldots &amp;        &amp;         \\
+s_{30} &amp; \ldots &amp;        &amp;        &amp;         \\
+\ldots &amp;        &amp;        &amp;        &amp;         \\
+\end{array}\right)\end{split}\]</div>
+<p>In order to enumerate this infinite matrix we have the following strategies:</p>
+<dl>
+<dt><em>depth-first</em></dt><dd><p>Enumerates a stream α committed to it until it is saturated or continue to yield its
+<code class="docutils literal notranslate"><span class="pre">state</span></code> objects forever; in other words, it enumerates row by row. For the sake of clarity,
+assume the first <span class="math notranslate nohighlight">\(k\)</span> streams are finite and the <span class="math notranslate nohighlight">\(k\)</span>-th is the first to be infinite, hence
+we are in the following context:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\left( \begin{array}{ccccc}        
+s_{00} &amp; s_{01} &amp; \ldots &amp; s_{0i_{0}} \\
+s_{10} &amp; s_{11} &amp; \ldots &amp; s_{1i_{1}} \\
+\ldots_{\triangle} \\
+s_{k-1, 0} &amp; s_{k-1,1} &amp; \ldots &amp;  s_{k-1,i_{k-1}} \\
+s_{k0} &amp; s_{k1} &amp; \ldots &amp;  \ldots &amp;  \ldots \\
+s_{k+1, 0} &amp; \ldots &amp;        &amp;   \\
+\ldots &amp;        &amp;        &amp;   \\
+\end{array}\right)\end{split}\]</div>
+<p>so enumeration proceeds as follows: <span class="math notranslate nohighlight">\(s_{00}, s_{01},\ldots,
+s_{0i_{0}}, s_{10}, s_{11}, \ldots, s_{1i_{1}}, \ldots_{\triangle}, s_{k-1,0},
+s_{k-1, 1},\ldots, s_{k-1,i_{k-1}}, s_{k0}, s_{k1},\ldots\)</span> yielding from stream <span class="math notranslate nohighlight">\(\alpha_{k}\)</span> forever,
+<em>never</em> reaching <span class="math notranslate nohighlight">\(s_{k+1, 0}\)</span>.</p>
+</dd>
+<dt><em>breadth-first</em></dt><dd><p>Enumerates interleaving <em>state</em> objects belonging to adjacent streams,
+lying on the same column; in other words, it enumerates column by
+column. If <code class="docutils literal notranslate"><span class="pre">streams</span></code> is an iterator over an infinite set of streams,
+the it enumerates only the very first <code class="docutils literal notranslate"><span class="pre">state</span></code> objects, namely
+<span class="math notranslate nohighlight">\(s_{00}, s_{10}, s_{20}, s_{30},\ldots\)</span>.</p>
+<p>The following is a straighforward implementation:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">itertools</span> <span class="kn">import</span> <span class="n">chain</span>
+
+<span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+    <span class="k">try</span><span class="p">:</span> 
+        <span class="n">α</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">streams</span><span class="p">)</span>
+    <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span> 
+        <span class="k">break</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">s</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">α</span><span class="p">)</span> <span class="c1"># s : state </span>
+        <span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+            <span class="k">continue</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">yield</span> <span class="n">s</span>
+            <span class="n">streams</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">streams</span><span class="p">,</span> <span class="p">[</span><span class="n">α</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd>
+<dt><em>dovetail</em></dt><dd><p>Enumerates interleaving <cite>state</cite> objects lying on the same <em>diagonal</em>,
+resulting in a <em>fair scheduler</em> in the sense that <em>every</em> satisfying
+<code class="docutils literal notranslate"><span class="pre">state</span></code> object will be reached, eventually. For the sake of clarity,
+enumeration proceeds as follows:</p>
+<div class="math notranslate nohighlight">
+\[s_{00}, s_{10}, s_{01}, s_{20}, s_{11}, s_{02}, s_{30}, s_{21},
+s_{12}, s_{03}, \ldots\]</div>
+<p>providing a <em>complete</em> enumeration strategy.</p>
+</dd>
+</dl>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>stream</strong> (<em>iter</em>) – an iterator over a <em>countable</em> set of <code class="docutils literal notranslate"><span class="pre">state</span></code>-streams</p></li>
+<li><p><strong>interleaving</strong> (<em>bool</em>) – enumeration strategy selector: <em>dovetail</em> if <code class="docutils literal notranslate"><span class="pre">interleaving</span></code> else <em>depth-first</em></p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>an <code class="docutils literal notranslate"><span class="pre">iter</span></code> object over satisfying <code class="docutils literal notranslate"><span class="pre">state</span></code> objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="muk.core.bind">
+<code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">bind</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">α</span></em>, <em class="sig-param"><span class="n">goals</span></em>, <em class="sig-param"><span class="o">*</span></em>, <em class="sig-param"><span class="n">mplus</span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#bind"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core.bind" title="Permalink to this definition">¶</a></dt>
+<dd><p>A stream combinator, it applies goal <code class="docutils literal notranslate"><span class="pre">g</span></code> to each <code class="docutils literal notranslate"><span class="pre">state</span></code> in stream <code class="docutils literal notranslate"><span class="pre">α</span></code>.</p>
+<p>Such mapping can be <em>linear</em> in the sense of vanilla <code class="docutils literal notranslate"><span class="pre">map</span></code> application:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\alpha = \left( \begin{array}{c}s_{0}\\s_{1}\\s_{2}\\ s_{3}\\ \ldots\end{array}\right)
+  \stackrel{map(g, \alpha)}{\mapsto} \left( \begin{array}{ccccc}        
+                                        s_{00} &amp; s_{01} &amp; s_{02} &amp; s_{03} &amp; \ldots \\
+                                        s_{10} &amp; s_{11} &amp; s_{12} &amp; \ldots &amp;        \\
+                                        s_{20} &amp; s_{21} &amp; \ldots &amp;        &amp;         \\
+                                        s_{30} &amp; \ldots &amp;        &amp;        &amp;         \\
+                                        \ldots &amp;        &amp;        &amp;        &amp;         \\
+                                        \end{array}\right)\end{split}\]</div>
+<p>After the mapping obj is built, it is consumed as argument by <code class="docutils literal notranslate"><span class="pre">mplus</span></code> to
+enumerate the states space.</p>
+<p>Moreover, a recursive implementation can be written as found in <em>The
+Reasoned Schemer</em>, but in some cases it raises <code class="docutils literal notranslate"><span class="pre">RecursionError</span></code> due to
+Python limitation on stack usage:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="k">try</span><span class="p">:</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="nb">next</span><span class="p">(</span><span class="n">α</span><span class="p">)</span> <span class="c1"># s : state </span>
+<span class="k">except</span> <span class="ne">StopIteration</span><span class="p">:</span>
+    <span class="k">yield from</span> <span class="n">fail</span><span class="p">()</span>
+<span class="k">else</span><span class="p">:</span>
+    <span class="n">β</span> <span class="o">=</span> <span class="n">g</span><span class="p">(</span><span class="n">s</span><span class="p">)</span>
+    <span class="n">γ</span> <span class="o">=</span> <span class="n">bind</span><span class="p">(</span><span class="n">α</span><span class="p">,</span> <span class="n">g</span><span class="p">,</span> <span class="n">mplus</span><span class="p">)</span>
+    <span class="k">yield from</span> <span class="n">mplus</span><span class="p">(</span><span class="nb">iter</span><span class="p">([</span><span class="n">β</span><span class="p">,</span> <span class="n">γ</span><span class="p">]))</span>
+</pre></div>
+</div>
+<p>which produces the following states space:</p>
+<div class="math notranslate nohighlight">
+\[\begin{split}\alpha = \left( \begin{array}{c}s_{0}\\s_{1}\\s_{2}\\ s_{3}\\ \ldots\end{array}\right)
+  \stackrel{bind(\alpha, g)}{\mapsto} \left( \begin{array}{l}        
+                                        s_{00} \, s_{01} \, s_{02} \, s_{03} \, s_{04} \,s_{05} \,\ldots \\
+                                        \left( \begin{array}{l}
+                                        s_{10} \, s_{11} \, s_{12} \, \ldots \,        \\
+                                        \left( \begin{array}{l}        
+                                        s_{20} \, s_{21} \, \ldots \,        \,         \\
+                                        \left( \begin{array}{l}        
+                                        s_{30} \, \ldots \,        \,        \,         \\
+                                        \ldots \,        \,        \,        \,         \\
+                                        \end{array}\right)
+                                    \end{array}\right)
+                                \end{array}\right)
+                            \end{array}\right)\end{split}\]</div>
+<p>assuming we want to enumerate using interleaving:</p>
+<div class="math notranslate nohighlight">
+\[s_{00}, s_{10}, s_{01}, s_{20}, s_{02}, s_{11}, s_{03}, s_{30}, s_{04}, s_{12}, s_{05}, s_{21}\ldots\]</div>
+<p>which, although <em>complete</em>, is <em>unbalanced</em> in favor of first streams.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>α</strong> (<em>iter</em>) – an iterator over a <em>countable</em> set of <code class="docutils literal notranslate"><span class="pre">state</span></code> objects</p></li>
+<li><p><strong>g</strong> (<em>goal</em>) – a relation to be satisfied</p></li>
+<li><p><strong>mplus</strong> (<em>callable</em>) – states space enumeration strategy</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>an <code class="docutils literal notranslate"><span class="pre">iter</span></code> object over satisfying <code class="docutils literal notranslate"><span class="pre">state</span></code> objects</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="solver-and-interface">
+<h2>Solver and interface<a class="headerlink" href="#solver-and-interface" title="Permalink to this headline">¶</a></h2>
+<dl class="py function">
+<dt id="muk.core.run">
+<code class="sig-prename descclassname">muk.core.</code><code class="sig-name descname">run</code><span class="sig-paren">(</span><em class="sig-param">goal</em>, <em class="sig-param">n=False</em>, <em class="sig-param">var_selector=&lt;function &lt;lambda&gt;&gt;</em>, <em class="sig-param">post=&lt;function &lt;lambda&gt;&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/muk/core.html#run"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#muk.core.run" title="Permalink to this definition">¶</a></dt>
+<dd><p>Looks for a list of at most <code class="docutils literal notranslate"><span class="pre">n</span></code> associations <code class="docutils literal notranslate"><span class="pre">[(u,</span> <span class="pre">v)</span> <span class="pre">for</span> <span class="pre">v</span> <span class="pre">in</span> <span class="pre">...]</span></code>
+such that when var <code class="docutils literal notranslate"><span class="pre">u</span></code> takes value <code class="docutils literal notranslate"><span class="pre">v</span></code> the relation <code class="docutils literal notranslate"><span class="pre">goal</span></code> is
+satisfied, where <code class="docutils literal notranslate"><span class="pre">u</span></code> is the <em>main var</em> respect the whole <code class="docutils literal notranslate"><span class="pre">run</span></code>
+invocation; otherwise, it enumerates the relation if <code class="docutils literal notranslate"><span class="pre">n</span></code> is <code class="docutils literal notranslate"><span class="pre">False</span></code>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>goal</strong> – the relation to be satisfied respect to the main var according to <code class="xref py py-obj docutils literal notranslate"><span class="pre">var_selector</span></code>.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">microkanrenpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="write_the_doc.html">Intro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="primer.html">A Primer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reasoned_schemer.html">The Reasoned Schemer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mclock.html">Monte Carlo Lock puzzle</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#"><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#laws">Laws</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#commandments">Commandments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#primitive-goals-and-ctors">Primitive goals and ctors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#states-streams-and-enumerations">States streams and enumerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#solver-and-interface">Solver and interface</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="mclock.html" title="previous chapter">Monte Carlo Lock puzzle</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Massimo Nocentini.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/under_the_hood.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

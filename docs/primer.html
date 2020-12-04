@@ -1,0 +1,666 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>A Primer &#8212; microkanrenpy 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="The Reasoned Schemer" href="reasoned_schemer.html" />
+    <link rel="prev" title="Intro" href="write_the_doc.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="a-primer">
+<span id="primer"></span><h1>A Primer<a class="headerlink" href="#a-primer" title="Permalink to this headline">¶</a></h1>
+<p>This short document aims to show the basic concepts underlying <em>μkanren</em>,
+namely relations as goals, and how to use primitive goals as building blocks to
+build and define relations. We start from two primitive relations toward
+recursive relations, through constructors, fresh logic variables, unification
+and η-inversion.</p>
+<p>First of all we start importing objects and definitions of the logic system:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">muk.core</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">muk.ext</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">muk.utils</span> <span class="kn">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>Moreover, our definitions lies on the following imports:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">collections</span> <span class="kn">import</span> <span class="n">defaultdict</span><span class="p">,</span> <span class="n">Counter</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">functools</span> <span class="kn">import</span> <span class="n">lru_cache</span>
+</pre></div>
+</div>
+<p>We use the interface function <a class="reference internal" href="under_the_hood.html#muk.core.run" title="muk.core.run"><code class="xref py py-func docutils literal notranslate"><span class="pre">run</span></code></a> to ask for
+substitutions that satisfy the relation under study; moreover, nouns <em>relation</em>,
+<em>goal</em> and <em>predicate</em> are equivalent notions and denotes the same concept in
+the rest of this presentation.</p>
+<div class="section" id="primitive-goals">
+<h2>Primitive goals<a class="headerlink" href="#primitive-goals" title="Permalink to this headline">¶</a></h2>
+<p>The two primitive goals <a class="reference internal" href="under_the_hood.html#muk.core.succeed" title="muk.core.succeed"><code class="xref py py-func docutils literal notranslate"><span class="pre">succeed</span></code></a> and
+<a class="reference internal" href="under_the_hood.html#muk.core.fail" title="muk.core.fail"><code class="xref py py-func docutils literal notranslate"><span class="pre">fail</span></code></a> denote <em>truth</em> and <em>falsehood</em> in classic
+logic, respectively.</p>
+<div class="section" id="succeed">
+<h3><code class="docutils literal notranslate"><span class="pre">succeed</span></code><a class="headerlink" href="#succeed" title="Permalink to this headline">¶</a></h3>
+<p>Asking for all substitutions that satisfy the <code class="docutils literal notranslate"><span class="pre">succeed</span></code>
+relation yields a tautology, namely any substitution works:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">succeed</span><span class="p">)</span>
+<span class="go">[Tautology]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="fail">
+<h3><code class="docutils literal notranslate"><span class="pre">fail</span></code><a class="headerlink" href="#fail" title="Permalink to this headline">¶</a></h3>
+<p>On the other hand, there is no substitution that satisfies the <code class="docutils literal notranslate"><span class="pre">fail</span></code> relation:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fail</span><span class="p">)</span>
+<span class="go">[]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="goal-ctors">
+<h2>Goal ctors<a class="headerlink" href="#goal-ctors" title="Permalink to this headline">¶</a></h2>
+<p>Before introducing goal constructors we show how a logic variable is
+represented when it doesn’t get any association:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">rvar</span><span class="p">(</span><span class="mi">0</span><span class="p">)</span>
+<span class="go">▢₀</span>
+</pre></div>
+</div>
+<p>where class <code class="docutils literal notranslate"><span class="pre">rvar</span></code> builds a <em>reified variable</em> providing an
+integer, namely <code class="docutils literal notranslate"><span class="pre">0</span></code>, to track the variable’s birthdate.</p>
+<div class="section" id="fresh">
+<h3><code class="docutils literal notranslate"><span class="pre">fresh</span></code><a class="headerlink" href="#fresh" title="Permalink to this headline">¶</a></h3>
+<p>It is a goal ctor that introduces <em>new</em> logic variables, namely variables without
+associations, according to the plugged-in lambda expression, which receives
+vars and returns a goal. Consider the following query where the variable <code class="docutils literal notranslate"><span class="pre">q</span></code>
+is introduced fresh:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">succeed</span><span class="p">))</span>
+<span class="go">[▢₀]</span>
+</pre></div>
+</div>
+<p>since the returned goal is <code class="docutils literal notranslate"><span class="pre">succeed</span></code> and var <code class="docutils literal notranslate"><span class="pre">q</span></code> doesn’t get any
+association, it remains fresh in the list of values, result of the whole
+<code class="docutils literal notranslate"><span class="pre">run</span></code> invocation, that satisfy the goal <code class="docutils literal notranslate"><span class="pre">fresh(lambda</span> <span class="pre">q:</span> <span class="pre">succeed)</span></code>.</p>
+<p>As particular case, it is possible to plugin a <em>thunk</em>, namely a lambda
+expression without argument:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">succeed</span><span class="p">))</span>
+<span class="go">[Tautology]</span>
+</pre></div>
+</div>
+<p>at a first this could look useless but it is of great help for the definition
+of <em>recursive relations</em> as we will see in later examples (it is an instance of
+η-inversion, formally).</p>
+</div>
+<div class="section" id="unify">
+<h3><code class="docutils literal notranslate"><span class="pre">unify</span></code><a class="headerlink" href="#unify" title="Permalink to this headline">¶</a></h3>
+<p>It is a goal ctor that attempts to make two arbitrary objects equal, recording
+associations when fresh variables appears in the nested structures under
+unification. Here we show two simple examples of unification, the first succeeds
+while the second doesn’t:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">unify</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="go">[Tautology]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">unify</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[[</span><span class="mi">1</span><span class="p">]]))</span>
+<span class="go">[]</span>
+</pre></div>
+</div>
+<p>On the other hand, things get interesting when fresh variables are mixed in:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="n">q</span><span class="p">)))</span>
+<span class="go">[3]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">q</span><span class="p">)))</span>
+<span class="go">[[2, 3]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">([[</span><span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="n">q</span><span class="p">,</span> <span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">q</span><span class="p">)))</span>
+<span class="go">[[2, 3]]</span>
+</pre></div>
+</div>
+<p>When two fresh vars are unified it is said that they <em>share</em> or <em>co-refer</em>:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">z</span><span class="p">)))</span>
+<span class="go">[▢₀]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="n">z</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">unify</span><span class="p">(</span><span class="n">z</span><span class="p">,</span> <span class="mi">3</span><span class="p">)),</span>
+<span class="gp">... </span>    <span class="n">var_selector</span><span class="o">=</span><span class="k">lambda</span> <span class="n">q</span><span class="p">,</span> <span class="n">z</span><span class="p">:</span> <span class="n">q</span><span class="p">)</span>
+<span class="go">[3]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="disj">
+<h3><code class="docutils literal notranslate"><span class="pre">disj</span></code><a class="headerlink" href="#disj" title="Permalink to this headline">¶</a></h3>
+<p>It is a goal ctor that consumes two goals and returns a new goal that can be
+satisfied when <em>either</em> the former <em>or</em> the latter goal can be satisfied:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">succeed</span> <span class="o">|</span> <span class="n">fail</span><span class="p">)</span>
+<span class="go">[Tautology]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fail</span> <span class="o">|</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">True</span><span class="p">)))</span>
+<span class="go">[Tautology]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">fail</span> <span class="o">|</span> <span class="n">fail</span><span class="p">))</span>
+<span class="go">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="o">|</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">True</span><span class="p">)))</span>
+<span class="go">[False, True]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="conj">
+<h3><code class="docutils literal notranslate"><span class="pre">conj</span></code><a class="headerlink" href="#conj" title="Permalink to this headline">¶</a></h3>
+<p>It is a goal ctor that consumes two goals and returns a new goal that can be
+satisfied when <em>both</em> the former <em>and</em> the latter goal can be satisfied:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">succeed</span> <span class="o">&amp;</span> <span class="n">fail</span><span class="p">)</span>
+<span class="go">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fail</span> <span class="o">&amp;</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">True</span><span class="p">)))</span>
+<span class="go">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="mi">3</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">succeed</span><span class="p">))</span>
+<span class="go">[3]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">True</span><span class="p">)))</span>
+<span class="go">[]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">False</span><span class="p">))</span> <span class="o">&amp;</span>
+<span class="gp">... </span>                    <span class="n">unify</span><span class="p">(</span><span class="n">q</span><span class="p">,</span> <span class="kc">True</span><span class="p">)))</span>
+<span class="go">[True]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="facts-and-recursive-relations">
+<h2>Facts and recursive relations<a class="headerlink" href="#facts-and-recursive-relations" title="Permalink to this headline">¶</a></h2>
+<p>In order to represent <em>facts</em> we introduce the <code class="xref py py-obj docutils literal notranslate"><span class="pre">conde</span></code> goal ctor,
+which is defined as a combination of conjs and disjs and we show how to write
+recursive relation, possibly satisfied by a countably infinite number of values.</p>
+<div class="section" id="conde">
+<h3><code class="docutils literal notranslate"><span class="pre">conde</span></code><a class="headerlink" href="#conde" title="Permalink to this headline">¶</a></h3>
+<p>The following simple example resembles facts declaration in Prolog about the father and
+grandfather toy example:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">father</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">unify</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;paul&#39;</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s1">&#39;jason&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;john&#39;</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s1">&#39;henry&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;jason&#39;</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s1">&#39;tom&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;peter&#39;</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s1">&#39;brian&#39;</span><span class="p">)],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="s1">&#39;tom&#39;</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="s1">&#39;peter&#39;</span><span class="p">)])</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">grand_father</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">s</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">p</span><span class="p">:</span> <span class="n">father</span><span class="p">(</span><span class="n">g</span><span class="p">,</span> <span class="n">p</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">father</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">rel</span><span class="p">,</span> <span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">:</span> <span class="n">grand_father</span><span class="p">(</span><span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">unify</span><span class="p">([</span><span class="n">p</span><span class="p">,</span> <span class="n">s</span><span class="p">],</span> <span class="n">rel</span><span class="p">)))</span>
+<span class="go">[[&#39;paul&#39;, &#39;tom&#39;], [&#39;jason&#39;, &#39;peter&#39;], [&#39;tom&#39;, &#39;brian&#39;]]</span>
+</pre></div>
+</div>
+<p>Introducing guided search:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">recuro</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">:</span> <span class="n">conde</span><span class="p">([</span><span class="n">unify</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;x&#39;</span><span class="p">]),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                                    <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;b&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">a</span><span class="p">),</span> <span class="n">recuro</span><span class="p">(</span><span class="n">a</span><span class="p">)],</span>
+<span class="gp">... </span>                                    <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;a&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">b</span><span class="p">),</span> <span class="n">recuro</span><span class="p">(</span><span class="n">b</span><span class="p">)]))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="n">recuro</span><span class="p">),</span> <span class="n">n</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+<span class="go">[[&#39;x&#39;], [&#39;b&#39;, &#39;x&#39;], [&#39;b&#39;, &#39;b&#39;, &#39;x&#39;], [&#39;b&#39;, &#39;b&#39;, &#39;b&#39;, &#39;x&#39;], [&#39;b&#39;, &#39;b&#39;, &#39;b&#39;, &#39;b&#39;, &#39;x&#39;]]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="inversion">
+<h3>η-inversion<a class="headerlink" href="#inversion" title="Permalink to this headline">¶</a></h3>
+<p>Let us define a relation that yields countably many 5 objects; in order to do
+that, the usual solution is to write a recursive definition. However, we
+proceed step by step, adjusting and learning from the Python semantic of
+argument evaluation at <em>function-call time</em>.  Consider the following as initial
+definition:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">fives</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">unify</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">RecursionError</span>: <span class="n">maximum recursion depth exceeded while calling a Python object</span>
+</pre></div>
+</div>
+<p>Exception <code class="docutils literal notranslate"><span class="pre">RecursionError</span></code> is raised because in the body of function <code class="docutils literal notranslate"><span class="pre">fives</span></code> it
+is required to evaluate <code class="docutils literal notranslate"><span class="pre">fives(x)</span></code> in order to return a <code class="docutils literal notranslate"><span class="pre">disj</span></code> object, but this is
+the point from were we started, hence no progress for recursion.</p>
+<p>Keeping in mind the previous argument, why not wrapping the recursion on
+<code class="docutils literal notranslate"><span class="pre">fives(x)</span></code> inside a <code class="docutils literal notranslate"><span class="pre">fresh</span></code> ctor in order to refresh the var <code class="docutils literal notranslate"><span class="pre">x</span></code> at
+each invocation?</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">fives</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">unify</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">)))</span>
+<span class="gt">Traceback (most recent call last):</span>
+<span class="c">...</span>
+<span class="gr">RecursionError</span>: <span class="n">maximum recursion depth exceeded while calling a Python object</span>
+</pre></div>
+</div>
+<p>Again the same exception as before, this time for a different reason, however:
+since we ask for all associations that satisfy the <em>countably infinite</em>
+relation <code class="docutils literal notranslate"><span class="pre">fives</span></code>, function <code class="docutils literal notranslate"><span class="pre">run</span></code> continue to look for such values which are
+infinite, of course. So, select only the first 10 objects:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">fives</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">unify</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">[5, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀, ▢₀]</span>
+</pre></div>
+</div>
+<p>Although not a list of 10 fives objects, it makes sense: the very first 5 gets
+associated to the var <code class="docutils literal notranslate"><span class="pre">x</span></code> introduced by the goal provided to <code class="docutils literal notranslate"><span class="pre">run</span></code> by the
+<code class="docutils literal notranslate"><span class="pre">fresh</span></code> ctor, and this association is only one way to satisfy the <code class="docutils literal notranslate"><span class="pre">disj</span></code> in
+the definition of relation <code class="docutils literal notranslate"><span class="pre">fives</span></code>. Looking for other associations that work,
+we attempt to satisfy the second goal in the <code class="docutils literal notranslate"><span class="pre">disj</span></code>, namely <code class="docutils literal notranslate"><span class="pre">fresh(lambda</span> <span class="pre">x:</span>
+<span class="pre">fives(x))</span></code>: it introduces a new var <code class="docutils literal notranslate"><span class="pre">x</span></code>, different from the previous one,
+and then recurs, leaving the original var without association. Since associations shown
+in the output list refer to the very first var <code class="docutils literal notranslate"><span class="pre">x</span></code>, we get many <code class="docutils literal notranslate"><span class="pre">▢₀</span></code> symbols
+which represent the absence of association, therefore <code class="docutils literal notranslate"><span class="pre">x</span></code> remains fresh.</p>
+<div class="section" id="fives">
+<h4><code class="docutils literal notranslate"><span class="pre">fives</span></code><a class="headerlink" href="#fives" title="Permalink to this headline">¶</a></h4>
+<p>One way to actually get a list of fives is to unify inside the inner <code class="docutils literal notranslate"><span class="pre">fresh</span></code>, as follows:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">fives</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">unify</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">y</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">y</span><span class="p">)</span> <span class="o">&amp;</span> <span class="n">unify</span><span class="p">(</span><span class="n">y</span><span class="p">,</span> <span class="n">x</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">[5, 5, 5, 5, 5, 5, 5, 5, 5, 5]</span>
+</pre></div>
+</div>
+<p>or to use <code class="docutils literal notranslate"><span class="pre">fresh</span></code> as <em>η-inversion</em> rule, as follows:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">fives</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">unify</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">[5, 5, 5, 5, 5, 5, 5, 5, 5, 5]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="nats">
+<h4><code class="docutils literal notranslate"><span class="pre">nats</span></code><a class="headerlink" href="#nats" title="Permalink to this headline">¶</a></h4>
+<p>Just for fun, using the previous trick and abstracting out the 5s,
+we can generate the naturals, taking only the first 10 as follows:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">nats</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">unify</span><span class="p">(</span><span class="n">n</span><span class="p">,</span> <span class="n">x</span><span class="p">)</span> <span class="o">|</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">nats</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">n</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">nats</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">[0, 1, 2, 3, 4, 5, 6, 7, 8, 9]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="append">
+<h4><code class="docutils literal notranslate"><span class="pre">append</span></code><a class="headerlink" href="#append" title="Permalink to this headline">¶</a></h4>
+<p>Here we want to define the relation <code class="docutils literal notranslate"><span class="pre">append(r,</span> <span class="pre">s,</span> <span class="pre">o)</span></code> which holds if
+<code class="docutils literal notranslate"><span class="pre">r</span> <span class="pre">+</span> <span class="pre">s</span> <span class="pre">==</span> <span class="pre">o</span></code> where <code class="docutils literal notranslate"><span class="pre">r,</span> <span class="pre">s,</span> <span class="pre">o</span></code> are both lists. First of all we need an
+helper relation <code class="docutils literal notranslate"><span class="pre">nullo</span></code> which holds if <code class="docutils literal notranslate"><span class="pre">l</span> <span class="pre">==</span> <span class="pre">[]</span></code>:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">nullo</span><span class="p">(</span><span class="n">l</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">unify</span><span class="p">([],</span> <span class="n">l</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>so it follows the recursive definition, as usual:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">s</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">A</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">out</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="n">unify</span><span class="p">(</span><span class="n">s</span><span class="p">,</span> <span class="n">out</span><span class="p">)],</span>
+<span class="gp">... </span>                     <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">a</span><span class="p">,</span> <span class="n">d</span><span class="p">,</span> <span class="n">res</span><span class="p">:</span>
+<span class="gp">... </span>                                           <span class="n">unify</span><span class="p">([</span><span class="n">a</span><span class="p">]</span><span class="o">+</span><span class="n">d</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="gp">... </span>                                           <span class="n">unify</span><span class="p">([</span><span class="n">a</span><span class="p">]</span><span class="o">+</span><span class="n">res</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="gp">... </span>                                           <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">A</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">res</span><span class="p">))))</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">A</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Some examples follow:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">append</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">],</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="n">q</span><span class="p">)))</span>
+<span class="go">[[1, 2, 3, 4, 5, 6]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">l</span><span class="p">,</span> <span class="n">q</span><span class="p">:</span> <span class="n">append</span><span class="p">([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="n">q</span><span class="p">,</span> <span class="p">[</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">],</span> <span class="n">l</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">4</span><span class="p">)</span> 
+<span class="go">[[1, 2, 3, 4, 5, 6],</span>
+<span class="go"> [1, 2, 3, ▢₀, 4, 5, 6],</span>
+<span class="go"> [1, 2, 3, ▢₀, ▢₁, 4, 5, 6],</span>
+<span class="go"> [1, 2, 3, ▢₀, ▢₁, ▢₂, 4, 5, 6]]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">r</span><span class="p">,</span> <span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">:</span>
+<span class="gp">... </span>            <span class="n">append</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;cake&#39;</span><span class="p">,</span> <span class="s1">&#39;with&#39;</span><span class="p">,</span> <span class="s1">&#39;ice&#39;</span><span class="p">,</span> <span class="s1">&#39;d&#39;</span><span class="p">,</span> <span class="s1">&#39;t&#39;</span><span class="p">])</span> <span class="o">&amp;</span>
+<span class="gp">... </span>            <span class="n">unify</span><span class="p">([</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">],</span> <span class="n">r</span><span class="p">)))</span> 
+<span class="go">[[[], [&#39;cake&#39;, &#39;with&#39;, &#39;ice&#39;, &#39;d&#39;, &#39;t&#39;]],</span>
+<span class="go"> [[&#39;cake&#39;], [&#39;with&#39;, &#39;ice&#39;, &#39;d&#39;, &#39;t&#39;]],</span>
+<span class="go"> [[&#39;cake&#39;, &#39;with&#39;], [&#39;ice&#39;, &#39;d&#39;, &#39;t&#39;]],</span>
+<span class="go"> [[&#39;cake&#39;, &#39;with&#39;, &#39;ice&#39;], [&#39;d&#39;, &#39;t&#39;]],</span>
+<span class="go"> [[&#39;cake&#39;, &#39;with&#39;, &#39;ice&#39;, &#39;d&#39;], [&#39;t&#39;]],</span>
+<span class="go"> [[&#39;cake&#39;, &#39;with&#39;, &#39;ice&#39;, &#39;d&#39;, &#39;t&#39;], []]]</span>
+</pre></div>
+</div>
+</div>
+</div>
+<div class="section" id="combinatorics">
+<h3>Combinatorics<a class="headerlink" href="#combinatorics" title="Permalink to this headline">¶</a></h3>
+<p>It is possible to generate the set of <em>Dyck paths</em> as it follows:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">dycko</span><span class="p">(</span><span class="n">α</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">α</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">β</span><span class="p">,</span> <span class="n">γ</span><span class="p">:</span>
+<span class="gp">... </span>                                    <span class="n">append</span><span class="p">([</span><span class="s1">&#39;(&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">,</span> <span class="p">[</span><span class="s1">&#39;)&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">γ</span><span class="p">,</span> <span class="n">α</span><span class="p">)</span> <span class="o">@</span> <span class="p">(</span><span class="n">dycko</span><span class="p">(</span><span class="n">β</span><span class="p">)</span> <span class="o">@</span> <span class="n">dycko</span><span class="p">(</span><span class="n">γ</span><span class="p">))))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">paths</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">:</span> <span class="n">dycko</span><span class="p">(</span><span class="n">α</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">D</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">α</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">α</span><span class="p">),</span> <span class="n">paths</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">D</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">α</span><span class="p">)</span><span class="o">//</span><span class="mi">2</span><span class="p">]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">α</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">dict</span><span class="p">(</span><span class="n">D</span><span class="p">)</span> 
+<span class="go">{0: [&#39;&#39;],</span>
+<span class="go"> 1: [&#39;()&#39;],</span>
+<span class="go"> 2: [&#39;()()&#39;, &#39;(())&#39;],</span>
+<span class="go"> 3: [&#39;()()()&#39;, &#39;(())()&#39;, &#39;()(())&#39;, &#39;(()())&#39;, &#39;((()))&#39;],</span>
+<span class="go"> 4: [&#39;(())()()&#39;, &#39;()()()()&#39;, &#39;(())(())&#39;, &#39;()(())()&#39;, &#39;(()()())&#39;, &#39;(()())()&#39;, &#39;()()(())&#39;, &#39;(()(()))&#39;, &#39;((()))()&#39;, &#39;()(()())&#39;, &#39;((())())&#39;, &#39;()((()))&#39;, &#39;((()()))&#39;, &#39;(((())))&#39;],</span>
+<span class="go"> 5: [&#39;(())()()()&#39;, &#39;(())(())()&#39;, &#39;(()()()())&#39;, &#39;(()()())()&#39;, &#39;(()())()()&#39;, &#39;(())()(())&#39;, &#39;()(())()()&#39;, &#39;(()()(()))&#39;, &#39;((()))()()&#39;, &#39;(())(()())&#39;, &#39;()()()()()&#39;, &#39;(()(()))()&#39;, &#39;(()())(())&#39;, &#39;((())()())&#39;, &#39;((()))(())&#39;, &#39;()(())(())&#39;, &#39;(())((()))&#39;, &#39;()()(())()&#39;, &#39;((())())()&#39;, &#39;()(()()())&#39;, &#39;(()(())())&#39;, &#39;()(()())()&#39;],</span>
+<span class="go"> 6: [&#39;(()()()()())&#39;, &#39;(()()()())()&#39;, &#39;(())(())()()&#39;, &#39;(()()()(()))&#39;, &#39;(()()())()()&#39;, &#39;(())()()()()&#39;, &#39;(()()(()))()&#39;, &#39;(()())()()()&#39;, &#39;((())()()())&#39;, &#39;((()))()()()&#39;, &#39;(())(())(())&#39;, &#39;(()(()))()()&#39;, &#39;(()())(())()&#39;, &#39;(())()(())()&#39;, &#39;((())()())()&#39;, &#39;(()()())(())&#39;, &#39;((()))(())()&#39;, &#39;(())(()()())&#39;, &#39;()(())()()()&#39;, &#39;(()(())()())&#39;, &#39;(()())()(())&#39;],</span>
+<span class="go"> 7: [&#39;(()()()()()())&#39;, &#39;(()()()()())()&#39;, &#39;(()()()()(()))&#39;, &#39;(()()()())()()&#39;, &#39;(()()()(()))()&#39;, &#39;((())()()()())&#39;, &#39;(()()(()))()()&#39;],</span>
+<span class="go"> 8: [&#39;(()()()()()()())&#39;, &#39;(()()()()()())()&#39;, &#39;(()()()()()(()))&#39;, &#39;(()()()()())()()&#39;, &#39;(()()()()(()))()&#39;],</span>
+<span class="go"> 9: [&#39;(()()()()()()()())&#39;, &#39;(()()()()()()())()&#39;]}</span>
+</pre></div>
+</div>
+<p>Fibonacci numbers as tailing problem:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">fibo</span><span class="p">(</span><span class="n">α</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">nullo</span><span class="p">(</span><span class="n">α</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="n">else_clause</span><span class="o">=</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">β</span><span class="p">:</span> <span class="n">condi</span><span class="p">([</span><span class="n">unify</span><span class="p">([</span><span class="s1">&#39;v&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">,</span> <span class="n">α</span><span class="p">),</span> <span class="n">fibo</span><span class="p">(</span><span class="n">β</span><span class="p">)],</span>
+<span class="gp">... </span>                                                   <span class="p">[</span><span class="n">unify</span><span class="p">([</span><span class="s1">&#39;hh&#39;</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">,</span> <span class="n">α</span><span class="p">),</span> <span class="n">fibo</span><span class="p">(</span><span class="n">β</span><span class="p">)])))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">strips</span> <span class="o">=</span> <span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">:</span> <span class="n">fibo</span><span class="p">(</span><span class="n">α</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">80</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">D</span> <span class="o">=</span> <span class="n">defaultdict</span><span class="p">(</span><span class="nb">list</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">α</span> <span class="ow">in</span> <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">:</span> <span class="s1">&#39;&#39;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">α</span><span class="p">),</span> <span class="n">strips</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="n">D</span><span class="p">[</span><span class="nb">len</span><span class="p">(</span><span class="n">α</span><span class="p">)]</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">α</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">dict</span><span class="p">(</span><span class="n">D</span><span class="p">)</span> 
+<span class="go">{0: [&#39;&#39;],</span>
+<span class="go"> 1: [&#39;v&#39;],</span>
+<span class="go"> 2: [&#39;hh&#39;, &#39;vv&#39;],</span>
+<span class="go"> 3: [&#39;hhv&#39;, &#39;vhh&#39;, &#39;vvv&#39;],</span>
+<span class="go"> 4: [&#39;hhhh&#39;, &#39;hhvv&#39;, &#39;vhhv&#39;, &#39;vvhh&#39;, &#39;vvvv&#39;],</span>
+<span class="go"> 5: [&#39;hhhhv&#39;, &#39;hhvhh&#39;, &#39;vhhhh&#39;, &#39;hhvvv&#39;, &#39;vhhvv&#39;, &#39;vvhhv&#39;, &#39;vvvhh&#39;, &#39;vvvvv&#39;],</span>
+<span class="go"> 6: [&#39;hhhhhh&#39;, &#39;hhhhvv&#39;, &#39;hhvhhv&#39;, &#39;vhhhhv&#39;, &#39;hhvvhh&#39;, &#39;vhhvhh&#39;, &#39;vvhhhh&#39;, &#39;hhvvvv&#39;, &#39;vhhvvv&#39;, &#39;vvhhvv&#39;, &#39;vvvhhv&#39;, &#39;vvvvhh&#39;, &#39;vvvvvv&#39;],</span>
+<span class="go"> 7: [&#39;hhhhhhv&#39;, &#39;hhhhvhh&#39;, &#39;hhvhhhh&#39;, &#39;vhhhhhh&#39;, &#39;hhhhvvv&#39;, &#39;hhvhhvv&#39;, &#39;vhhhhvv&#39;, &#39;hhvvhhv&#39;, &#39;vhhvhhv&#39;, &#39;vvhhhhv&#39;, &#39;hhvvvhh&#39;, &#39;vhhvvhh&#39;, &#39;vvhhvhh&#39;, &#39;vvvhhhh&#39;, &#39;hhvvvvv&#39;, &#39;vhhvvvv&#39;, &#39;vvhhvvv&#39;, &#39;vvvhhvv&#39;, &#39;vvvvhhv&#39;],</span>
+<span class="go"> 8: [&#39;hhhhhhhh&#39;, &#39;hhhhhhvv&#39;, &#39;hhhhvhhv&#39;, &#39;hhvhhhhv&#39;, &#39;vhhhhhhv&#39;, &#39;hhhhvvhh&#39;, &#39;hhvhhvhh&#39;, &#39;vhhhhvhh&#39;, &#39;hhvvhhhh&#39;, &#39;vhhvhhhh&#39;, &#39;vvhhhhhh&#39;, &#39;hhhhvvvv&#39;, &#39;hhvhhvvv&#39;, &#39;vhhhhvvv&#39;, &#39;hhvvhhvv&#39;, &#39;vhhvhhvv&#39;, &#39;vvhhhhvv&#39;],</span>
+<span class="go"> 9: [&#39;hhhhhhhhv&#39;, &#39;hhhhhhvhh&#39;, &#39;hhhhvhhhh&#39;, &#39;hhvhhhhhh&#39;, &#39;vhhhhhhhh&#39;, &#39;hhhhhhvvv&#39;, &#39;hhhhvhhvv&#39;, &#39;hhvhhhhvv&#39;, &#39;vhhhhhhvv&#39;],</span>
+<span class="go"> 10: [&#39;hhhhhhhhhh&#39;, &#39;hhhhhhhhvv&#39;]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fibo</span><span class="p">([</span><span class="s1">&#39;v&#39;</span><span class="p">,</span> <span class="s1">&#39;h&#39;</span><span class="p">,</span> <span class="s1">&#39;v&#39;</span><span class="p">]))</span>
+<span class="go">[]</span>
+</pre></div>
+</div>
+<p>Unfoldings within the Pascal triangle:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span> <span class="nn">sympy</span> <span class="kn">import</span> <span class="n">IndexedBase</span><span class="p">,</span> <span class="n">symbols</span><span class="p">,</span> <span class="n">latex</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">P</span> <span class="o">=</span> <span class="n">IndexedBase</span><span class="p">(</span><span class="s1">&#39;P&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">n</span><span class="p">,</span> <span class="n">m</span> <span class="o">=</span> <span class="n">symbols</span><span class="p">(</span><span class="s1">&#39;n m&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">pascalo</span><span class="p">(</span><span class="n">depth</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">α</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="ow">not</span> <span class="n">depth</span><span class="p">:</span> <span class="k">return</span> <span class="n">unify</span><span class="p">([</span><span class="n">P</span><span class="p">[</span><span class="n">r</span><span class="p">,</span><span class="n">c</span><span class="p">]],</span> <span class="n">α</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">β</span><span class="p">,</span> <span class="n">γ</span><span class="p">:</span> <span class="p">(</span><span class="n">pascalo</span><span class="p">(</span><span class="n">depth</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">β</span><span class="p">)</span> <span class="o">@</span>
+<span class="gp">... </span>                               <span class="n">pascalo</span><span class="p">(</span><span class="n">depth</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="n">γ</span><span class="p">)</span> <span class="o">@</span>
+<span class="gp">... </span>                               <span class="n">append</span><span class="p">(</span><span class="n">β</span><span class="p">,</span> <span class="n">γ</span><span class="p">,</span> <span class="n">α</span><span class="p">)))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unfoldings</span> <span class="o">=</span> <span class="p">[</span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">:</span> <span class="n">pascalo</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">m</span><span class="p">,</span> <span class="n">α</span><span class="p">)))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">unfold</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">unfold</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">unfoldings</span><span class="p">))</span> 
+<span class="go">[P[n - 1, m - 1] + P[n - 1, m],</span>
+<span class="go"> 2*P[n - 2, m - 1] + P[n - 2, m - 2] + P[n - 2, m],</span>
+<span class="go"> 3*P[n - 3, m - 1] + 3*P[n - 3, m - 2] + P[n - 3, m - 3] + P[n - 3, m],</span>
+<span class="go"> 4*P[n - 4, m - 1] + 6*P[n - 4, m - 2] + 4*P[n - 4, m - 3] + P[n - 4, m - 4] + P[n - 4, m],</span>
+<span class="go"> 5*P[n - 5, m - 1] + 10*P[n - 5, m - 2] + 10*P[n - 5, m - 3] + 5*P[n - 5, m - 4] + P[n - 5, m - 5] + P[n - 5, m]]</span>
+</pre></div>
+</div>
+<p>Fibonacci rabbits, again:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">f</span> <span class="o">=</span> <span class="n">IndexedBase</span><span class="p">(</span><span class="s1">&#39;f&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">rabbitso</span><span class="p">(</span><span class="n">depth</span><span class="p">,</span> <span class="n">r</span><span class="p">,</span> <span class="n">α</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">if</span> <span class="ow">not</span> <span class="n">depth</span><span class="p">:</span> <span class="k">return</span> <span class="n">unify</span><span class="p">([</span><span class="n">f</span><span class="p">[</span><span class="n">r</span><span class="p">]],</span> <span class="n">α</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">β</span><span class="p">,</span> <span class="n">γ</span><span class="p">:</span> <span class="p">(</span><span class="n">rabbitso</span><span class="p">(</span><span class="n">depth</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">β</span><span class="p">)</span> <span class="o">@</span>
+<span class="gp">... </span>                               <span class="n">rabbitso</span><span class="p">(</span><span class="n">depth</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">r</span><span class="o">-</span><span class="mi">2</span><span class="p">,</span> <span class="n">γ</span><span class="p">)</span> <span class="o">@</span>
+<span class="gp">... </span>                               <span class="n">append</span><span class="p">(</span><span class="n">β</span><span class="p">,</span> <span class="n">γ</span><span class="p">,</span> <span class="n">α</span><span class="p">)))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">unfoldings</span> <span class="o">=</span> <span class="p">[</span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">:</span> <span class="n">rabbitso</span><span class="p">(</span><span class="n">d</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">α</span><span class="p">)))</span> <span class="k">for</span> <span class="n">d</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">6</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">unfold</span><span class="p">:</span> <span class="nb">sum</span><span class="p">(</span><span class="n">unfold</span><span class="p">[</span><span class="mi">0</span><span class="p">]),</span> <span class="n">unfoldings</span><span class="p">))</span> 
+<span class="go">[f[n - 1] + f[n - 2],</span>
+<span class="go"> f[n - 2] + 2*f[n - 3] + f[n - 4],</span>
+<span class="go"> f[n - 3] + 3*f[n - 4] + 3*f[n - 5] + f[n - 6],</span>
+<span class="go"> f[n - 4] + 4*f[n - 5] + 6*f[n - 6] + 4*f[n - 7] + f[n - 8],</span>
+<span class="go"> f[n - 10] + f[n - 5] + 5*f[n - 6] + 10*f[n - 7] + 10*f[n - 8] + 5*f[n - 9]]</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="interleaving">
+<h3>Interleaving<a class="headerlink" href="#interleaving" title="Permalink to this headline">¶</a></h3>
+<p>Let us now define an operator <code class="docutils literal notranslate"><span class="pre">repeat</span></code> which makes relations that succeed by
+unifying the curried variable with some plugged in object, infinitely many
+times:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">repeat</span><span class="p">(</span><span class="n">r</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">def</span> <span class="nf">R</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>        <span class="k">return</span> <span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">r</span><span class="p">)</span> <span class="o">|</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span><span class="p">:</span> <span class="n">R</span><span class="p">(</span><span class="n">x</span><span class="p">))</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">R</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p>consequently, use it to define four streams of numbers:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">ones</span> <span class="o">=</span> <span class="n">repeat</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">twos</span> <span class="o">=</span> <span class="n">repeat</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">threes</span> <span class="o">=</span> <span class="n">repeat</span><span class="p">(</span><span class="mi">3</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">fours</span> <span class="o">=</span> <span class="n">repeat</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>In the following example we use <code class="docutils literal notranslate"><span class="pre">conde</span></code>, which yields solutions of a cond
+line staying there when that line supplies multiple satisfying states, here
+infinite when it meets <code class="docutils literal notranslate"><span class="pre">fives</span></code>, by the way:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">facts</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">conde</span><span class="p">([</span><span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;pluto&#39;</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;topolino&#39;</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="n">else_clause</span><span class="o">=</span><span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;paperone&#39;</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">facts</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">[&#39;hello&#39;, &#39;pluto&#39;, 5, 5, 5, 5, 5, 5, 5, 5]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups_with_positions_notation</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<span class="go">hello₀</span>
+<span class="go">pluto₁</span>
+<span class="go">5₂, 5₃, 5₄, 5₅, 5₆, 5₇, 5₈, 5₉</span>
+</pre></div>
+</div>
+<p>On the other hand, <code class="docutils literal notranslate"><span class="pre">condi</span></code> allows us to explore the solutions space by interleaving:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">facts</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">condi</span><span class="p">([</span><span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;hello&#39;</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;pluto&#39;</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">fives</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="p">[</span><span class="n">ones</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">succeed</span><span class="p">],</span>
+<span class="gp">... </span>                 <span class="n">else_clause</span><span class="o">=</span><span class="n">unify</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="s1">&#39;paperone&#39;</span><span class="p">))</span>
+<span class="gp">...</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">facts</span><span class="p">(</span><span class="n">x</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="go">[&#39;hello&#39;, &#39;pluto&#39;, 5, 1, 5, &#39;paperone&#39;, 1, 5, 1, 5, 1, 5, 1, 5, 1]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups_with_positions_notation</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<span class="go">hello₀</span>
+<span class="go">pluto₁</span>
+<span class="go">5₂, 5₄, 5₇, 5₉, 5₁₁, 5₁₃</span>
+<span class="go">1₃, 1₆, 1₈, 1₁₀, 1₁₂, 1₁₄</span>
+<span class="go">paperone₅</span>
+</pre></div>
+</div>
+<p>Now, use only streams of numbers defined before and ask for the first 20
+associations that satisfy their <code class="docutils literal notranslate"><span class="pre">condi</span></code> combination, providing the keyword argument <code class="docutils literal notranslate"><span class="pre">dovetail=False</span></code>
+which <em>associates streams on the right</em>:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">condi</span><span class="p">([</span><span class="n">succeed</span><span class="p">,</span> <span class="n">ones</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span>
+<span class="gp">... </span>                          <span class="p">[</span><span class="n">succeed</span><span class="p">,</span> <span class="n">twos</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span>
+<span class="gp">... </span>                          <span class="p">[</span><span class="n">succeed</span><span class="p">,</span> <span class="n">threes</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span>
+<span class="gp">... </span>                          <span class="p">[</span><span class="n">succeed</span><span class="p">,</span> <span class="n">fours</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span>
+<span class="gp">... </span>                          <span class="n">dovetail</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="go">[1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups_with_positions_notation</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<span class="go">1₀, 1₂, 1₄, 1₆, 1₈, 1₁₀, 1₁₂, 1₁₄, 1₁₆, 1₁₈</span>
+<span class="go">2₁, 2₅, 2₉, 2₁₃, 2₁₇</span>
+<span class="go">3₃, 3₁₁, 3₁₉</span>
+<span class="go">4₇, 4₁₅</span>
+</pre></div>
+</div>
+<p>on the contrary, using <code class="docutils literal notranslate"><span class="pre">dovetail=True</span></code> allows us to get a more balanced
+interleaving (this is the default behaviour):</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">condi</span><span class="p">([</span><span class="n">succeed</span><span class="p">,</span> <span class="n">ones</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span>
+<span class="gp">... </span>                          <span class="p">[</span><span class="n">succeed</span><span class="p">,</span> <span class="n">twos</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span>
+<span class="gp">... </span>                          <span class="p">[</span><span class="n">succeed</span><span class="p">,</span> <span class="n">threes</span><span class="p">(</span><span class="n">q</span><span class="p">)],</span>
+<span class="gp">... </span>                          <span class="p">[</span><span class="n">succeed</span><span class="p">,</span> <span class="n">fours</span><span class="p">(</span><span class="n">q</span><span class="p">)])),</span> <span class="n">n</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="gp">...</span>
+<span class="go">[1, 2, 1, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups_with_positions_notation</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<span class="go">1₀, 1₂, 1₅, 1₉, 1₁₃, 1₁₇</span>
+<span class="go">2₁, 2₄, 2₈, 2₁₂, 2₁₆</span>
+<span class="go">3₃, 3₇, 3₁₁, 3₁₅, 3₁₉</span>
+<span class="go">4₆, 4₁₀, 4₁₄, 4₁₈</span>
+</pre></div>
+</div>
+<p>Previous expression is equivalent to combining streams with <code class="docutils literal notranslate"><span class="pre">disj</span></code> getting
+the same behavior of the last but one using the same keyword argument:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">disj</span><span class="p">(</span><span class="n">ones</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">twos</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">threes</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">fours</span><span class="p">(</span><span class="n">q</span><span class="p">),</span>
+<span class="gp">... </span>                         <span class="n">dovetail</span><span class="o">=</span><span class="kc">False</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="go">[1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3, 1, 2, 1, 4, 1, 2, 1, 3]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups_with_positions_notation</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<span class="go">1₀, 1₂, 1₄, 1₆, 1₈, 1₁₀, 1₁₂, 1₁₄, 1₁₆, 1₁₈</span>
+<span class="go">2₁, 2₅, 2₉, 2₁₃, 2₁₇</span>
+<span class="go">3₃, 3₁₁, 3₁₉</span>
+<span class="go">4₇, 4₁₅</span>
+</pre></div>
+</div>
+<p>Finally, it is possible to request a <em>fair enumeration</em> by <em>dovetail</em> strategy,
+setting the keyword argument <code class="docutils literal notranslate"><span class="pre">dovetail=True</span></code>, which is the default behavior:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">disj</span><span class="p">(</span><span class="n">ones</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">twos</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">threes</span><span class="p">(</span><span class="n">q</span><span class="p">),</span> <span class="n">fours</span><span class="p">(</span><span class="n">q</span><span class="p">))),</span> <span class="n">n</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="go">[1, 2, 1, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3, 2, 1, 4, 3]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups_with_positions_notation</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<span class="go">1₀, 1₂, 1₅, 1₉, 1₁₃, 1₁₇</span>
+<span class="go">2₁, 2₄, 2₈, 2₁₂, 2₁₆</span>
+<span class="go">3₃, 3₇, 3₁₁, 3₁₅, 3₁₉</span>
+<span class="go">4₆, 4₁₀, 4₁₄, 4₁₈</span>
+</pre></div>
+</div>
+<p>As the last but one example, combining streams with the binary operator <code class="docutils literal notranslate"><span class="pre">|</span></code>
+yields a yet different result because the <em>disjunction binary operator
+associates on the left</em>:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">q</span><span class="p">:</span> <span class="n">ones</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">|</span> <span class="n">twos</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">|</span> <span class="n">threes</span><span class="p">(</span><span class="n">q</span><span class="p">)</span> <span class="o">|</span> <span class="n">fours</span><span class="p">(</span><span class="n">q</span><span class="p">)),</span> <span class="n">n</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<span class="go">[1, 4, 3, 4, 2, 4, 3, 4, 1, 4, 3, 4, 2, 4, 3, 4, 1, 4, 3, 4]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">groups_with_positions_notation</span><span class="p">(</span><span class="n">_</span><span class="p">)</span>
+<span class="go">1₀, 1₈, 1₁₆</span>
+<span class="go">4₁, 4₃, 4₅, 4₇, 4₉, 4₁₁, 4₁₃, 4₁₅, 4₁₇, 4₁₉</span>
+<span class="go">3₂, 3₆, 3₁₀, 3₁₄, 3₁₈</span>
+<span class="go">2₄, 2₁₂</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="difference-structures">
+<h3>Difference structures<a class="headerlink" href="#difference-structures" title="Permalink to this headline">¶</a></h3>
+<p>The following implementation of <code class="docutils literal notranslate"><span class="pre">appendo</span></code> uses <em>difference lists</em>:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">def</span> <span class="nf">appendo</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">XY</span><span class="p">):</span>
+<span class="gp">... </span>    <span class="k">return</span> <span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">,</span> <span class="n">γ</span><span class="p">:</span> <span class="n">unify</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">α</span><span class="o">-</span><span class="n">β</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="gp">... </span>                                 <span class="n">unify</span><span class="p">(</span><span class="n">Y</span><span class="p">,</span> <span class="n">β</span><span class="o">-</span><span class="n">γ</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="gp">... </span>                                 <span class="n">unify</span><span class="p">(</span><span class="n">XY</span><span class="p">,</span> <span class="n">α</span><span class="o">-</span><span class="n">γ</span><span class="p">))</span>
+<span class="gp">...</span>
+</pre></div>
+</div>
+<p>and can be used as follows:</p>
+<div class="highlight-pycon3 notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">αβ</span><span class="p">,</span> <span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">:</span> <span class="n">appendo</span><span class="p">(([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="n">α</span><span class="p">)</span><span class="o">-</span><span class="n">α</span><span class="p">,</span> <span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">)</span><span class="o">-</span><span class="n">β</span><span class="p">,</span> <span class="n">αβ</span><span class="p">)))</span>
+<span class="go">[([1, 2, 3, 4, 5, 6] + ▢₀) - ▢₀]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">run</span><span class="p">(</span><span class="n">fresh</span><span class="p">(</span><span class="k">lambda</span> <span class="n">out</span><span class="p">,</span> <span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">,</span> <span class="n">α</span><span class="p">,</span> <span class="n">β</span><span class="p">:</span>
+<span class="gp">... </span>        <span class="n">appendo</span><span class="p">(([</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">]</span><span class="o">+</span><span class="n">α</span><span class="p">)</span><span class="o">-</span><span class="n">α</span><span class="p">,</span> <span class="p">([</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">]</span><span class="o">+</span><span class="n">β</span><span class="p">)</span><span class="o">-</span><span class="n">β</span><span class="p">,</span> <span class="n">X</span><span class="o">-</span><span class="n">Y</span><span class="p">)</span> <span class="o">&amp;</span>
+<span class="gp">... </span>        <span class="n">unify</span><span class="p">([</span><span class="n">X</span><span class="p">,</span> <span class="n">Y</span><span class="p">],</span> <span class="n">out</span><span class="p">)))</span>
+<span class="go">[[[1, 2, 3, 4, 5, 6] + ▢₀, ▢₀]]</span>
+</pre></div>
+</div>
+</div>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">microkanrenpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="write_the_doc.html">Intro</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">A Primer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#primitive-goals">Primitive goals</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#succeed"><code class="docutils literal notranslate"><span class="pre">succeed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#fail"><code class="docutils literal notranslate"><span class="pre">fail</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#goal-ctors">Goal ctors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#fresh"><code class="docutils literal notranslate"><span class="pre">fresh</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#unify"><code class="docutils literal notranslate"><span class="pre">unify</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#disj"><code class="docutils literal notranslate"><span class="pre">disj</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#conj"><code class="docutils literal notranslate"><span class="pre">conj</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#facts-and-recursive-relations">Facts and recursive relations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#conde"><code class="docutils literal notranslate"><span class="pre">conde</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#inversion">η-inversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#combinatorics">Combinatorics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#interleaving">Interleaving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#difference-structures">Difference structures</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reasoned_schemer.html">The Reasoned Schemer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mclock.html">Monte Carlo Lock puzzle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="under_the_hood.html"><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="write_the_doc.html" title="previous chapter">Intro</a></li>
+      <li>Next: <a href="reasoned_schemer.html" title="next chapter">The Reasoned Schemer</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Massimo Nocentini.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/primer.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

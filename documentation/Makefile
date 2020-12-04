@@ -24,5 +24,5 @@ help:
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 deploy:
-	rm -rf ~/Developer/working-copies/personal-stuff/massimo-nocentini.github.io/PhD/microkanrenpy
-	cp -r build/html ~/Developer/working-copies/personal-stuff/massimo-nocentini.github.io/PhD/microkanrenpy
+	rm -rf ../docs
+	cp -r build/html ../docs

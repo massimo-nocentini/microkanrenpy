@@ -1,0 +1,199 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>μkanrenpy &#8212; microkanrenpy 1.0 documentation</title>
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <script id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/language_data.js"></script>
+    <script async="async" src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Intro" href="write_the_doc.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <div class="section" id="kanrenpy">
+<h1>μkanrenpy<a class="headerlink" href="#kanrenpy" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="introduction">
+<h2>Introduction<a class="headerlink" href="#introduction" title="Permalink to this headline">¶</a></h2>
+<p>Welcome to documentation of <em>μkanrenpy</em>, a <em>pythonic</em> implementation of a
+<em>relational interpreter</em> and an effort to port the <a class="reference external" href="https://github.com/jasonhemann/microKanren">original code written in
+Scheme</a> by Jason Hemann and Daniel P. Friedman. We report
+their words to describe what this work is about:</p>
+<blockquote>
+<div><p>This paper presents μKanren, a minimalist language in the miniKanren family of
+relational (logic) programming languages. Its implementation comprises fewer
+than 40 lines of Scheme. We motivate the need for a minimalist miniKanren
+language, and iteratively develop a complete search strategy. Finally, we
+demonstrate that through sufficient user-level features one regains much of the
+expressiveness of other miniKanren languages. In our opinion its brevity and
+simple semantics make μKanren uniquely elegant.</p>
+</div></blockquote>
+</div>
+<div class="section" id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this headline">¶</a></h2>
+<p>We organize our thoughts according to the following outline:</p>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="write_the_doc.html">Intro</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="write_the_doc.html#why-write-docs">Why write docs</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#you-will-be-using-your-code-in-6-months-aka-the-future-of-this-project">You will be using your code in 6 months (aka, <em>the future of this project</em>)</a></li>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#you-want-people-to-use-your-code">You want people to use your code</a></li>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#you-want-people-to-help-out">You want people to help out</a></li>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#it-makes-your-code-better">It makes your code better</a></li>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#you-want-to-be-a-better-writer-aka-looking-at-the-past">You want to be a better writer (aka, <em>looking at the past</em>)</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="write_the_doc.html#what-technology">What technology</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#information-for-people-who-want-to-contribute-back">Information for people who want to contribute back</a></li>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#readme-rd-first">README.rd first</a></li>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#how-to-get-support">How to get support</a></li>
+<li class="toctree-l3"><a class="reference internal" href="write_the_doc.html#your-project-s-license">Your project’s license</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="primer.html">A Primer</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="primer.html#primitive-goals">Primitive goals</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#succeed"><code class="docutils literal notranslate"><span class="pre">succeed</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#fail"><code class="docutils literal notranslate"><span class="pre">fail</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="primer.html#goal-ctors">Goal ctors</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#fresh"><code class="docutils literal notranslate"><span class="pre">fresh</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#unify"><code class="docutils literal notranslate"><span class="pre">unify</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#disj"><code class="docutils literal notranslate"><span class="pre">disj</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#conj"><code class="docutils literal notranslate"><span class="pre">conj</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="primer.html#facts-and-recursive-relations">Facts and recursive relations</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#conde"><code class="docutils literal notranslate"><span class="pre">conde</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#inversion">η-inversion</a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#combinatorics">Combinatorics</a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#interleaving">Interleaving</a></li>
+<li class="toctree-l3"><a class="reference internal" href="primer.html#difference-structures">Difference structures</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reasoned_schemer.html">The Reasoned Schemer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mclock.html">Monte Carlo Lock puzzle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="under_the_hood.html"><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="under_the_hood.html#laws">Laws</a></li>
+<li class="toctree-l2"><a class="reference internal" href="under_the_hood.html#commandments">Commandments</a></li>
+<li class="toctree-l2"><a class="reference internal" href="under_the_hood.html#primitive-goals-and-ctors">Primitive goals and ctors</a></li>
+<li class="toctree-l2"><a class="reference internal" href="under_the_hood.html#states-streams-and-enumerations">States streams and enumerations</a></li>
+<li class="toctree-l2"><a class="reference internal" href="under_the_hood.html#solver-and-interface">Solver and interface</a></li>
+</ul>
+</li>
+</ul>
+</div>
+<p>This documentation is automatically generated using <a class="reference external" href="http://www.sphinx-doc.org/en/stable/">Sphinx</a>, which
+provides content search facilities, so a <a class="reference external" href="search.html">dedicated page</a> is provided
+for free for open searches.</p>
+</div>
+<div class="section" id="about">
+<h2>About<a class="headerlink" href="#about" title="Permalink to this headline">¶</a></h2>
+<dl class="simple">
+<dt>My name is Massimo Nocentini, I’m:</dt><dd><ul class="simple">
+<li><p>a PhD student &#64; <a class="reference external" href="http://www.unifi.it/">University of Florence</a></p></li>
+<li><p>coding &#64; <a class="reference external" href="https://github.com/massimo-nocentini/">GitHub</a></p></li>
+</ul>
+</dd>
+</dl>
+</div>
+</div>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="#">microkanrenpy</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="write_the_doc.html">Intro</a></li>
+<li class="toctree-l1"><a class="reference internal" href="primer.html">A Primer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reasoned_schemer.html">The Reasoned Schemer</a></li>
+<li class="toctree-l1"><a class="reference internal" href="mclock.html">Monte Carlo Lock puzzle</a></li>
+<li class="toctree-l1"><a class="reference internal" href="under_the_hood.html"><code class="docutils literal notranslate"><span class="pre">muk.core</span></code> module</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="write_the_doc.html" title="next chapter">Intro</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" />
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Massimo Nocentini.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 3.3.1</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.12</a>
+      
+      |
+      <a href="_sources/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
